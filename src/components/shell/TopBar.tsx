@@ -60,6 +60,8 @@ export const TopBar: React.FC = () => {
       setActiveRole('collection_manager');
     } else if (pathname.startsWith('/inventory') && activeRole !== 'inventory_manager') {
       setActiveRole('inventory_manager');
+    } else if (pathname.startsWith('/facilitator') && activeRole !== 'facilitator') {
+      setActiveRole('facilitator');
     }
   }, [pathname, activeRole, setActiveRole]);
 
@@ -72,6 +74,8 @@ export const TopBar: React.FC = () => {
       router.push('/collection');
     } else if (newRole === 'inventory_manager') {
       router.push('/inventory');
+    } else if (newRole === 'facilitator') {
+      router.push('/facilitator');
     }
   };
 
@@ -106,6 +110,9 @@ export const TopBar: React.FC = () => {
                 </option>
                 <option value="inventory_manager">
                   {language === 'OR' ? 'ଏସ. ଦାସ (ଗୋଦାମ ପରିଚାଳକ)' : 'S. Das (Inventory Manager)'}
+                </option>
+                <option value="facilitator">
+                  {language === 'OR' ? 'ଚମ୍ପା ମାଝୀ (ଏସଏଚଜି ସହାୟିକା)' : 'Champa Majhi (SHG Facilitator)'}
                 </option>
               </select>
               <ChevronDown

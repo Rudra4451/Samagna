@@ -15,6 +15,8 @@ import { StatusBadge, StatusVariant } from '../../components/ui/StatusBadge';
 import { VerifiedBadge } from '../../components/ui/VerifiedBadge';
 import { DiscrepancyCardArtifact } from '../../components/artifacts/DiscrepancyCardArtifact';
 import { AuditTimelineArtifact, AuditTimelineEvent } from '../../components/artifacts/AuditTimelineArtifact';
+import { InventoryManagerOnboarding } from '../../components/onboarding/InventoryManagerOnboarding';
+import { useRoleOnboarding } from '../../lib/useOnboarding';
 import {
   Table,
   TableHeader,
@@ -111,6 +113,17 @@ const INVENTORY_VILLAGES = ['Badagaon, Karanjia', 'Kadamdiha, Karanjia', 'Sundar
 
 export default function InventoryManagerPage() {
   const { isOffline } = useAppStore();
+
+  // Role onboarding state (Rule 1 & 5)
+  const { isOnboarded, isLoaded, complete } = useRoleOnboarding('inventory');
+
+  const handleVerifyBatchFromOnboarding = () => {
+    complete();
+    setSelectedBatchCode('#BS-402');
+    setShowDiscardPrompt(false);
+    setIsDrawerOpen(true);
+  };
+
   // Stat Tiles State (Expected is forecast only and never changes stock)
   const [expectedStock] = useState<number>(500.0);
   const [pendingStock, setPendingStock] = useState<number>(100.0);
@@ -743,6 +756,14 @@ export default function InventoryManagerPage() {
 
   return (
     <AppShell>
+      {/* Inventory Manager First-Run Onboarding Modal (Rule 5) */}
+      {!isOnboarded && isLoaded && (
+        <InventoryManagerOnboarding
+          onVerifyBatch={handleVerifyBatchFromOnboarding}
+          onSkip={complete}
+        />
+      )}
+
       <div className="space-y-6">
         {/* Top of Content Header with Top-Right Primary Action (Rule 2) */}
         <div className="border-b border-rule pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

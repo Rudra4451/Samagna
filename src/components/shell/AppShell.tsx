@@ -16,6 +16,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const isCollector = pathname.startsWith('/collector');
   const isCollection = pathname.startsWith('/collection');
   const isInventory = pathname.startsWith('/inventory');
+  const isFacilitator = pathname.startsWith('/facilitator');
   const isDesign = pathname.startsWith('/design');
 
   return (
@@ -40,6 +41,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <div className="max-w-[1200px] mx-auto w-full">
               {children}
             </div>
+          </main>
+        </div>
+      ) : isFacilitator ? (
+        <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
+          <main className="max-w-4xl mx-auto w-full">
+            {children}
           </main>
         </div>
       ) : (

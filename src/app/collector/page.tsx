@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AppShell } from '../../components/shell/AppShell';
 import { useAppStore } from '../../store/useAppStore';
 import { DEMO_COLLECTORS, DEMO_PRODUCT, DEMO_FACILITATOR } from '../../demo/seed';
@@ -14,6 +14,8 @@ import { useAction } from '../../lib/useAction';
 import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import { useFontScale } from '../../lib/useFontScale';
 import { useFirstRun } from '../../lib/useFirstRun';
+import { CollectorOnboarding } from '../../components/onboarding/CollectorOnboarding';
+import { useRoleOnboarding, getFirstRequestStatus, setFirstRequestCompleted } from '../../lib/useOnboarding';
 import { DemoStatePanel } from '../../components/demo/DemoStatePanel';
 import {
   ProductIcon,
@@ -247,6 +249,29 @@ export default function CollectorMobilePage() {
   const [typedConfirmWord, setTypedConfirmWord] = useState('');
   const [lastFetched, setLastFetched] = useState<Date>(new Date());
 
+  // Role onboarding state (Rule 1 & 2)
+  const { isOnboarded, isLoaded, complete } = useRoleOnboarding('collector');
+  const [showFirstRequestHint, setShowFirstRequestHint] = useState<boolean>(false);
+
+  // First request hint timer (Rule 3: disappears after first submit or after 15s)
+  useEffect(() => {
+    if (isPickupSheetOpen && !getFirstRequestStatus()) {
+      setShowFirstRequestHint(true);
+      const timer = setTimeout(() => {
+        setShowFirstRequestHint(false);
+        setFirstRequestCompleted();
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPickupSheetOpen]);
+
+  const handleCollectorOnboardingComplete = () => {
+    complete();
+    setTimeout(() => {
+      document.getElementById('current-price-card')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   // Toast state
   const [activeToast, setActiveToast] = useState<{ id: string; message: string } | null>(null);
 
@@ -363,6 +388,8 @@ export default function CollectorMobilePage() {
       setIsPhotoOnlyMode(false);
       setIsListeningVoice(false);
       setVoiceSpokenText('');
+      setShowFirstRequestHint(false);
+      setFirstRequestCompleted();
 
       return newCode;
     },
@@ -454,6 +481,11 @@ export default function CollectorMobilePage() {
 
   return (
     <AppShell>
+      {/* 3-Slide Visual Swipeable Collector Onboarding (Rule 2) */}
+      {!isOnboarded && isLoaded && (
+        <CollectorOnboarding onComplete={handleCollectorOnboardingComplete} />
+      )}
+
       {/* Dev-only ?demo=1 live state switcher */}
       <DemoStatePanel
         onTriggerZeroTyping={() => {
@@ -495,7 +527,7 @@ export default function CollectorMobilePage() {
             NUMBERS OVER WORDS: Prominent Price & Product Recognition
             (Constraint 3 & 4)
            ======================================================== */}
-        <section aria-label="Official Rate Benchmark" className="space-y-2">
+        <section id="current-price-card" aria-label="Official Rate Benchmark" className="space-y-2">
           <div className="rounded-[4px] border-2 border-accent/70 bg-surface p-4 sm:p-5 shadow-none relative">
             <div className="flex items-center justify-between mb-2">
               <span className={cn('text-[11px] font-bold uppercase tracking-[0.06em] text-accent select-none', isOr && 'font-odia text-[12px]')}>
@@ -866,6 +898,33 @@ export default function CollectorMobilePage() {
           </BottomSheetHeader>
 
           <BottomSheetBody>
+            {/* Rule 3: Small inline hint at the top of first request sheet */}
+            {showFirstRequestHint && (
+              <div className="mb-3 p-2.5 rounded-[2px] border border-rule bg-bg-sunken text-[12px] text-ink flex items-center justify-between gap-2 animate-in fade-in duration-150">
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-ink">
+                    Type the quantity or tap the mic. Tap Submit when done.
+                  </p>
+                  {isOr && (
+                    <p className="font-odia text-[13px] text-ink-muted">
+                      ପରିମାଣ ଲେଖନ୍ତୁ କିମ୍ବା ମାଇକ୍ ବଟନ୍ ଦବାନ୍ତୁ। ଶେଷରେ Submit ଦବାନ୍ତୁ।
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFirstRequestHint(false);
+                    setFirstRequestCompleted();
+                  }}
+                  className="text-ink-subtle hover:text-ink text-[12px] font-mono px-1.5 py-0.5 border border-rule bg-surface rounded-[2px] shrink-0"
+                  aria-label="Dismiss inline hint"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="space-y-4">
               {/* Product Selection Carousel/Grid with 48x48 Mono-line Icons (Constraint 4) */}
               <div className="space-y-2">

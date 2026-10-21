@@ -10,6 +10,8 @@ import { getDatabase, PendingSyncItem } from '../../lib/db';
 import { DEMO_PRODUCT, DEMO_COLLECTORS, DEMO_FACILITATOR } from '../../demo/seed';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { StatusBadge, StatusVariant } from '../../components/ui/StatusBadge';
+import { CollectionManagerOnboarding } from '../../components/onboarding/CollectionManagerOnboarding';
+import { useRoleOnboarding } from '../../lib/useOnboarding';
 import {
   Table,
   TableHeader,
@@ -106,6 +108,19 @@ const COLLECTION_VILLAGES = ['Badagaon, Karanjia', 'Kadamdiha, Karanjia', 'Sunda
 
 export default function CollectionManagerPage() {
   const { isOffline, pendingRecords, setOffline } = useAppStore();
+
+  // Role onboarding state (Rule 1 & 4)
+  const { isOnboarded, isLoaded, complete } = useRoleOnboarding('collection');
+
+  const handleOpenQueue = () => {
+    complete();
+    document.getElementById('pickup-queue-table')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleOpenOfflineQueue = () => {
+    complete();
+    document.getElementById('offline-queue-card')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // 6 Seed rows across statuses with enhanced metadata
   const [queueItems, setQueueItems] = useState<QueueItem[]>([
@@ -697,6 +712,15 @@ export default function CollectionManagerPage() {
 
   return (
     <AppShell>
+      {/* Collection Manager First-Run Onboarding Modal (Rule 4) */}
+      {!isOnboarded && isLoaded && (
+        <CollectionManagerOnboarding
+          onOpenQueue={handleOpenQueue}
+          onOpenOfflineQueue={handleOpenOfflineQueue}
+          onSkip={complete}
+        />
+      )}
+
       <div className="space-y-6">
         {/* Top of Content Header with Top-Right Primary Action (Rule 2) */}
         <div className="border-b border-rule pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -745,7 +769,7 @@ export default function CollectionManagerPage() {
             </div>
 
             {/* Table Container with Sticky Header & First Column (Rules 4, 5, 8, 9, 10) */}
-            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
+            <div id="pickup-queue-table" className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <Table className="w-full border-collapse">
                   <TableHeader>
@@ -1060,7 +1084,8 @@ export default function CollectionManagerPage() {
             </Card>
 
             {/* Card 2: Offline queue */}
-            <Card>
+            <div id="offline-queue-card">
+              <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <SectionLabel>Offline queue</SectionLabel>
@@ -1130,6 +1155,7 @@ export default function CollectionManagerPage() {
                 </button>
               </CardFooter>
             </Card>
+            </div>
           </div>
         </div>
       </div>

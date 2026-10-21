@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type DemoRole = 'collector' | 'collection_manager' | 'inventory_manager';
+export type DemoRole = 'collector' | 'collection_manager' | 'inventory_manager' | 'facilitator';
 export type AppLanguage = 'EN' | 'OR';
 export type CollectorTab = 'home' | 'prices' | 'requests' | 'help';
 

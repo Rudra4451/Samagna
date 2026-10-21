@@ -163,17 +163,115 @@ export default function DemoStatePage() {
             </CardContent>
           </Card>
 
-          {/* Quick Links */}
-          <div className="border border-rule rounded-[4px] p-4 bg-bg-sunken flex items-center justify-between">
-            <span className="text-[13px] text-ink-muted">View Global Sync Queue:</span>
-            <div className="flex gap-2">
-              <Link href="/settings/sync">
-                <Button variant="secondary" className="gap-1.5">
-                  <ExternalLink size={14} /> /settings/sync
+          {/* Card 5: First-Run Onboarding State Configuration (Prompt Requirement 1) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[16px] flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-accent" />
+                First-Run Role Onboarding (`localStorage`)
+              </CardTitle>
+              <CardDescription>
+                Controls stateful 30-second onboarding for all roles (`onboarded:collector`, `onboarded:collection`, `onboarded:inventory`, `onboarded:facilitator`, and first-request inline hint).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b border-rule pb-3">
+                <div>
+                  <span className="text-[13px] font-semibold text-ink block">
+                    Global Reset
+                  </span>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Clears all role onboarding keys
+                  </span>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    localStorage.removeItem('onboarded:collector');
+                    localStorage.removeItem('onboarded:collection');
+                    localStorage.removeItem('onboarded:inventory');
+                    localStorage.removeItem('onboarded:facilitator');
+                    localStorage.removeItem('onboarded:collector_first_request');
+                    alert('All role onboarding states have been reset! Visiting any role will now trigger the initial 30s experience.');
+                  }}
+                >
+                  Reset All Onboarding
                 </Button>
+              </div>
+
+              {/* Individual Role Controls */}
+              <div className="grid grid-cols-2 gap-2 text-[12px] font-mono">
+                <div className="p-2 border border-rule rounded-[2px] flex items-center justify-between bg-bg-sunken/40">
+                  <span>Collector:</span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('onboarded:collector');
+                      localStorage.removeItem('onboarded:collector_first_request');
+                      alert('Collector onboarding & first-request hint reset.');
+                    }}
+                    className="text-accent hover:underline font-semibold"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="p-2 border border-rule rounded-[2px] flex items-center justify-between bg-bg-sunken/40">
+                  <span>Collection:</span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('onboarded:collection');
+                      alert('Collection manager onboarding reset.');
+                    }}
+                    className="text-accent hover:underline font-semibold"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="p-2 border border-rule rounded-[2px] flex items-center justify-between bg-bg-sunken/40">
+                  <span>Inventory:</span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('onboarded:inventory');
+                      alert('Inventory manager onboarding reset.');
+                    }}
+                    className="text-accent hover:underline font-semibold"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="p-2 border border-rule rounded-[2px] flex items-center justify-between bg-bg-sunken/40">
+                  <span>Facilitator:</span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('onboarded:facilitator');
+                      alert('Facilitator onboarding reset.');
+                    }}
+                    className="text-accent hover:underline font-semibold"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Links */}
+          <div className="border border-rule rounded-[4px] p-4 bg-bg-sunken flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span className="text-[13px] text-ink-muted">Quick Launch Roles:</span>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/collector">
+                <Button variant="secondary" size="sm">Collector</Button>
               </Link>
-              <Link href="/collector?demo=1">
-                <Button variant="primary">Launch /collector (?demo=1)</Button>
+              <Link href="/collection">
+                <Button variant="secondary" size="sm">Collection</Button>
+              </Link>
+              <Link href="/inventory">
+                <Button variant="secondary" size="sm">Inventory</Button>
+              </Link>
+              <Link href="/facilitator">
+                <Button variant="secondary" size="sm">Facilitator</Button>
               </Link>
             </div>
           </div>
