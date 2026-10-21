@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useId } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
 import { AppShell } from '../../components/shell/AppShell';
@@ -52,30 +52,72 @@ import {
   SlidersHorizontal,
   Info,
   Trash2,
+  Check,
 } from 'lucide-react';
+import { useHotkeys } from '../../lib/useHotkeys';
+import { KeyboardShortcutsDrawer } from '../../components/manager/KeyboardShortcutsDrawer';
+import {
+  ManagerFilterBar,
+  ManagerFiltersState,
+  ColumnConfig,
+  TableDensity,
+} from '../../components/manager/ManagerFilterBar';
+import { BulkActionBar } from '../../components/manager/BulkActionBar';
+import { RowActionMenu } from '../../components/manager/RowActionMenu';
+import { InlineEditableCell } from '../../components/manager/InlineEditableCell';
 
 interface QueueItem {
   code: string;
   collector: string;
+  village: string;
   product: string;
   estQty: number;
+  qualityGrade: 'A' | 'B' | 'C';
   requestedAt: string;
+  requestedDateIso: string;
   status: 'Pending' | 'Scheduled' | 'Collected' | 'In Review' | 'Quarantined';
   statusVariant: StatusVariant;
   syncState?: SyncState;
+  hasInlineEdit?: boolean;
 }
+
+const DEFAULT_COLLECTION_COLUMNS: ColumnConfig[] = [
+  { id: 'code', label: 'Batch Code', visible: true },
+  { id: 'collector', label: 'Collector', visible: true },
+  { id: 'village', label: 'Village', visible: true },
+  { id: 'product', label: 'Product', visible: true },
+  { id: 'estQty', label: 'Est. Weight', visible: true },
+  { id: 'quality', label: 'Quality', visible: true },
+  { id: 'requested', label: 'Requested', visible: true },
+  { id: 'status', label: 'Status', visible: true },
+  { id: 'sync', label: 'Sync State', visible: true },
+  { id: 'action', label: 'Actions', visible: true },
+];
+
+const COLLECTION_STATUSES = [
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Scheduled', label: 'Scheduled' },
+  { value: 'Collected', label: 'Collected' },
+  { value: 'In Review', label: 'In Review' },
+  { value: 'Quarantined', label: 'Quarantined' },
+];
+
+const COLLECTION_VILLAGES = ['Badagaon, Karanjia', 'Kadamdiha, Karanjia', 'Sundargarh'];
 
 export default function CollectionManagerPage() {
   const { isOffline, pendingRecords, setOffline } = useAppStore();
 
-  // 6 Seed rows across statuses
+  // 6 Seed rows across statuses with enhanced metadata
   const [queueItems, setQueueItems] = useState<QueueItem[]>([
     {
       code: '#BS-402',
       collector: 'Raimati Soren',
+      village: 'Badagaon, Karanjia',
       product: 'Dried Mahua Flowers',
       estQty: 100.0,
+      qualityGrade: 'A',
       requestedAt: '14 Mar · 09:15 AM',
+      requestedDateIso: '2025-03-14',
       status: 'Pending',
       statusVariant: 'warning',
       syncState: 'queued',
@@ -83,9 +125,12 @@ export default function CollectionManagerPage() {
     {
       code: '#BS-401',
       collector: 'Gura Marndi',
+      village: 'Badagaon, Karanjia',
       product: 'Dried Mahua Flowers',
       estQty: 35.0,
+      qualityGrade: 'A',
       requestedAt: '14 Mar · 09:40 AM',
+      requestedDateIso: '2025-03-14',
       status: 'Scheduled',
       statusVariant: 'neutral',
       syncState: 'draft',
@@ -93,9 +138,12 @@ export default function CollectionManagerPage() {
     {
       code: '#BS-400',
       collector: 'Sombari Murmu',
+      village: 'Kadamdiha, Karanjia',
       product: 'Dried Mahua Flowers',
       estQty: 25.0,
+      qualityGrade: 'A',
       requestedAt: '14 Mar · 10:05 AM',
+      requestedDateIso: '2025-03-14',
       status: 'Collected',
       statusVariant: 'info',
       syncState: 'synced',
@@ -103,9 +151,12 @@ export default function CollectionManagerPage() {
     {
       code: '#BS-399',
       collector: 'Dulari Hansdah',
+      village: 'Badagaon, Karanjia',
       product: 'Dried Mahua Flowers',
       estQty: 60.0,
+      qualityGrade: 'B',
       requestedAt: '13 Mar · 04:30 PM',
+      requestedDateIso: '2025-03-13',
       status: 'In Review',
       statusVariant: 'warning',
       syncState: 'synced',
@@ -113,9 +164,12 @@ export default function CollectionManagerPage() {
     {
       code: '#BS-398',
       collector: 'Biren Majhi',
+      village: 'Kadamdiha, Karanjia',
       product: 'Dried Mahua Flowers',
       estQty: 45.0,
+      qualityGrade: 'A',
       requestedAt: '13 Mar · 02:15 PM',
+      requestedDateIso: '2025-03-13',
       status: 'Collected',
       statusVariant: 'success',
       syncState: 'synced',
@@ -123,14 +177,77 @@ export default function CollectionManagerPage() {
     {
       code: '#BS-397',
       collector: 'Salge Tudu',
+      village: 'Sundargarh',
       product: 'Dried Mahua Flowers',
       estQty: 80.0,
+      qualityGrade: 'C',
       requestedAt: '12 Mar · 11:20 AM',
+      requestedDateIso: '2025-03-12',
       status: 'Quarantined',
       statusVariant: 'danger',
       syncState: 'conflict',
     },
   ]);
+
+  // Persisted Filters (Rule 3)
+  const [filters, setFilters] = useState<ManagerFiltersState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('banasetu_filter_collection');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      savedView: 'all',
+      search: '',
+      statuses: [],
+      village: '',
+      dateFrom: '',
+      dateTo: '',
+    };
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_filter_collection', JSON.stringify(filters));
+    }
+  }, [filters]);
+
+  // Persisted Table Density (Rule 4)
+  const [density, setDensity] = useState<TableDensity>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('banasetu_table_density');
+      if (saved === 'comfortable' || saved === 'compact') return saved;
+    }
+    return 'comfortable';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_table_density', density);
+    }
+  }, [density]);
+
+  // Persisted Column Visibility (Rule 7)
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('banasetu_cols_collection');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return DEFAULT_COLLECTION_COLUMNS;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_cols_collection', JSON.stringify(columns));
+    }
+  }, [columns]);
+
+  // Bulk Selection state (Rule 6)
+  const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Offline queue state
   const [offlineQueue, setOfflineQueue] = useState<PendingSyncItem[]>([
@@ -238,6 +355,162 @@ export default function CollectionManagerPage() {
     } else {
       setIsDrawerOpen(false);
     }
+  };
+
+  // Filtered items (Rules 2 & 3)
+  const filteredItems = queueItems.filter((item) => {
+    // Search query
+    if (filters.search.trim()) {
+      const q = filters.search.toLowerCase();
+      const match =
+        item.code.toLowerCase().includes(q) ||
+        item.collector.toLowerCase().includes(q) ||
+        item.village.toLowerCase().includes(q) ||
+        item.product.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+
+    // Status filter
+    if (filters.statuses.length > 0) {
+      if (!filters.statuses.includes(item.status)) return false;
+    }
+
+    // Village filter
+    if (filters.village) {
+      if (item.village !== filters.village) return false;
+    }
+
+    // Date range
+    if (filters.dateFrom) {
+      if (item.requestedDateIso < filters.dateFrom) return false;
+    }
+    if (filters.dateTo) {
+      if (item.requestedDateIso > filters.dateTo) return false;
+    }
+
+    return true;
+  });
+
+  // Hotkeys Hook (Rule 1: Keyboard-first)
+  const { selectedIndex, isShortcutsOpen, setIsShortcutsOpen } = useHotkeys({
+    rowCount: filteredItems.length,
+    searchInputRef,
+    activeFilterCount:
+      (filters.search ? 1 : 0) +
+      filters.statuses.length +
+      (filters.village ? 1 : 0) +
+      (filters.dateFrom || filters.dateTo ? 1 : 0),
+    onClearFilters: () => {
+      setFilters({
+        savedView: 'all',
+        search: '',
+        statuses: [],
+        village: '',
+        dateFrom: '',
+        dateTo: '',
+      });
+    },
+    onEscape: () => {
+      if (isDrawerOpen) {
+        setIsDrawerOpen(false);
+        return true;
+      }
+      return false;
+    },
+    onOpenRow: (idx) => {
+      if (idx >= 0 && idx < filteredItems.length) {
+        handleOpenRecordDrawer(filteredItems[idx].code);
+      }
+    },
+    onSync: () => {
+      syncNowAction.execute();
+    },
+  });
+
+  // Bulk Selection & Action Handlers (Rule 6)
+  const toggleSelectAll = () => {
+    if (selectedCodes.length === filteredItems.length) {
+      setSelectedCodes([]);
+    } else {
+      setSelectedCodes(filteredItems.map((i) => i.code));
+    }
+  };
+
+  const toggleSelectRow = (code: string) => {
+    setSelectedCodes((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
+  // Discrepancy count among selected rows
+  const selectedDiscrepancies = filteredItems.filter(
+    (i) => selectedCodes.includes(i.code) && (i.status === 'In Review' || i.status === 'Quarantined')
+  ).length;
+
+  const handleBulkApprove = () => {
+    if (selectedDiscrepancies > 0) return;
+    setQueueItems((prev) =>
+      prev.map((item) =>
+        selectedCodes.includes(item.code)
+          ? { ...item, status: 'Collected', statusVariant: 'success', syncState: 'queued' }
+          : item
+      )
+    );
+    setActiveToast({
+      id: `bulk-approve-${Date.now()}`,
+      variant: 'success',
+      title: `${selectedCodes.length} collection lots approved and queued for dispatch`,
+    });
+    setSelectedCodes([]);
+  };
+
+  const handleBulkHold = () => {
+    setQueueItems((prev) =>
+      prev.map((item) =>
+        selectedCodes.includes(item.code)
+          ? { ...item, status: 'In Review', statusVariant: 'warning' }
+          : item
+      )
+    );
+    setActiveToast({
+      id: `bulk-hold-${Date.now()}`,
+      variant: 'warning',
+      title: `${selectedCodes.length} collection lots placed on hold for inspection`,
+    });
+    setSelectedCodes([]);
+  };
+
+  // Inline correction handlers (Rule 8)
+  const handleInlineWeightCommit = (code: string, newWeight: number | string) => {
+    const num = typeof newWeight === 'number' ? newWeight : parseFloat(String(newWeight));
+    if (isNaN(num) || num <= 0) return;
+    setQueueItems((prev) =>
+      prev.map((item) =>
+        item.code === code ? { ...item, estQty: num, hasInlineEdit: true } : item
+      )
+    );
+    setActiveToast({
+      id: `inline-wt-${Date.now()}`,
+      variant: 'info',
+      title: `Corrected ${code} weight to ${num.toFixed(1)} kg`,
+      description: 'Audit entry logged for collection manager override.',
+    });
+  };
+
+  const handleInlineQualityCommit = (code: string, newQuality: string | number) => {
+    setQueueItems((prev) =>
+      prev.map((item) =>
+        item.code === code
+          ? { ...item, qualityGrade: newQuality as any, hasInlineEdit: true }
+          : item
+      )
+    );
+    setActiveToast({
+      id: `inline-ql-${Date.now()}`,
+      variant: 'info',
+      title: `Updated ${code} quality grade to Grade ${newQuality}`,
+      description: 'Audit entry logged for collection manager override.',
+    });
   };
 
   // 1. Refresh Queue Action
@@ -451,109 +724,280 @@ export default function CollectionManagerPage() {
               LEFT COLUMN (2/3): Pickup queue Table & Pagination
              ======================================================== */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
-              <div className="px-4 py-3 border-b border-rule bg-bg-sunken/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <SectionLabel as="h2">Pickup queue</SectionLabel>
-                    <LastFetchedBadge
-                      timestamp={lastFetched}
-                      onRefresh={() => refreshQueueAction.execute()}
-                    />
-                  </div>
-                  <p className="text-[12px] text-ink-muted mt-0.5">
-                    Field collection lots awaiting electronic weighment and seal dispatch
-                  </p>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <ShortCodeLookup
-                    onSelectBatch={(code) => {
-                      setSelectedQueueCode(code);
-                      setIsDrawerOpen(true);
-                    }}
-                  />
-                  <StatusBadge variant="neutral" className="shrink-0 hidden sm:inline-flex">
-                    6 Active Lots
-                  </StatusBadge>
-                </div>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-24">Code</TableHead>
-                    <TableHead>Collector</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead numeric>Est. qty</TableHead>
-                    <TableHead>Requested</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Sync</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queueItems.map((row) => (
-                    <TableRow
-                      key={row.code}
-                      onClick={() => handleOpenRecordDrawer(row.code)}
-                      className="cursor-pointer hover:bg-bg-sunken/30 select-none"
-                    >
-                      <TableCell className="font-mono text-[13px] font-bold text-ink tabular-nums">
-                        {row.code}
-                      </TableCell>
-                      <TableCell className="font-medium text-ink">
-                        {row.collector}
-                      </TableCell>
-                      <TableCell className="text-ink-muted text-[13px]">
-                        {row.product}
-                      </TableCell>
-                      <TableCell numeric className="font-semibold text-ink">
-                        {row.estQty.toFixed(1)} kg
-                      </TableCell>
-                      <TableCell className="font-mono text-[12px] text-ink-subtle">
-                        {row.requestedAt}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge variant={row.statusVariant}>
-                          {row.status}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        <SyncStatusBadge state={row.syncState || 'synced'} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent hover:underline">
-                          <span>Record</span>
-                          <ChevronRight size={16} strokeWidth={1.5} />
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {/* Rule 2 & 3: Global Search, Saved Views, Filters & Density */}
+            <div className="border border-rule rounded-[4px] bg-surface p-3.5 shadow-none">
+              <ManagerFilterBar
+                roleKey="collection"
+                availableStatuses={COLLECTION_STATUSES}
+                availableVillages={COLLECTION_VILLAGES}
+                columns={columns}
+                onColumnsChange={setColumns}
+                density={density}
+                onDensityChange={setDensity}
+                filters={filters}
+                onFiltersChange={setFilters}
+                searchInputRef={searchInputRef}
+                totalCount={queueItems.length}
+                filteredCount={filteredItems.length}
+                lastRefreshed={lastFetched}
+                onRefresh={() => refreshQueueAction.execute()}
+              />
             </div>
 
-            {/* Pagination: small rectangular buttons, no rounded pills */}
-            <div className="flex items-center justify-between border border-rule rounded-[4px] bg-surface px-3.5 py-2 text-[12px] shadow-none">
-              <span className="font-mono text-ink-muted">Showing 1–6 of 18 records</span>
-              <div className="flex items-center gap-1.5">
+            {/* Table Container with Sticky Header & First Column (Rules 4, 5, 8, 9, 10) */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <Table className="w-full border-collapse">
+                  <TableHeader>
+                    <TableRow className="sticky top-0 bg-surface z-20 border-b border-rule shadow-[0_1px_0_0_var(--rule)]">
+                      {/* Leading Checkbox Column */}
+                      <TableHead className="w-10 px-2 text-center sticky left-0 bg-surface z-20">
+                        <input
+                          type="checkbox"
+                          checked={
+                            filteredItems.length > 0 &&
+                            selectedCodes.length === filteredItems.length
+                          }
+                          onChange={toggleSelectAll}
+                          aria-label="Select all rows"
+                          className="rounded-[2px] border-rule text-accent accent-accent cursor-pointer"
+                        />
+                      </TableHead>
+
+                      {/* Sticky Batch Code Column */}
+                      {columns.find((c) => c.id === 'code')?.visible && (
+                        <TableHead className="w-28 sticky left-10 bg-surface z-20 font-mono">
+                          Batch Code
+                        </TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'collector')?.visible && (
+                        <TableHead>Collector</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'village')?.visible && (
+                        <TableHead>Village</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'product')?.visible && (
+                        <TableHead>Product</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'estQty')?.visible && (
+                        <TableHead numeric>Est. Qty</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'quality')?.visible && (
+                        <TableHead className="text-center">Quality</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'requested')?.visible && (
+                        <TableHead>Requested</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'status')?.visible && (
+                        <TableHead>Status</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'sync')?.visible && (
+                        <TableHead>Sync State</TableHead>
+                      )}
+
+                      {columns.find((c) => c.id === 'action')?.visible && (
+                        <TableHead className="text-right w-16">Action</TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {filteredItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={11} className="py-8 text-center text-ink-muted">
+                          <p className="text-[13px] font-mono">No matching collection batches found.</p>
+                          <button
+                            onClick={() =>
+                              setFilters({
+                                savedView: 'all',
+                                search: '',
+                                statuses: [],
+                                village: '',
+                                dateFrom: '',
+                                dateTo: '',
+                              })
+                            }
+                            className="mt-2 text-[12px] text-accent underline font-semibold"
+                          >
+                            Reset active filters
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredItems.map((row, idx) => {
+                        const isSelectedRow = idx === selectedIndex;
+                        const isChecked = selectedCodes.includes(row.code);
+                        const rowHeightClass =
+                          density === 'compact'
+                            ? 'h-[32px] text-[12px]'
+                            : 'h-[44px] text-[13px]';
+
+                        return (
+                          <TableRow
+                            key={row.code}
+                            onClick={() => handleOpenRecordDrawer(row.code)}
+                            className={cn(
+                              'cursor-pointer select-none transition-colors border-b border-rule',
+                              rowHeightClass,
+                              isSelectedRow
+                                ? 'bg-accent/10 border-l-2 border-l-accent font-semibold'
+                                : 'hover:bg-bg-sunken/40'
+                            )}
+                          >
+                            {/* Checkbox column */}
+                            <TableCell
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 text-center sticky left-0 bg-surface z-10"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleSelectRow(row.code)}
+                                aria-label={`Select ${row.code}`}
+                                className="rounded-[2px] border-rule text-accent accent-accent cursor-pointer"
+                              />
+                            </TableCell>
+
+                            {/* Sticky Batch Code Column */}
+                            {columns.find((c) => c.id === 'code')?.visible && (
+                              <TableCell className="font-mono font-bold text-ink tabular-nums sticky left-10 bg-surface z-10">
+                                {row.code}
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'collector')?.visible && (
+                              <TableCell className="font-medium text-ink truncate max-w-[140px]">
+                                {row.collector}
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'village')?.visible && (
+                              <TableCell className="text-ink-muted truncate max-w-[130px]">
+                                {row.village}
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'product')?.visible && (
+                              <TableCell className="text-ink-muted truncate max-w-[140px]">
+                                {row.product}
+                              </TableCell>
+                            )}
+
+                            {/* Inline correction for Weight (Rule 8) */}
+                            {columns.find((c) => c.id === 'estQty')?.visible && (
+                              <TableCell numeric className="font-semibold text-ink">
+                                <InlineEditableCell
+                                  value={row.estQty}
+                                  type="number"
+                                  unit="kg"
+                                  hasEditIndicator={row.hasInlineEdit}
+                                  onCommit={(val) => handleInlineWeightCommit(row.code, val)}
+                                />
+                              </TableCell>
+                            )}
+
+                            {/* Inline correction for Quality (Rule 8) */}
+                            {columns.find((c) => c.id === 'quality')?.visible && (
+                              <TableCell className="text-center font-mono">
+                                <InlineEditableCell
+                                  value={row.qualityGrade}
+                                  type="grade"
+                                  options={['A', 'B', 'C']}
+                                  hasEditIndicator={row.hasInlineEdit}
+                                  onCommit={(val) => handleInlineQualityCommit(row.code, val)}
+                                />
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'requested')?.visible && (
+                              <TableCell className="font-mono text-ink-subtle text-[11px] whitespace-nowrap">
+                                {row.requestedAt}
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'status')?.visible && (
+                              <TableCell>
+                                <StatusBadge variant={row.statusVariant}>
+                                  {row.status}
+                                </StatusBadge>
+                              </TableCell>
+                            )}
+
+                            {columns.find((c) => c.id === 'sync')?.visible && (
+                              <TableCell>
+                                <SyncStatusBadge state={row.syncState || 'synced'} />
+                              </TableCell>
+                            )}
+
+                            {/* Row Action Menu (3 actions per Rule 9) */}
+                            {columns.find((c) => c.id === 'action')?.visible && (
+                              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <RowActionMenu
+                                  ariaLabel={`Actions for ${row.code}`}
+                                  actions={[
+                                    {
+                                      label: 'Record weighment',
+                                      onClick: () => handleOpenRecordDrawer(row.code),
+                                    },
+                                    {
+                                      label: 'Print batch tag',
+                                      onClick: () =>
+                                        window.open(`/collection/tag/${row.code.replace('#', '')}`, '_blank'),
+                                    },
+                                    {
+                                      label: 'View A5 receipt',
+                                      onClick: () =>
+                                        window.open(
+                                          `/collection/receipt/${row.code.replace('#', '')}`,
+                                          '_blank'
+                                        ),
+                                    },
+                                  ]}
+                                />
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Pagination & Footer Shortcuts Hint (Rule 1 & Rule 11) */}
+            <div className="flex flex-col sm:flex-row items-center justify-between border border-rule rounded-[4px] bg-surface px-3.5 py-2 text-[12px] shadow-none gap-2">
+              <span className="font-mono text-ink-muted text-[11px]">
+                Showing {filteredItems.length} of {queueItems.length} records · {density} mode
+              </span>
+
+              {/* 3 Most common shortcuts hint row per Rule 1 */}
+              <div className="flex items-center gap-2 text-[11px] font-mono text-ink-subtle select-none">
+                <span>
+                  <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">j/k</kbd> Move
+                </span>
+                <span>·</span>
+                <span>
+                  <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">Enter</kbd> Open
+                </span>
+                <span>·</span>
+                <span>
+                  <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">/</kbd> Search
+                </span>
+                <span>·</span>
                 <button
-                  disabled
-                  className="h-[32px] px-3 rounded-[2px] border border-rule bg-bg-sunken text-ink-muted font-mono text-[12px] cursor-not-allowed disabled:opacity-40"
+                  onClick={() => setIsShortcutsOpen(true)}
+                  className="text-ink hover:text-accent underline font-semibold"
                 >
-                  Prev
-                </button>
-                <button className="h-[32px] w-[32px] rounded-[2px] border border-accent bg-accent text-accent-ink font-mono font-bold text-[12px]">
-                  1
-                </button>
-                <button className="h-[32px] w-[32px] rounded-[2px] border border-rule bg-surface text-ink font-mono text-[12px] hover:bg-bg-sunken">
-                  2
-                </button>
-                <button className="h-[32px] w-[32px] rounded-[2px] border border-rule bg-surface text-ink font-mono text-[12px] hover:bg-bg-sunken">
-                  3
-                </button>
-                <button className="h-[32px] px-3 rounded-[2px] border border-rule bg-surface text-ink font-mono text-[12px] hover:bg-bg-sunken">
-                  Next
+                  <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">?</kbd> All
                 </button>
               </div>
             </div>
@@ -1018,6 +1462,21 @@ export default function CollectionManagerPage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Bulk Action Bar (Rule 6) */}
+      <BulkActionBar
+        selectedCount={selectedCodes.length}
+        discrepancyCount={selectedDiscrepancies}
+        onApproveAll={handleBulkApprove}
+        onHoldAll={handleBulkHold}
+        onClear={() => setSelectedCodes([])}
+      />
+
+      {/* Keyboard Shortcuts Drawer (Rule 1) */}
+      <KeyboardShortcutsDrawer
+        open={isShortcutsOpen}
+        onOpenChange={setIsShortcutsOpen}
+      />
 
       {/* Floating Bottom Toast Notification */}
       {activeToast && (

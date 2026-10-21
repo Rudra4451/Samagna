@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { AppShell } from '../../components/shell/AppShell';
 import { useAppStore } from '../../store/useAppStore';
@@ -52,19 +52,59 @@ import {
   History,
   Lock,
 } from 'lucide-react';
+import { useHotkeys } from '../../lib/useHotkeys';
+import { KeyboardShortcutsDrawer } from '../../components/manager/KeyboardShortcutsDrawer';
+import {
+  ManagerFilterBar,
+  ManagerFiltersState,
+  ColumnConfig,
+  TableDensity,
+} from '../../components/manager/ManagerFilterBar';
+import { BulkActionBar } from '../../components/manager/BulkActionBar';
+import { RowActionMenu } from '../../components/manager/RowActionMenu';
+import { InlineEditableCell } from '../../components/manager/InlineEditableCell';
 
 interface BatchRow {
   code: string;
   product: string;
   collector: string;
+  village: string;
   collectionKg: number;
   receivedKg: number | null;
   deltaKg: number | null;
+  qualityGrade: 'A' | 'B' | 'C';
+  storageLocation: string;
   status: 'Pending Verification' | 'Available' | 'Quarantined';
   statusVariant: StatusVariant;
   syncState?: SyncState;
   updatedAt: string;
+  updatedDateIso: string;
+  hasInlineEdit?: boolean;
 }
+
+const DEFAULT_INVENTORY_COLUMNS: ColumnConfig[] = [
+  { id: 'code', label: 'Batch Code', visible: true },
+  { id: 'product', label: 'Product', visible: true },
+  { id: 'collector', label: 'Collector', visible: true },
+  { id: 'village', label: 'Village', visible: true },
+  { id: 'collectionKg', label: 'Collection kg', visible: true },
+  { id: 'receivedKg', label: 'Received kg', visible: true },
+  { id: 'deltaKg', label: 'Δ Variance', visible: true },
+  { id: 'quality', label: 'Quality', visible: true },
+  { id: 'storageLocation', label: 'Storage Bay', visible: true },
+  { id: 'status', label: 'Status', visible: true },
+  { id: 'sync', label: 'Sync State', visible: true },
+  { id: 'updated', label: 'Updated', visible: true },
+  { id: 'action', label: 'Actions', visible: true },
+];
+
+const INVENTORY_STATUSES = [
+  { value: 'Pending Verification', label: 'Pending Verification' },
+  { value: 'Available', label: 'Available' },
+  { value: 'Quarantined', label: 'Quarantined' },
+];
+
+const INVENTORY_VILLAGES = ['Badagaon, Karanjia', 'Kadamdiha, Karanjia', 'Sundargarh'];
 
 interface AuditTimelineItem {
   id: string;
@@ -83,57 +123,166 @@ export default function InventoryManagerPage() {
   const [availableStock, setAvailableStock] = useState<number>(0.0);
   const [quarantinedStock, setQuarantinedStock] = useState<number>(0.0);
 
-  // Batches Table State
+  // Batches Table State with enhanced metadata
   const [batches, setBatches] = useState<BatchRow[]>([
     {
       code: '#BS-402',
       product: 'Dried Mahua Flowers',
       collector: 'Raimati Soren',
+      village: 'Badagaon, Karanjia',
       collectionKg: 100.0,
       receivedKg: null,
       deltaKg: null,
+      qualityGrade: 'A',
+      storageLocation: 'Rack B (Dry Stack)',
       status: 'Pending Verification',
       statusVariant: 'warning',
       syncState: 'queued',
       updatedAt: '14 Mar · 11:20 AM',
+      updatedDateIso: '2025-03-14',
     },
     {
       code: '#BS-400',
       product: 'Dried Mahua Flowers',
       collector: 'Gura Marndi',
+      village: 'Badagaon, Karanjia',
       collectionKg: 35.0,
       receivedKg: 34.5,
       deltaKg: -0.5,
+      qualityGrade: 'A',
+      storageLocation: 'Rack B (Dry Stack)',
       status: 'Available',
       statusVariant: 'success',
       syncState: 'synced',
       updatedAt: '14 Mar · 10:15 AM',
+      updatedDateIso: '2025-03-14',
     },
     {
       code: '#BS-398',
       product: 'Dried Mahua Flowers',
       collector: 'Sombari Murmu',
+      village: 'Kadamdiha, Karanjia',
       collectionKg: 25.0,
       receivedKg: 24.6,
       deltaKg: -0.4,
+      qualityGrade: 'A',
+      storageLocation: 'Rack A (Floor Pallet)',
       status: 'Available',
       statusVariant: 'success',
       syncState: 'synced',
       updatedAt: '13 Mar · 03:45 PM',
+      updatedDateIso: '2025-03-13',
     },
     {
       code: '#BS-396',
       product: 'Dried Mahua Flowers',
       collector: 'Dulari Hansdah',
+      village: 'Badagaon, Karanjia',
       collectionKg: 60.0,
       receivedKg: 56.0,
       deltaKg: -4.0,
+      qualityGrade: 'C',
+      storageLocation: 'Quarantine Bay Q1',
       status: 'Quarantined',
       statusVariant: 'danger',
       syncState: 'conflict',
       updatedAt: '13 Mar · 11:10 AM',
+      updatedDateIso: '2025-03-13',
+    },
+    {
+      code: '#BS-395',
+      product: 'Dried Mahua Flowers',
+      collector: 'Biren Majhi',
+      village: 'Kadamdiha, Karanjia',
+      collectionKg: 45.0,
+      receivedKg: 44.7,
+      deltaKg: -0.3,
+      qualityGrade: 'A',
+      storageLocation: 'Rack B (Dry Stack)',
+      status: 'Available',
+      statusVariant: 'success',
+      syncState: 'synced',
+      updatedAt: '13 Mar · 09:30 AM',
+      updatedDateIso: '2025-03-13',
+    },
+    {
+      code: '#BS-394',
+      product: 'Dried Mahua Flowers',
+      collector: 'Salge Tudu',
+      village: 'Sundargarh',
+      collectionKg: 80.0,
+      receivedKg: 74.0,
+      deltaKg: -6.0,
+      qualityGrade: 'B',
+      storageLocation: 'Quarantine Bay Q2',
+      status: 'Quarantined',
+      statusVariant: 'danger',
+      syncState: 'conflict',
+      updatedAt: '12 Mar · 04:00 PM',
+      updatedDateIso: '2025-03-12',
     },
   ]);
+
+  // Persisted Filters (Rule 3)
+  const [filters, setFilters] = useState<ManagerFiltersState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('banasetu_filter_inventory');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      savedView: 'all',
+      search: '',
+      statuses: [],
+      village: '',
+      dateFrom: '',
+      dateTo: '',
+    };
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_filter_inventory', JSON.stringify(filters));
+    }
+  }, [filters]);
+
+  // Persisted Table Density (Rule 4)
+  const [density, setDensity] = useState<TableDensity>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('banasetu_table_density');
+      if (saved === 'comfortable' || saved === 'compact') return saved;
+    }
+    return 'comfortable';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_table_density', density);
+    }
+  }, [density]);
+
+  // Persisted Column Visibility (Rule 7)
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('banasetu_cols_inventory');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return DEFAULT_INVENTORY_COLUMNS;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('banasetu_cols_inventory', JSON.stringify(columns));
+    }
+  }, [columns]);
+
+  // Bulk Selection state (Rule 6)
+  const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedBatchCode, setSelectedBatchCode] = useState<string>('#BS-402');
 
   // Drawer verification state for #BS-402
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -211,6 +360,235 @@ export default function InventoryManagerPage() {
       setIsDrawerOpen(false);
       setConfirmingApproval(false);
     }
+  };
+
+  // Filtered batches (Rules 2 & 3)
+  const filteredBatches = batches.filter((b) => {
+    // Search query
+    if (filters.search.trim()) {
+      const q = filters.search.toLowerCase();
+      const match =
+        b.code.toLowerCase().includes(q) ||
+        b.collector.toLowerCase().includes(q) ||
+        b.village.toLowerCase().includes(q) ||
+        b.product.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+
+    // Status filter
+    if (filters.statuses.length > 0) {
+      if (!filters.statuses.includes(b.status)) return false;
+    }
+
+    // Village filter
+    if (filters.village) {
+      if (b.village !== filters.village) return false;
+    }
+
+    // Date range
+    if (filters.dateFrom) {
+      if (b.updatedDateIso < filters.dateFrom) return false;
+    }
+    if (filters.dateTo) {
+      if (b.updatedDateIso > filters.dateTo) return false;
+    }
+
+    return true;
+  });
+
+  // Hotkeys Hook (Rule 1: Keyboard-first)
+  const { selectedIndex, isShortcutsOpen, setIsShortcutsOpen } = useHotkeys({
+    rowCount: filteredBatches.length,
+    searchInputRef,
+    activeFilterCount:
+      (filters.search ? 1 : 0) +
+      filters.statuses.length +
+      (filters.village ? 1 : 0) +
+      (filters.dateFrom || filters.dateTo ? 1 : 0),
+    onClearFilters: () => {
+      setFilters({
+        savedView: 'all',
+        search: '',
+        statuses: [],
+        village: '',
+        dateFrom: '',
+        dateTo: '',
+      });
+    },
+    onEscape: () => {
+      if (isDrawerOpen) {
+        setIsDrawerOpen(false);
+        setConfirmingApproval(false);
+        return true;
+      }
+      return false;
+    },
+    onOpenRow: (idx) => {
+      if (idx >= 0 && idx < filteredBatches.length) {
+        setSelectedBatchCode(filteredBatches[idx].code);
+        setIsDrawerOpen(true);
+      }
+    },
+  });
+
+  // Bulk Selection & Action Handlers (Rule 6)
+  const toggleSelectAll = () => {
+    if (selectedCodes.length === filteredBatches.length) {
+      setSelectedCodes([]);
+    } else {
+      setSelectedCodes(filteredBatches.map((b) => b.code));
+    }
+  };
+
+  const toggleSelectRow = (code: string) => {
+    setSelectedCodes((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
+  // Discrepancy count among selected rows: status === 'Quarantined' or delta < -1.5
+  const selectedDiscrepancies = filteredBatches.filter(
+    (b) =>
+      selectedCodes.includes(b.code) &&
+      (b.status === 'Quarantined' || (b.deltaKg !== null && b.deltaKg < -1.5))
+  ).length;
+
+  const handleBulkApprove = () => {
+    if (selectedDiscrepancies > 0) return;
+    setBatches((prev) =>
+      prev.map((b) =>
+        selectedCodes.includes(b.code)
+          ? {
+              ...b,
+              status: 'Available',
+              statusVariant: 'success',
+              receivedKg: b.receivedKg ?? b.collectionKg,
+              deltaKg: b.deltaKg ?? 0,
+            }
+          : b
+      )
+    );
+    setAvailableStock((prev) => prev + selectedCodes.length * 50);
+    setPendingStock((prev) => Math.max(0, prev - selectedCodes.length * 50));
+    setActiveToast({
+      id: `bulk-approve-${Date.now()}`,
+      variant: 'success',
+      title: `${selectedCodes.length} inventory batches verified & released to saleable stock`,
+    });
+    setSelectedCodes([]);
+  };
+
+  const handleBulkHold = () => {
+    setBatches((prev) =>
+      prev.map((b) =>
+        selectedCodes.includes(b.code)
+          ? { ...b, status: 'Quarantined', statusVariant: 'danger' }
+          : b
+      )
+    );
+    setQuarantinedStock((prev) => prev + selectedCodes.length * 50);
+    setPendingStock((prev) => Math.max(0, prev - selectedCodes.length * 50));
+    setActiveToast({
+      id: `bulk-hold-${Date.now()}`,
+      variant: 'danger',
+      title: `${selectedCodes.length} batches quarantined pending quality re-inspection`,
+    });
+    setSelectedCodes([]);
+  };
+
+  // Inline correction handlers (Rule 8: collection weight, received weight, quality, and storage location)
+  const handleInlineCollectionKgCommit = (code: string, val: number | string) => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val));
+    if (isNaN(num) || num <= 0) return;
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.code === code
+          ? {
+              ...b,
+              collectionKg: num,
+              deltaKg: b.receivedKg !== null ? Number((b.receivedKg - num).toFixed(2)) : null,
+              hasInlineEdit: true,
+            }
+          : b
+      )
+    );
+    setAuditTimeline((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        timestamp: 'Just now',
+        actor: 'Inventory Manager',
+        action: `Inline correction: adjusted ${code} collection weight to ${num.toFixed(1)} kg.`,
+        delta: `Δ adjusted`,
+        deltaVariant: 'warning',
+      },
+      ...prev,
+    ]);
+  };
+
+  const handleInlineReceivedKgCommit = (code: string, val: number | string) => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val));
+    if (isNaN(num) || num <= 0) return;
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.code === code
+          ? {
+              ...b,
+              receivedKg: num,
+              deltaKg: Number((num - b.collectionKg).toFixed(2)),
+              hasInlineEdit: true,
+            }
+          : b
+      )
+    );
+    setAuditTimeline((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        timestamp: 'Just now',
+        actor: 'Inventory Manager',
+        action: `Inline correction: verified arrival weight for ${code} set to ${num.toFixed(1)} kg.`,
+        delta: `Weight verified`,
+        deltaVariant: 'neutral',
+      },
+      ...prev,
+    ]);
+  };
+
+  const handleInlineQualityCommit = (code: string, grade: string | number) => {
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.code === code ? { ...b, qualityGrade: grade as any, hasInlineEdit: true } : b
+      )
+    );
+    setAuditTimeline((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        timestamp: 'Just now',
+        actor: 'Inventory Manager',
+        action: `Inline correction: quality grade of ${code} updated to Grade ${grade}.`,
+        delta: `Grade ${grade}`,
+        deltaVariant: 'neutral',
+      },
+      ...prev,
+    ]);
+  };
+
+  const handleInlineLocationCommit = (code: string, loc: string | number) => {
+    setBatches((prev) =>
+      prev.map((b) =>
+        b.code === code ? { ...b, storageLocation: String(loc), hasInlineEdit: true } : b
+      )
+    );
+    setAuditTimeline((prev) => [
+      {
+        id: `aud-${Date.now()}`,
+        timestamp: 'Just now',
+        actor: 'Inventory Manager',
+        action: `Storage location for ${code} assigned to ${loc}.`,
+        delta: `Rack assigned`,
+        deltaVariant: 'neutral',
+      },
+      ...prev,
+    ]);
   };
 
   // 1. Refresh Batches Action
@@ -429,108 +807,362 @@ export default function InventoryManagerPage() {
           </div>
         </div>
 
+        {/* Rule 2 & 3: Global Search, Saved Views, Filters & Density */}
+        <div className="border border-rule rounded-[4px] bg-surface p-3.5 shadow-none">
+          <ManagerFilterBar
+            roleKey="inventory"
+            availableStatuses={INVENTORY_STATUSES}
+            availableVillages={INVENTORY_VILLAGES}
+            columns={columns}
+            onColumnsChange={setColumns}
+            density={density}
+            onDensityChange={setDensity}
+            filters={filters}
+            onFiltersChange={setFilters}
+            searchInputRef={searchInputRef}
+            totalCount={batches.length}
+            filteredCount={filteredBatches.length}
+            lastRefreshed={lastFetched}
+            onRefresh={() => refreshBatchesAction.execute()}
+          />
+        </div>
+
         {/* ========================================================
-            "BATCHES" TABLE
+            "BATCHES" TABLE (Sticky Header, Sticky First Column, Density, Inline Edit)
            ======================================================== */}
         <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
-          <div className="px-4 py-3 border-b border-rule bg-bg-sunken/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <SectionLabel as="h2">Depôt Batches Ledger</SectionLabel>
-                <LastFetchedBadge
-                  timestamp={lastFetched}
-                  onRefresh={() => refreshBatchesAction.execute()}
-                />
-              </div>
-              <p className="text-[12px] text-ink-muted mt-0.5">
-                Custody verification records comparing collection gross with depôt arrival tare
-              </p>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <ShortCodeLookup
-                onSelectBatch={() => {
-                  setShowDiscardPrompt(false);
-                  setIsDrawerOpen(true);
-                }}
-              />
-              <span className="text-[11px] font-mono text-ink-muted shrink-0 hidden sm:inline">
-                {batches.length} TRACKED BATCHES
-              </span>
-            </div>
-          </div>
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <Table className="w-full border-collapse">
+              <TableHeader>
+                <TableRow className="sticky top-0 bg-surface z-20 border-b border-rule shadow-[0_1px_0_0_var(--rule)]">
+                  {/* Leading Checkbox Column */}
+                  <TableHead className="w-10 px-2 text-center sticky left-0 bg-surface z-20">
+                    <input
+                      type="checkbox"
+                      checked={
+                        filteredBatches.length > 0 &&
+                        selectedCodes.length === filteredBatches.length
+                      }
+                      onChange={toggleSelectAll}
+                      aria-label="Select all rows"
+                      className="rounded-[2px] border-rule text-accent accent-accent cursor-pointer"
+                    />
+                  </TableHead>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-24">Code</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Collector</TableHead>
-                <TableHead numeric>Collection kg</TableHead>
-                <TableHead numeric>Received kg</TableHead>
-                <TableHead numeric>Δ (Variance)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Sync</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {batches.map((b) => (
-                <TableRow
-                  key={b.code}
-                  onClick={() => setIsDrawerOpen(true)}
-                  className="cursor-pointer hover:bg-bg-sunken/30 select-none"
-                >
-                  <TableCell className="font-mono text-[13px] font-bold text-ink tabular-nums">
-                    {b.code}
-                  </TableCell>
-                  <TableCell className="font-medium text-ink">
-                    {b.product}
-                  </TableCell>
-                  <TableCell className="text-ink-muted text-[13px]">
-                    {b.collector}
-                  </TableCell>
-                  <TableCell numeric className="font-semibold text-ink">
-                    {b.collectionKg.toFixed(1)} kg
-                  </TableCell>
-                  <TableCell numeric className="font-mono text-[13px] text-ink">
-                    {b.receivedKg !== null ? `${b.receivedKg.toFixed(1)} kg` : '—'}
-                  </TableCell>
-                  <TableCell numeric>
-                    {b.deltaKg !== null ? (
-                      <span
+                  {/* Sticky Batch Code Column */}
+                  {columns.find((c) => c.id === 'code')?.visible && (
+                    <TableHead className="w-28 sticky left-10 bg-surface z-20 font-mono">
+                      Batch Code
+                    </TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'product')?.visible && (
+                    <TableHead>Product</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'collector')?.visible && (
+                    <TableHead>Collector</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'village')?.visible && (
+                    <TableHead>Village</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'collectionKg')?.visible && (
+                    <TableHead numeric>Collection kg</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'receivedKg')?.visible && (
+                    <TableHead numeric>Received kg</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'deltaKg')?.visible && (
+                    <TableHead numeric>Δ (Variance)</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'quality')?.visible && (
+                    <TableHead className="text-center">Quality</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'storageLocation')?.visible && (
+                    <TableHead>Storage Bay</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'status')?.visible && (
+                    <TableHead>Status</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'sync')?.visible && (
+                    <TableHead>Sync State</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'updated')?.visible && (
+                    <TableHead>Updated</TableHead>
+                  )}
+
+                  {columns.find((c) => c.id === 'action')?.visible && (
+                    <TableHead className="text-right w-16">Action</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {filteredBatches.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={14} className="py-8 text-center text-ink-muted">
+                      <p className="text-[13px] font-mono">No matching inventory batches found.</p>
+                      <button
+                        onClick={() =>
+                          setFilters({
+                            savedView: 'all',
+                            search: '',
+                            statuses: [],
+                            village: '',
+                            dateFrom: '',
+                            dateTo: '',
+                          })
+                        }
+                        className="mt-2 text-[12px] text-accent underline font-semibold"
+                      >
+                        Reset active filters
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredBatches.map((b, idx) => {
+                    const isSelectedRow = idx === selectedIndex;
+                    const isChecked = selectedCodes.includes(b.code);
+                    const rowHeightClass =
+                      density === 'compact'
+                        ? 'h-[32px] text-[12px]'
+                        : 'h-[44px] text-[13px]';
+
+                    return (
+                      <TableRow
+                        key={b.code}
+                        onClick={() => {
+                          setSelectedBatchCode(b.code);
+                          setIsDrawerOpen(true);
+                        }}
                         className={cn(
-                          'font-mono tabular-nums font-medium',
-                          b.deltaKg < -1.5 ? 'text-danger' : b.deltaKg < 0 ? 'text-warning' : 'text-success'
+                          'cursor-pointer select-none transition-colors border-b border-rule',
+                          rowHeightClass,
+                          isSelectedRow
+                            ? 'bg-accent/10 border-l-2 border-l-accent font-semibold'
+                            : 'hover:bg-bg-sunken/40'
                         )}
                       >
-                        {b.deltaKg > 0 ? `+${b.deltaKg.toFixed(1)}` : `${b.deltaKg.toFixed(1)}`} kg
-                      </span>
-                    ) : (
-                      <span className="text-ink-subtle font-mono">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge variant={b.statusVariant}>
-                      {b.status}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <SyncStatusBadge state={b.syncState || 'synced'} />
-                  </TableCell>
-                  <TableCell className="font-mono text-[12px] text-ink-subtle">
-                    {b.updatedAt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent hover:underline">
-                      <span>Verify</span>
-                      <ChevronRight size={16} strokeWidth={1.5} />
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {/* Leading Checkbox */}
+                        <TableCell
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 text-center sticky left-0 bg-surface z-10"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSelectRow(b.code)}
+                            aria-label={`Select ${b.code}`}
+                            className="rounded-[2px] border-rule text-accent accent-accent cursor-pointer"
+                          />
+                        </TableCell>
+
+                        {/* Sticky Batch Code */}
+                        {columns.find((c) => c.id === 'code')?.visible && (
+                          <TableCell className="font-mono font-bold text-ink tabular-nums sticky left-10 bg-surface z-10">
+                            {b.code}
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'product')?.visible && (
+                          <TableCell className="font-medium text-ink truncate max-w-[140px]">
+                            {b.product}
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'collector')?.visible && (
+                          <TableCell className="text-ink-muted truncate max-w-[130px]">
+                            {b.collector}
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'village')?.visible && (
+                          <TableCell className="text-ink-muted truncate max-w-[120px]">
+                            {b.village}
+                          </TableCell>
+                        )}
+
+                        {/* Inline collection weight edit (Rule 8) */}
+                        {columns.find((c) => c.id === 'collectionKg')?.visible && (
+                          <TableCell numeric className="font-semibold text-ink">
+                            <InlineEditableCell
+                              value={b.collectionKg}
+                              type="number"
+                              unit="kg"
+                              hasEditIndicator={b.hasInlineEdit}
+                              onCommit={(val) => handleInlineCollectionKgCommit(b.code, val)}
+                            />
+                          </TableCell>
+                        )}
+
+                        {/* Inline received weight edit (Rule 8) */}
+                        {columns.find((c) => c.id === 'receivedKg')?.visible && (
+                          <TableCell numeric className="font-mono text-[13px] text-ink">
+                            {b.receivedKg !== null ? (
+                              <InlineEditableCell
+                                value={b.receivedKg}
+                                type="number"
+                                unit="kg"
+                                hasEditIndicator={b.hasInlineEdit}
+                                onCommit={(val) => handleInlineReceivedKgCommit(b.code, val)}
+                              />
+                            ) : (
+                              <span className="text-ink-subtle font-mono">—</span>
+                            )}
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'deltaKg')?.visible && (
+                          <TableCell numeric>
+                            {b.deltaKg !== null ? (
+                              <span
+                                className={cn(
+                                  'font-mono tabular-nums font-medium',
+                                  b.deltaKg < -1.5
+                                    ? 'text-danger font-bold'
+                                    : b.deltaKg < 0
+                                    ? 'text-warning'
+                                    : 'text-success'
+                                )}
+                              >
+                                {b.deltaKg > 0 ? `+${b.deltaKg.toFixed(1)}` : `${b.deltaKg.toFixed(1)}`} kg
+                              </span>
+                            ) : (
+                              <span className="text-ink-subtle font-mono">—</span>
+                            )}
+                          </TableCell>
+                        )}
+
+                        {/* Inline quality edit (Rule 8) */}
+                        {columns.find((c) => c.id === 'quality')?.visible && (
+                          <TableCell className="text-center font-mono">
+                            <InlineEditableCell
+                              value={b.qualityGrade}
+                              type="grade"
+                              options={['A', 'B', 'C']}
+                              hasEditIndicator={b.hasInlineEdit}
+                              onCommit={(val) => handleInlineQualityCommit(b.code, val)}
+                            />
+                          </TableCell>
+                        )}
+
+                        {/* Inline storage location edit (Rule 8) */}
+                        {columns.find((c) => c.id === 'storageLocation')?.visible && (
+                          <TableCell className="font-mono text-[11px] text-ink-muted truncate max-w-[140px]">
+                            <InlineEditableCell
+                              value={b.storageLocation}
+                              type="text"
+                              hasEditIndicator={b.hasInlineEdit}
+                              onCommit={(val) => handleInlineLocationCommit(b.code, val)}
+                            />
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'status')?.visible && (
+                          <TableCell>
+                            <StatusBadge variant={b.statusVariant}>
+                              {b.status}
+                            </StatusBadge>
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'sync')?.visible && (
+                          <TableCell>
+                            <SyncStatusBadge state={b.syncState || 'synced'} />
+                          </TableCell>
+                        )}
+
+                        {columns.find((c) => c.id === 'updated')?.visible && (
+                          <TableCell className="font-mono text-[11px] text-ink-subtle whitespace-nowrap">
+                            {b.updatedAt}
+                          </TableCell>
+                        )}
+
+                        {/* Row Action Menu (3 actions per Rule 9) */}
+                        {columns.find((c) => c.id === 'action')?.visible && (
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <RowActionMenu
+                              ariaLabel={`Actions for ${b.code}`}
+                              actions={[
+                                {
+                                  label: 'Verify arrival',
+                                  onClick: () => {
+                                    setSelectedBatchCode(b.code);
+                                    setIsDrawerOpen(true);
+                                  },
+                                },
+                                {
+                                  label: 'Quarantine batch',
+                                  variant: 'danger',
+                                  onClick: () => {
+                                    setBatches((prev) =>
+                                      prev.map((item) =>
+                                        item.code === b.code
+                                          ? { ...item, status: 'Quarantined', statusVariant: 'danger' }
+                                          : item
+                                      )
+                                    );
+                                    setActiveToast({
+                                      id: `quarantine-${b.code}`,
+                                      variant: 'warning',
+                                      title: `Batch ${b.code} moved to Quarantine Bay`,
+                                    });
+                                  },
+                                },
+                                {
+                                  label: 'Print storage tag',
+                                  onClick: () =>
+                                    window.open(`/collection/tag/${b.code.replace('#', '')}`, '_blank'),
+                                },
+                              ]}
+                            />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Pagination & Footer Shortcuts Hint (Rule 1 & Rule 11) */}
+        <div className="flex flex-col sm:flex-row items-center justify-between border border-rule rounded-[4px] bg-surface px-3.5 py-2 text-[12px] shadow-none gap-2">
+          <span className="font-mono text-ink-muted text-[11px]">
+            Showing {filteredBatches.length} of {batches.length} batches · {density} mode
+          </span>
+
+          {/* 3 Most common shortcuts hint row per Rule 1 */}
+          <div className="flex items-center gap-2 text-[11px] font-mono text-ink-subtle select-none">
+            <span>
+              <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">j/k</kbd> Move
+            </span>
+            <span>·</span>
+            <span>
+              <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">Enter</kbd> Open
+            </span>
+            <span>·</span>
+            <span>
+              <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">/</kbd> Search
+            </span>
+            <span>·</span>
+            <button
+              onClick={() => setIsShortcutsOpen(true)}
+              className="text-ink hover:text-accent underline font-semibold"
+            >
+              <kbd className="px-1 border border-rule bg-bg-sunken text-ink font-semibold">?</kbd> All
+            </button>
+          </div>
         </div>
 
         {/* ========================================================
@@ -951,6 +1583,21 @@ export default function InventoryManagerPage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Bulk Action Bar (Rule 6) */}
+      <BulkActionBar
+        selectedCount={selectedCodes.length}
+        discrepancyCount={selectedDiscrepancies}
+        onApproveAll={handleBulkApprove}
+        onHoldAll={handleBulkHold}
+        onClear={() => setSelectedCodes([])}
+      />
+
+      {/* Keyboard Shortcuts Drawer (Rule 1) */}
+      <KeyboardShortcutsDrawer
+        open={isShortcutsOpen}
+        onOpenChange={setIsShortcutsOpen}
+      />
 
       {/* Floating Bottom Toast Notification */}
       {activeToast && (
