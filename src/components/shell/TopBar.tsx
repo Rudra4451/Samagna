@@ -6,7 +6,8 @@ import { useAppStore, DemoRole } from '../../store/useAppStore';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
-import { Wifi, WifiOff, RefreshCw, X, ChevronDown } from 'lucide-react';
+import { useFontScale } from '../../lib/useFontScale';
+import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
   const router = useRouter();
@@ -22,6 +23,8 @@ export const TopBar: React.FC = () => {
     language,
     setLanguage,
   } = useAppStore();
+
+  const { fontScale, cycleFontScale } = useFontScale();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -199,6 +202,20 @@ export const TopBar: React.FC = () => {
             </button>
           )}
 
+          {/* Font Scale Cycle Button "A+" (INTERACTION & ACCESSIBILITY) */}
+          <button
+            onClick={cycleFontScale}
+            title={`Cycle base font size: 16px → 18px → 20px (Current: ${fontScale}px)`}
+            aria-label={`Cycle font size, current ${fontScale} pixels`}
+            className={cn(
+              'h-[32px] px-2 rounded-[4px] border border-rule bg-bg-sunken text-[12px] font-mono font-bold text-ink transition-colors select-none flex items-center gap-1',
+              'hover:border-ink-subtle hover:bg-surface active:bg-bg-sunken focus:outline-2 focus:outline-accent focus:outline-offset-0'
+            )}
+          >
+            <span>A+</span>
+            <span className="text-[10px] font-normal text-ink-subtle">({fontScale})</span>
+          </button>
+
           {/* Language Toggle: EN / ଓଡ଼ିଆ as two 32px rectangular buttons */}
           <div className="flex items-center border border-rule rounded-[4px] overflow-hidden bg-bg-sunken">
             <button
@@ -229,15 +246,22 @@ export const TopBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Persistent 32px Prototype Simulation Banner */}
-      <div className="h-[32px] w-full bg-bg-sunken border-t border-rule flex items-center justify-center px-4 text-center">
+      {/* Persistent 32px Banner (Offline Signal / Prototype Disclaimer) */}
+      <div className={cn(
+        "h-[32px] w-full border-t border-rule flex items-center justify-center px-4 text-center transition-colors",
+        isOffline ? "bg-warning/10 text-warning border-warning/40 font-semibold" : "bg-bg-sunken text-ink-muted"
+      )}>
         <span className={cn(
-          "text-[12px] uppercase tracking-[0.06em] text-ink-muted font-medium font-mono truncate",
-          language === 'OR' && "font-odia tracking-normal"
+          "text-[12px] uppercase tracking-[0.06em] font-medium font-mono truncate",
+          language === 'OR' && "font-odia tracking-normal text-[13px]"
         )}>
-          {language === 'OR'
-            ? 'ପ୍ରୋଟୋଟାଇପ୍ — ଦର, ପେମେଣ୍ଟ ଏବଂ ପରିଚୟ ଯାଞ୍ଚ କେବଳ ପରୀକ୍ଷାମୂଳକ।'
-            : 'Prototype — rates, payments, and identity checks are simulated.'}
+          {isOffline
+            ? (language === 'OR'
+                ? `ଏହି ଫୋନରେ ସାଇତା ହୋଇଛି। ନେଟୱର୍କ ଫେରିଲେ ପଠାଯିବ (${pendingRecords.length || 1} ଟି ବାକି ଅଛି)`
+                : `Saved on this phone. Will send when network returns (${pendingRecords.length || 1} pending).`)
+            : (language === 'OR'
+                ? 'ପ୍ରୋଟୋଟାଇପ୍ — ଦର, ପେମେଣ୍ଟ ଏବଂ ପରିଚୟ ଯାଞ୍ଚ କେବଳ ପରୀକ୍ଷାମୂଳକ।'
+                : 'Prototype — rates, payments, and identity checks are simulated.')}
         </span>
       </div>
     </header>
