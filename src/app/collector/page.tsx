@@ -273,7 +273,11 @@ export default function CollectorMobilePage() {
   };
 
   // Toast state
-  const [activeToast, setActiveToast] = useState<{ id: string; message: string } | null>(null);
+  const [activeToast, setActiveToast] = useState<{
+    id: string;
+    message: string;
+    onUndo?: () => void;
+  } | null>(null);
 
   // Selected product object
   const currentProduct = AVAILABLE_PRODUCTS.find((p) => p.key === selectedProductKey) || AVAILABLE_PRODUCTS[0];
@@ -391,6 +395,19 @@ export default function CollectorMobilePage() {
       setShowFirstRequestHint(false);
       setFirstRequestCompleted();
 
+      // Fix 5: Visible recovery in ≤ 2 actions. Undo toast allows 1-tap rollback of accidental submit
+      setActiveToast({
+        id: `submit-${Date.now()}`,
+        message: isOr
+          ? `ଅନୁରୋଧ ରେକର୍ଡ ହେଲା · ${newCode}`
+          : `Pickup request recorded · ${newCode}`,
+        onUndo: () => {
+          setRequests((prev) => prev.filter((r) => r.id !== newReq.id));
+          setActiveConfirmationReceipt(null);
+          setIsPickupSheetOpen(true);
+        },
+      });
+
       return newCode;
     },
   });
@@ -507,16 +524,16 @@ export default function CollectorMobilePage() {
         <section aria-label="Collector Status Context" className="pt-2">
           {/* Greeting Card */}
           <div className="rounded-[4px] border border-rule bg-surface p-4 sm:p-5 shadow-none">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h1 className={cn('font-heading text-[22px] font-semibold text-ink leading-tight', isOr && 'font-odia text-[24px]')}>
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <h1 className={cn('font-heading text-[22px] font-semibold text-ink leading-tight break-words', isOr && 'font-odia text-[24px]')}>
                   {t('collector.greeting', { name: collectorFirstName })}
                 </h1>
-                <p className={cn('text-[14px] text-ink-muted mt-1 leading-snug', isOr && 'font-odia text-[16px] leading-[1.6]')}>
+                <p className={cn('text-[14px] text-ink-muted mt-1 leading-snug break-words', isOr && 'font-odia text-[16px] leading-[1.6]')}>
                   {t('collector.region_season')}
                 </p>
               </div>
-              <StatusBadge variant="neutral" className="shrink-0 text-[10px]">
+              <StatusBadge variant="neutral" className="shrink-0 text-[10px] mt-0.5">
                 {t('collector.forecast_only')}
               </StatusBadge>
             </div>
@@ -540,15 +557,15 @@ export default function CollectorMobilePage() {
             </div>
 
             {/* Product recognition 48x48 icon & Big Fraunces 36px/44px Number */}
-            <div className="flex items-center justify-between gap-4 py-1">
-              <div className="min-w-0">
+            <div className="flex items-center justify-between gap-4 py-1 flex-wrap sm:flex-nowrap">
+              <div className="min-w-0 flex-1">
                 <div className="font-heading text-[44px] font-bold tabular-nums text-accent leading-none">
                   ₹{currentProduct.rate.toFixed(0)}
                 </div>
-                <div className={cn('text-[15px] font-medium text-ink mt-1 truncate', isOr && 'font-odia text-[17px]')}>
+                <div className={cn('text-[15px] font-medium text-ink mt-1 break-words', isOr && 'font-odia text-[17px]')}>
                   {isOr ? currentProduct.nameOdia : currentProduct.name}
                 </div>
-                <div className="text-[12px] text-ink-muted font-mono">
+                <div className="text-[12px] text-ink-muted font-mono break-words">
                   per {currentProduct.unit} · Mayurbhanj Mandi
                 </div>
               </div>
@@ -903,11 +920,11 @@ export default function CollectorMobilePage() {
               <div className="mb-3 p-2.5 rounded-[2px] border border-rule bg-bg-sunken text-[12px] text-ink flex items-center justify-between gap-2">
                 <div className="space-y-0.5">
                   <p className="font-semibold text-ink">
-                    Type the quantity or tap the mic. Tap Submit when done.
+                    Say or tap quantity. Tap Submit.
                   </p>
                   {isOr && (
                     <p className="font-odia text-[13px] text-ink-muted">
-                      ପରିମାଣ ଲେଖନ୍ତୁ କିମ୍ବା ମାଇକ୍ ବଟନ୍ ଦବାନ୍ତୁ। ଶେଷରେ Submit ଦବାନ୍ତୁ।
+                      ପରିମାଣ କୁହନ୍ତୁ କିମ୍ବା ଲେଖନ୍ତୁ। Submit ଦବାନ୍ତୁ।
                     </p>
                   )}
                 </div>
@@ -917,7 +934,7 @@ export default function CollectorMobilePage() {
                     setShowFirstRequestHint(false);
                     setFirstRequestCompleted();
                   }}
-                  className="text-ink-subtle hover:text-ink text-[12px] font-mono px-1.5 py-0.5 border border-rule bg-surface rounded-[2px] shrink-0"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-ink-subtle hover:text-ink text-[13px] font-mono border border-rule bg-surface rounded-[2px] shrink-0 focus:outline-2 focus:outline-accent"
                   aria-label="Dismiss inline hint"
                 >
                   ✕
@@ -1434,6 +1451,8 @@ export default function CollectorMobilePage() {
           <Toast
             variant="success"
             title={activeToast.message}
+            onUndo={activeToast.onUndo}
+            undoLabel={isOr ? 'ପୂର୍ବାବସ୍ଥା' : 'Undo'}
             onClose={() => setActiveToast(null)}
           />
         </ToastContainer>

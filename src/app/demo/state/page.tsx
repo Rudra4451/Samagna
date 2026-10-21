@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '../../../components/shell/AppShell';
 import { useAppStore } from '../../../store/useAppStore';
@@ -17,6 +17,12 @@ export default function DemoStatePage() {
   const { isOffline, setOffline, language, setLanguage } = useAppStore();
   const { fontScale, setFontScale } = useFontScale();
   const { forceMockConflict } = useOffline();
+  const [statusBanner, setStatusBanner] = useState<string | null>(null);
+
+  const notify = (msg: string) => {
+    setStatusBanner(msg);
+    setTimeout(() => setStatusBanner(null), 4000);
+  };
 
   return (
     <AppShell>
@@ -44,6 +50,14 @@ export default function DemoStatePage() {
           </div>
         </div>
 
+        {/* Non-blocking feedback banner (INTERACTION.md Rule 3: No window.alert) */}
+        {statusBanner && (
+          <div className="p-3 border border-success bg-success/10 text-success text-[12px] font-mono font-medium rounded-[2px] flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span>{statusBanner}</span>
+          </div>
+        )}
+
         <div className="grid gap-4">
           {/* Card 0: Master Rule 1 Pre-Seeded Reset */}
           <Card>
@@ -63,7 +77,7 @@ export default function DemoStatePage() {
                   size="sm"
                   onClick={async () => {
                     await resetDemoState(1);
-                    alert('Seeded to Act 1 baseline (#BS-400 verified, #BS-402 pending).');
+                    notify('Seeded to Act 1 baseline (#BS-400 verified, #BS-402 pending).');
                   }}
                 >
                   Seed Act 1
@@ -73,7 +87,7 @@ export default function DemoStatePage() {
                   size="sm"
                   onClick={async () => {
                     await resetDemoState(2);
-                    alert('Seeded to Act 2 baseline (ready for warehouse re-weigh).');
+                    notify('Seeded to Act 2 baseline (ready for warehouse re-weigh).');
                   }}
                 >
                   Seed Act 2
@@ -83,7 +97,7 @@ export default function DemoStatePage() {
                   size="sm"
                   onClick={async () => {
                     await resetDemoState(3);
-                    alert('Seeded to Act 3 baseline (discrepancy quarantined).');
+                    notify('Seeded to Act 3 baseline (discrepancy quarantined).');
                   }}
                 >
                   Seed Act 3
@@ -247,7 +261,7 @@ export default function DemoStatePage() {
                     localStorage.removeItem('onboarded:inventory');
                     localStorage.removeItem('onboarded:facilitator');
                     localStorage.removeItem('onboarded:collector_first_request');
-                    alert('All role onboarding states have been reset! Visiting any role will now trigger the initial 30s experience.');
+                    notify('All role onboarding states have been reset! Visiting any role will trigger the initial 30s experience.');
                   }}
                 >
                   Reset All Onboarding
@@ -262,7 +276,7 @@ export default function DemoStatePage() {
                     onClick={() => {
                       localStorage.removeItem('onboarded:collector');
                       localStorage.removeItem('onboarded:collector_first_request');
-                      alert('Collector onboarding & first-request hint reset.');
+                      notify('Collector onboarding & first-request hint reset.');
                     }}
                     className="text-accent hover:underline font-semibold"
                   >
@@ -275,7 +289,7 @@ export default function DemoStatePage() {
                   <button
                     onClick={() => {
                       localStorage.removeItem('onboarded:collection');
-                      alert('Collection manager onboarding reset.');
+                      notify('Collection manager onboarding reset.');
                     }}
                     className="text-accent hover:underline font-semibold"
                   >
@@ -288,7 +302,7 @@ export default function DemoStatePage() {
                   <button
                     onClick={() => {
                       localStorage.removeItem('onboarded:inventory');
-                      alert('Inventory manager onboarding reset.');
+                      notify('Inventory manager onboarding reset.');
                     }}
                     className="text-accent hover:underline font-semibold"
                   >
@@ -301,7 +315,7 @@ export default function DemoStatePage() {
                   <button
                     onClick={() => {
                       localStorage.removeItem('onboarded:facilitator');
-                      alert('Facilitator onboarding reset.');
+                      notify('Facilitator onboarding reset.');
                     }}
                     className="text-accent hover:underline font-semibold"
                   >
