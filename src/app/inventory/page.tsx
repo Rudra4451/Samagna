@@ -35,6 +35,8 @@ import {
   DrawerFooter,
   DrawerClose,
 } from '../../components/ui/Drawer';
+import { useAction } from '../../lib/useAction';
+import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import { cn } from '../../lib/utils';
 import {
   Warehouse,
@@ -136,13 +138,48 @@ export default function InventoryManagerPage() {
     'Joint inspection conducted with driver B. Soren. Security seal #OD-ST-8840 confirmed intact. High ambient temperature along Karanjia route caused moisture evaporation. Lot quarantined for drying equilibrium verification.'
   );
 
-  // Toast State
+  // Monotonic audit timeline state
+  const [auditTimeline, setAuditTimeline] = useState<AuditTimelineItem[]>([
+    {
+      id: 'aud-1',
+      timestamp: '14 Mar 2025 · 11:20 AM',
+      actor: 'Driver B. Soren (#VH-04)',
+      action: 'Batch delivered at Central Warehouse bay 3. Seal #OD-ST-8840 intact.',
+      delta: 'Arrival logged',
+      deltaVariant: 'neutral',
+    },
+    {
+      id: 'aud-2',
+      timestamp: '14 Mar 2025 · 09:30 AM',
+      actor: 'Facilitator Birsa Munda (#BS-FAC-01)',
+      action: 'Batch collected from Raimati Soren at Karanjia Point. Net weight 100.0 kg.',
+      delta: '+100.0 kg Dispatched',
+      deltaVariant: 'success',
+    },
+    {
+      id: 'aud-3',
+      timestamp: '13 Mar 2025 · 04:15 PM',
+      actor: 'Collector Raimati Soren',
+      action: 'Pickup request submitted via BanaSetu Mobile.',
+      delta: 'Forecast registered',
+      deltaVariant: 'neutral',
+    },
+  ]);
+
+  // Toast State (with undo support)
   const [activeToast, setActiveToast] = useState<{
     id: string;
     variant: ToastVariant;
     title: string;
-    description: string;
+    description?: string;
+    onUndo?: () => void;
+    undoLabel?: string;
   } | null>(null);
+
+  // Stale data timestamp (INTERACTION.md Rule 7)
+  const [lastFetched, setLastFetched] = useState<Date>(new Date());
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
+  const [confirmingApproval, setConfirmingApproval] = useState(false);
 
   // Shrinkage computations: Configured tolerance 1.5%
   const collectionKg = 100.0;
@@ -155,144 +192,185 @@ export default function InventoryManagerPage() {
   // Can approve if within tolerance OR supervisor note is added
   const canApprove = isWithinTolerance || supervisorNote.trim().length > 10;
 
-  // Monotonic Audit timeline for #BS-402
-  const [auditTimeline, setAuditTimeline] = useState<AuditTimelineItem[]>([
-    {
-      id: 'aud-1',
-      timestamp: '14 Mar 2025 · 09:15 AM',
-      actor: 'R. Mohanty (Field Manager CM-12)',
-      action: 'Collection recorded at Badagaon Van Dhan Kendra',
-      delta: '+100.0 kg (Pending)',
-      deltaVariant: 'neutral',
-    },
-    {
-      id: 'aud-2',
-      timestamp: '14 Mar 2025 · 09:20 AM',
-      actor: 'LABHA Automated DBT Gateway',
-      action: 'Simulated payment entitlement recorded (DBT-OD-2024-8841)',
-      delta: '₹4,200.00 (Simulated)',
-      deltaVariant: 'neutral',
-    },
-    {
-      id: 'aud-3',
-      timestamp: '14 Mar 2025 · 11:20 AM',
-      actor: 'B. Soren (Transport Lead)',
-      action: 'Dispatched under Tarpaulin Seal Tag #OD-ST-8840',
-      delta: 'Vehicle OR-11-F-4412',
-      deltaVariant: 'neutral',
-    },
-    {
-      id: 'aud-4',
-      timestamp: '14 Mar 2025 · 01:40 PM',
-      actor: 'S. Das (Inventory Manager IM-04)',
-      action: 'Depôt arrival weighed on electronic scale #ES-8812',
-      delta: '95.0 kg Arrival',
-      deltaVariant: 'warning',
-    },
-    {
-      id: 'aud-5',
-      timestamp: '14 Mar 2025 · 01:42 PM',
-      actor: 'BanaSetu Shrinkage Protocol',
-      action: 'Moisture loss evaluated: 1.5% allowed (1.5 kg) vs 5.0 kg actual',
-      delta: '-3.5 kg Excess Deficit',
-      deltaVariant: 'danger',
-    },
-  ]);
+  // Safe Drawer close check
+  const handleAttemptCloseDrawer = () => {
+    const hasUnsavedChanges =
+      arrivalWeight !== 95.0 ||
+      storageLocation !== 'Rack B (Dry Stack)' ||
+      qualityGrade !== 'A';
+    if (hasUnsavedChanges) {
+      setShowDiscardPrompt(true);
+    } else {
+      setIsDrawerOpen(false);
+      setConfirmingApproval(false);
+    }
+  };
 
-  // Handle Approve to Saleable
-  const handleApprove = () => {
-    // Inventory status moves pending_verification → available
-    setBatches((prev) =>
-      prev.map((b) =>
-        b.code === '#BS-402'
-          ? {
-              ...b,
-              receivedKg: arrivalWeight,
-              deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
-              status: 'Available',
-              statusVariant: 'success',
-              updatedAt: '14 Mar · Just now',
-            }
-          : b
-      )
-    );
+  // 1. Refresh Batches Action
+  const refreshBatchesAction = useAction({
+    name: 'refresh-inventory-batches',
+    showToast: (t) => setActiveToast(t),
+    receipt: {
+      variant: 'info',
+      title: 'Inventory batches refreshed',
+      description: 'Central depôt arrivals and storage racks synchronized.',
+    },
+    onExecute: () => {
+      setLastFetched(new Date());
+    },
+  });
 
-    // Live state updates: Expected stock unchanged, Pending -100, Available +95
-    setPendingStock(0.0);
-    setAvailableStock((prev) => prev + arrivalWeight);
+  // 2. Change Storage Location Action (INTERACTION.md Rule 8 - Mandatory Undo Scenario 2)
+  const changeStorageLocationAction = useAction({
+    name: 'change-storage-location',
+    undoable: true,
+    undoLabel: 'Undo',
+    undoDurationMs: 6000,
+    showToast: (t) => setActiveToast(t),
+    capturePreviousState: () => ({ location: storageLocation }),
+    receipt: {
+      variant: 'info',
+      title: (newLoc) => `Storage location updated to ${newLoc}`,
+      description: 'Assigned rack updated. Click Undo within 6s to revert.',
+    },
+    onExecute: async ({ args }) => {
+      const newLoc = args[0] as string;
+      setStorageLocation(newLoc);
+      return newLoc;
+    },
+    onUndo: async ({ previousState }) => {
+      if (previousState?.location) {
+        setStorageLocation(previousState.location);
+      }
+    },
+  });
 
-    // Append to monotonic audit timeline
-    const approvalAudit: AuditTimelineItem = {
-      id: `aud-${Date.now()}`,
-      timestamp: '14 Mar 2025 · Just now',
-      actor: 'S. Das (IM-04) & Supervisor Endorsement',
-      action: `Approved to saleable stock in ${storageLocation} with flag note`,
-      delta: `+${arrivalWeight.toFixed(1)} kg Available`,
-      deltaVariant: 'success',
-    };
-    setAuditTimeline((prev) => [...prev, approvalAudit]);
+  // 3. Quarantine / Reject Action (INTERACTION.md Rule 8 - Mandatory Undo Scenario 3)
+  const quarantineAction = useAction({
+    name: 'quarantine-batch',
+    undoable: true,
+    undoLabel: 'Undo',
+    undoDurationMs: 6000,
+    showToast: (t) => setActiveToast(t),
+    capturePreviousState: () => ({
+      batches: [...batches],
+      pendingStock,
+      quarantinedStock,
+      timeline: [...auditTimeline],
+    }),
+    receipt: {
+      variant: 'warning',
+      title: 'Batch #BS-402 Quarantined with Reject Reason',
+      description: 'Stock held in segregation bay. Click Undo within 6s to restore Pending Verification.',
+    },
+    onExecute: async () => {
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.code === '#BS-402'
+            ? {
+                ...b,
+                receivedKg: arrivalWeight,
+                deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
+                status: 'Quarantined',
+                statusVariant: 'danger',
+                updatedAt: '14 Mar · Just now',
+              }
+            : b
+        )
+      );
 
-    setIsDrawerOpen(false);
+      setPendingStock(0.0);
+      setQuarantinedStock((prev) => prev + arrivalWeight);
 
-    setActiveToast({
-      id: `toast-${Date.now()}`,
+      const quarantineAudit: AuditTimelineItem = {
+        id: `aud-${Date.now()}`,
+        timestamp: '14 Mar 2025 · Just now',
+        actor: 'S. Das (Warehouse IM-04)',
+        action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-3.5 kg excess)`,
+        delta: `${arrivalWeight.toFixed(1)} kg Quarantined`,
+        deltaVariant: 'danger',
+      };
+      setAuditTimeline((prev) => [...prev, quarantineAudit]);
+      setIsDrawerOpen(false);
+      setShowDiscardPrompt(false);
+    },
+    onUndo: async ({ previousState }) => {
+      if (previousState) {
+        setBatches(previousState.batches);
+        setPendingStock(previousState.pendingStock);
+        setQuarantinedStock(previousState.quarantinedStock);
+        setAuditTimeline(previousState.timeline);
+      }
+    },
+  });
+
+  // 4. Approve to Saleable Action (INTERACTION.md Rule 3 - Semi-reversible inline confirmation)
+  const approveAction = useAction({
+    name: 'approve-to-saleable',
+    showToast: (t) => setActiveToast(t),
+    receipt: {
       variant: 'success',
       title: 'Batch #BS-402 Approved to Saleable',
       description: 'Expected unchanged · Available +95.0 kg. Discrepancy logged as non-punitive audit flag.',
-    });
-  };
+    },
+    onExecute: async () => {
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.code === '#BS-402'
+            ? {
+                ...b,
+                receivedKg: arrivalWeight,
+                deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
+                status: 'Available',
+                statusVariant: 'success',
+                updatedAt: '14 Mar · Just now',
+              }
+            : b
+        )
+      );
 
-  // Handle Hold / Quarantine
-  const handleQuarantine = () => {
-    setBatches((prev) =>
-      prev.map((b) =>
-        b.code === '#BS-402'
-          ? {
-              ...b,
-              receivedKg: arrivalWeight,
-              deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
-              status: 'Quarantined',
-              statusVariant: 'danger',
-              updatedAt: '14 Mar · Just now',
-            }
-          : b
-      )
-    );
+      setPendingStock(0.0);
+      setAvailableStock((prev) => prev + arrivalWeight);
 
-    setPendingStock(0.0);
-    setQuarantinedStock((prev) => prev + arrivalWeight);
-
-    const quarantineAudit: AuditTimelineItem = {
-      id: `aud-${Date.now()}`,
-      timestamp: '14 Mar 2025 · Just now',
-      actor: 'S. Das (Warehouse IM-04)',
-      action: 'Held in Quarantine Bay 03 pending supervisor joint drying review',
-      delta: `${arrivalWeight.toFixed(1)} kg Quarantined`,
-      deltaVariant: 'danger',
-    };
-    setAuditTimeline((prev) => [...prev, quarantineAudit]);
-
-    setIsDrawerOpen(false);
-
-    setActiveToast({
-      id: `toast-${Date.now()}`,
-      variant: 'warning',
-      title: 'Batch #BS-402 Quarantined',
-      description: 'Stock segregated in Bay 03. Primary collectors remain 100% safeguarded under LABHA.',
-    });
-  };
+      const approvalAudit: AuditTimelineItem = {
+        id: `aud-${Date.now()}`,
+        timestamp: '14 Mar 2025 · Just now',
+        actor: 'S. Das (IM-04) & Supervisor Endorsement',
+        action: `Approved to saleable stock in ${storageLocation} with flag note`,
+        delta: `+${arrivalWeight.toFixed(1)} kg Available`,
+        deltaVariant: 'success',
+      };
+      setAuditTimeline((prev) => [...prev, approvalAudit]);
+      setIsDrawerOpen(false);
+      setShowDiscardPrompt(false);
+      setConfirmingApproval(false);
+    },
+  });
 
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="border-b border-rule pb-3">
-          <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
-            Inventory
-          </h1>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
-            Today · 14 Mar 2025 · Baripada Central Depôt #02
+        {/* Top of Content Header with Top-Right Primary Action (Rule 2) */}
+        <div className="border-b border-rule pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
+              Inventory
+            </h1>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
+              Today · 14 Mar 2025 · Baripada Central Depôt #02
+            </div>
           </div>
+          {/* Primary Action Placement: Top-right aligned with page title row */}
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowDiscardPrompt(false);
+              setIsDrawerOpen(true);
+            }}
+            className="self-start sm:self-auto shadow-none"
+          >
+            Verify batch
+          </Button>
         </div>
 
         {/* ========================================================
@@ -349,15 +427,22 @@ export default function InventoryManagerPage() {
            ======================================================== */}
         <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
           <div className="px-4 py-3 border-b border-rule bg-bg-sunken/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <SectionLabel as="h2">Depôt Batches Ledger</SectionLabel>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <SectionLabel as="h2">Depôt Batches Ledger</SectionLabel>
+                <LastFetchedBadge
+                  timestamp={lastFetched}
+                  onRefresh={() => refreshBatchesAction.execute()}
+                />
+              </div>
               <p className="text-[12px] text-ink-muted mt-0.5">
                 Custody verification records comparing collection gross with depôt arrival tare
               </p>
             </div>
             <div className="flex items-center gap-2.5">
               <ShortCodeLookup
-                onSelectBatch={(code) => {
+                onSelectBatch={() => {
+                  setShowDiscardPrompt(false);
                   setIsDrawerOpen(true);
                 }}
               />
@@ -474,7 +559,16 @@ export default function InventoryManagerPage() {
       {/* ========================================================
           DRAWER: "Storage verification · #BS-402" (480px width)
          ======================================================== */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+      <Drawer
+        open={isDrawerOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleAttemptCloseDrawer();
+          } else {
+            setIsDrawerOpen(true);
+          }
+        }}
+      >
         <DrawerContent className="w-[480px] max-w-full">
           <DrawerHeader>
             <div className="flex items-center justify-between w-full pr-6">
@@ -613,8 +707,10 @@ export default function InventoryManagerPage() {
                         Storage Location
                       </label>
                       <Select
+                        id="storage-location-select"
                         value={storageLocation}
-                        onChange={(e) => setStorageLocation(e.target.value)}
+                        onChange={(e) => changeStorageLocationAction.execute(e.target.value)}
+                        disabled={changeStorageLocationAction.isDisabled}
                       >
                         <option value="Rack A (Central Bay)">Rack A (Central Bay)</option>
                         <option value="Rack B (Dry Stack)">Rack B (Dry Stack)</option>
@@ -776,6 +872,34 @@ export default function InventoryManagerPage() {
 
           {/* Drawer Footer Actions */}
           <DrawerFooter className="flex-col gap-2.5 bg-bg-sunken border-t border-rule p-4">
+            {showDiscardPrompt && (
+              <div className="w-full p-2.5 border border-warning/60 bg-warning/5 rounded-[2px] text-[12px] flex items-center justify-between gap-2">
+                <span className="text-warning font-semibold">Unsaved verification changes — discard?</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArrivalWeight(95.0);
+                      setStorageLocation('Rack B (Dry Stack)');
+                      setQualityGrade('A');
+                      setShowDiscardPrompt(false);
+                      setIsDrawerOpen(false);
+                      setConfirmingApproval(false);
+                    }}
+                    className="px-2 py-0.5 rounded-[2px] bg-danger text-white text-[11px] font-semibold hover:bg-danger/90"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscardPrompt(false)}
+                    className="px-2 py-0.5 rounded-[2px] border border-rule bg-surface text-ink text-[11px] hover:bg-bg-sunken"
+                  >
+                    Keep Editing
+                  </button>
+                </div>
+              </div>
+            )}
             {isOffline && (
               <p className="text-[12px] text-ink-subtle text-center select-none w-full">
                 Will be saved locally and sync when online.
@@ -784,18 +908,25 @@ export default function InventoryManagerPage() {
             <div className="flex items-center justify-between w-full gap-3">
               <Button
                 variant="secondary"
-                onClick={handleQuarantine}
-                className="flex-1"
+                onClick={() => quarantineAction.execute()}
+                disabled={quarantineAction.isDisabled}
+                className="flex-1 shadow-none"
               >
                 Hold / quarantine
               </Button>
               <Button
                 variant="primary"
-                onClick={handleApprove}
-                disabled={!canApprove}
-                className="flex-1"
+                onClick={() => {
+                  if (!confirmingApproval) {
+                    setConfirmingApproval(true);
+                  } else {
+                    approveAction.execute();
+                  }
+                }}
+                disabled={!canApprove || approveAction.isDisabled}
+                className="flex-1 shadow-none"
               >
-                Approve to saleable
+                {confirmingApproval ? 'Confirm 95.0 kg promotion?' : 'Approve to saleable'}
               </Button>
             </div>
             {!canApprove && (
@@ -814,6 +945,8 @@ export default function InventoryManagerPage() {
             variant={activeToast.variant}
             title={activeToast.title}
             description={activeToast.description}
+            onUndo={activeToast.onUndo}
+            undoLabel={activeToast.undoLabel}
             onClose={() => setActiveToast(null)}
           />
         </ToastContainer>

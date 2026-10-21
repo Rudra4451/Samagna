@@ -10,6 +10,8 @@ export interface ToastProps {
   title: string;
   description?: string;
   onClose?: () => void;
+  onUndo?: () => void;
+  undoLabel?: string;
   className?: string;
 }
 
@@ -28,6 +30,8 @@ export const Toast: React.FC<ToastProps> = ({
   title,
   description,
   onClose,
+  onUndo,
+  undoLabel = 'Undo',
   className,
 }) => {
   const { icon: Icon, borderColor, iconColor } = variantConfig[variant];
@@ -36,7 +40,7 @@ export const Toast: React.FC<ToastProps> = ({
     <div
       role="status"
       className={cn(
-        'flex w-full max-w-[420px] rounded-[4px] border bg-surface px-3.5 py-2.5 text-ink shadow-none',
+        'flex w-full max-w-[440px] rounded-[4px] border bg-surface px-3.5 py-2.5 text-ink shadow-none',
         description ? 'items-start gap-3' : 'items-center gap-2.5',
         borderColor,
         'transition-transform duration-[180ms] ease-out',
@@ -54,8 +58,21 @@ export const Toast: React.FC<ToastProps> = ({
           <p className="text-[12px] text-ink-muted leading-relaxed mt-0.5">{description}</p>
         )}
       </div>
+      {onUndo && (
+        <button
+          type="button"
+          onClick={() => {
+            onUndo();
+            onClose?.();
+          }}
+          className="shrink-0 px-2 py-0.5 text-[11px] font-mono font-semibold text-accent border border-accent/40 bg-accent/5 hover:bg-accent/15 rounded-[2px] transition-colors uppercase tracking-[0.06em] focus:outline-2 focus:outline-accent focus:outline-offset-0"
+        >
+          {undoLabel}
+        </button>
+      )}
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
           className="shrink-0 text-ink-subtle hover:text-ink transition-colors p-1 rounded-[2px] focus:outline-2 focus:outline-accent focus:outline-offset-0"
           aria-label="Dismiss notification toast"

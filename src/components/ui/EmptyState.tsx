@@ -35,7 +35,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       </p>
       {/* One rectangular action */}
       {actionLabel && (
-        <Button variant="outline" size="sm" onClick={onAction} className="rounded-[4px] h-[36px]">
+        <Button variant="secondary" size="sm" onClick={onAction} className="rounded-[4px] h-[36px]">
           {actionLabel}
         </Button>
       )}

@@ -9,6 +9,9 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Toast, ToastContainer } from '../../components/ui/Toast';
 import { useTranslation } from '../../i18n/useTranslation';
+import { Button } from '../../components/ui/Button';
+import { useAction } from '../../lib/useAction';
+import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import {
   BottomSheet,
   BottomSheetContent,
@@ -142,6 +145,8 @@ export default function CollectorMobilePage() {
   const [selectedRequest, setSelectedRequest] = useState<PickupRequest | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRecord | null>(null);
   const [isComplaintSheetOpen, setIsComplaintSheetOpen] = useState(false);
+  const [typedConfirmWord, setTypedConfirmWord] = useState('');
+  const [lastFetched, setLastFetched] = useState<Date>(new Date());
 
   // Toast state
   const [activeToast, setActiveToast] = useState<{ id: string; message: string } | null>(null);
@@ -150,37 +155,83 @@ export default function CollectorMobilePage() {
   const handleIncrement = () => setStepperQuantity((prev) => Math.min(prev + 5, 250));
   const handleDecrement = () => setStepperQuantity((prev) => Math.max(prev - 5, 5));
 
-  // Submit pickup request (3-step flow instant submit without spinners)
-  const handleSubmitPickup = () => {
-    const newCode = '#BS-403';
-    const newReq: PickupRequest = {
-      id: `REQ-${Date.now()}`,
-      productName: 'Dried Mahua Flowers',
-      productNameOdia: 'ଶୁଖିଲା ମହୁଲ ଫୁଲ',
-      quantityKg: stepperQuantity,
-      statusCode: newCode,
-      status: 'Pending',
-      statusVariant: 'warning',
-      scheduledDate: 'Expected Today or Tomorrow',
-      center: 'Badagaon Van Dhan Kendra',
-      notes: 'New pickup request submitted via mobile ledger.',
-    };
+  // 1. Submit pickup request action (Click budget ≤ 4)
+  const submitPickupAction = useAction({
+    name: 'submit-pickup-request',
+    showToast: (t) => setActiveToast({ id: t.id, message: t.title }),
+    receipt: {
+      variant: 'success',
+      title: (code) =>
+        isOr
+          ? `ଅନୁରୋଧ ପଠାଗଲା · ${code} · ମହୁଲ · ~${stepperQuantity} କେଜି`
+          : `Request sent · ${code} · Mahua · ~${stepperQuantity} kg`,
+      description: 'Stored in local ledger with cloud synchronization handshake.',
+    },
+    onExecute: async ({ idempotencyKey }) => {
+      const newCode = '#BS-403';
+      const newReq: PickupRequest = {
+        id: `REQ-${Date.now()}`,
+        productName: 'Dried Mahua Flowers',
+        productNameOdia: 'ଶୁଖିଲା ମହୁଲ ଫୁଲ',
+        quantityKg: stepperQuantity,
+        statusCode: newCode,
+        status: 'Pending',
+        statusVariant: 'warning',
+        scheduledDate: 'Expected Today or Tomorrow',
+        center: 'Badagaon Van Dhan Kendra',
+        notes: `New pickup request submitted via mobile ledger. Idempotency: ${idempotencyKey}`,
+      };
 
-    setRequests((prev) => [newReq, ...prev]);
-    setIsPickupSheetOpen(false);
+      setRequests((prev) => [newReq, ...prev]);
+      setIsPickupSheetOpen(false);
+      return newCode;
+    },
+  });
 
-    // Bottom toast notification (concrete microcopy)
-    setActiveToast({
-      id: `toast-${Date.now()}`,
-      message: isOr
-        ? `ଅନୁରୋଧ ପଠାଗଲା · ${newCode} · ମହୁଲ · ~${stepperQuantity} କେଜି`
-        : `Request sent · ${newCode} · Mahua · ~${stepperQuantity} kg`,
-    });
+  // 2. Cancel Request Action (Irreversible typed confirmation word per INTERACTION.md Rule 3)
+  const cancelRequestAction = useAction({
+    name: 'cancel-pickup-request',
+    showToast: (t) => setActiveToast({ id: t.id, message: t.title }),
+    receipt: {
+      variant: 'info',
+      title: 'Pickup request permanently cancelled',
+      description: 'Record purged from active collection dispatch queue.',
+    },
+    onExecute: async ({ args }) => {
+      const reqId = args[0] as string;
+      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      setSelectedRequest(null);
+      setTypedConfirmWord('');
+    },
+  });
 
-    setTimeout(() => {
-      setActiveToast((curr) => (curr?.message.includes(newCode) ? null : curr));
-    }, 4500);
-  };
+  // 3. Submit Complaint Action
+  const submitComplaintAction = useAction({
+    name: 'submit-complaint',
+    showToast: (t) => setActiveToast({ id: t.id, message: t.title }),
+    receipt: {
+      variant: 'success',
+      title: 'Grievance ticket #GRV-0881 registered with TDCCOL',
+      description: 'Forwarded to Mayurbhanj District Tribal Welfare Officer.',
+    },
+    onExecute: async () => {
+      setIsComplaintSheetOpen(false);
+    },
+  });
+
+  // 4. Refresh Rates Action
+  const refreshRatesAction = useAction({
+    name: 'refresh-rates',
+    showToast: (t) => setActiveToast({ id: t.id, message: t.title }),
+    receipt: {
+      variant: 'info',
+      title: 'Market rates verified',
+      description: 'MSP 2024 notifications synchronized.',
+    },
+    onExecute: async () => {
+      setLastFetched(new Date());
+    },
+  });
 
   return (
     <AppShell>
@@ -209,9 +260,10 @@ export default function CollectorMobilePage() {
             <span className={cn("text-[11px] font-bold uppercase tracking-[0.06em] text-accent select-none", isOr && "font-odia")}>
               {t('collector.verified_rate')}
             </span>
-            <span className="text-[10px] font-mono uppercase text-ink-subtle bg-bg-sunken px-2 py-0.5 rounded-[2px] border border-rule">
-              {t('collector.benchmark_badge')}
-            </span>
+            <LastFetchedBadge
+              timestamp={lastFetched}
+              onRefresh={() => refreshRatesAction.execute()}
+            />
           </div>
 
           {/* Big Number: ₹42 in Fraunces 36px/44px tabular */}
@@ -229,14 +281,14 @@ export default function CollectorMobilePage() {
           </div>
         </div>
 
-        {/* Section 3: Primary Action: Full-width 56px accent button */}
-        <div className="space-y-1.5">
+        {/* Section 3: Primary Action: Full-width sticky at bottom, 56px tall, above tab bar (INTERACTION.md Rule 2) */}
+        <div className="sticky bottom-[64px] z-20 bg-bg/95 py-2 border-y border-rule sm:border-0 space-y-1.5">
           <button
             onClick={() => setIsPickupSheetOpen(true)}
             className={cn(
               'h-[56px] w-full min-h-[44px] rounded-[4px] border border-accent bg-accent text-accent-ink',
               'text-[16px] font-medium flex items-center justify-center gap-2.5 shadow-none transition-colors select-none',
-              'hover:bg-[#9E4326] active:bg-[#8D3A20] focus:outline-2 focus:outline-accent focus:outline-offset-0',
+              'hover:bg-accent/90 active:bg-accent/80 focus:outline-2 focus:outline-accent focus:outline-offset-0',
               isOr && 'font-odia text-[16px]'
             )}
           >
@@ -502,11 +554,12 @@ export default function CollectorMobilePage() {
               </p>
             )}
             <button
-              onClick={handleSubmitPickup}
+              onClick={() => submitPickupAction.execute()}
+              disabled={submitPickupAction.isDisabled}
               className={cn(
                 'h-[56px] w-full min-h-[44px] rounded-[4px] border border-accent bg-accent text-accent-ink',
-                'text-[16px] font-semibold flex items-center justify-center gap-2 shadow-none select-none transition-colors',
-                'hover:bg-[#9E4326] active:bg-[#8D3A20] focus:outline-2 focus:outline-accent focus:outline-offset-0',
+                'text-[16px] font-semibold flex items-center justify-center gap-2 shadow-none select-none transition-colors disabled:opacity-40',
+                'hover:bg-accent/90 active:bg-accent/80 focus:outline-2 focus:outline-accent focus:outline-offset-0',
                 isOr && 'font-odia text-[16px]'
               )}
             >
@@ -560,6 +613,38 @@ export default function CollectorMobilePage() {
                   <span className="font-semibold text-ink block mb-0.5">Verification Notes:</span>
                   {selectedRequest.notes}
                 </div>
+
+                {/* Irreversible typed confirmation action (Rule 3) */}
+                {selectedRequest.status === 'Pending' && (
+                  <div className="pt-3 border-t border-rule space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-danger block">
+                      Cancel Pickup Request (Irreversible)
+                    </span>
+                    <p className="text-[12px] text-ink-muted">
+                      Type &ldquo;confirm&rdquo; below to permanently cancel this request.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type confirm"
+                        value={typedConfirmWord}
+                        onChange={(e) => setTypedConfirmWord(e.target.value)}
+                        className="h-[36px] flex-1 px-3 border border-rule rounded-[4px] text-[13px] font-mono outline-none focus:outline-2 focus:outline-accent"
+                      />
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={
+                          typedConfirmWord.trim().toLowerCase() !== 'confirm' ||
+                          cancelRequestAction.isDisabled
+                        }
+                        onClick={() => cancelRequestAction.execute(selectedRequest.id)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </BottomSheetBody>
@@ -692,18 +777,14 @@ export default function CollectorMobilePage() {
                 Will be saved locally and sync when online.
               </p>
             )}
-            <button
-              onClick={() => {
-                setIsComplaintSheetOpen(false);
-                setActiveToast({
-                  id: `toast-${Date.now()}`,
-                  message: 'Grievance ticket #GRV-0881 registered with TDCCOL',
-                });
-              }}
-              className="h-[48px] w-full min-h-[44px] rounded-[4px] border border-accent bg-accent text-accent-ink text-[14px] font-semibold focus:outline-2 focus:outline-accent focus:outline-offset-0 transition-colors hover:bg-[#9E4326]"
+            <Button
+              variant="primary"
+              onClick={() => submitComplaintAction.execute()}
+              disabled={submitComplaintAction.isDisabled}
+              className="h-[48px] w-full min-h-[44px] shadow-none"
             >
               Submit grievance
-            </button>
+            </Button>
           </BottomSheetFooter>
         </BottomSheetContent>
       </BottomSheet>

@@ -31,6 +31,13 @@ export const DrawerContent = React.forwardRef<
     <DrawerOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onOpenAutoFocus={(e) => {
+        const titleEl = document.querySelector('[data-drawer-title]') as HTMLElement;
+        if (titleEl) {
+          e.preventDefault();
+          titleEl.focus();
+        }
+      }}
       className={cn(
         'fixed inset-y-0 right-0 z-50 flex h-full w-[480px] max-w-full flex-col bg-surface border-l border-rule shadow-none outline-none transition-transform duration-[180ms] ease-out',
         className
@@ -70,7 +77,9 @@ export const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('font-heading text-[18px] font-semibold text-ink leading-tight', className)}
+    data-drawer-title
+    tabIndex={-1}
+    className={cn('font-heading text-[18px] font-semibold text-ink leading-tight outline-none', className)}
     {...props}
   />
 ));

@@ -519,7 +519,7 @@ export default function DesignSystemPage() {
               title="No Open Quarantines in Zone C"
               description="All Minor Forest Produce lots for Karanjia block have been reconciled and posted to saleable inventory."
               actionLabel="Initiate Scheduled Weigh-In"
-              onAction={() => alert('Initiating new weigh-in record...')}
+              onAction={() => triggerToast('info')}
             />
           </div>
         </section>
@@ -578,8 +578,7 @@ export default function DesignSystemPage() {
             {/* Sidebar View Container */}
             <div className="border border-rule rounded-[4px] overflow-hidden flex h-[380px] bg-bg-sunken">
               <ManagerSidebar
-                activeItem={activeNav}
-                onNavigate={(id) => setActiveNav(id)}
+                role="collection_manager"
               />
               <div className="flex-1 p-4 bg-bg flex flex-col justify-between">
                 <div className="space-y-2">

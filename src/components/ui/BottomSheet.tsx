@@ -33,6 +33,13 @@ export const BottomSheetContent = React.forwardRef<
     <BottomSheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onOpenAutoFocus={(e) => {
+        const titleEl = document.querySelector('[data-sheet-title]') as HTMLElement;
+        if (titleEl) {
+          e.preventDefault();
+          titleEl.focus();
+        }
+      }}
       className={cn(
         'fixed bottom-0 inset-x-0 z-50 flex max-h-[90vh] w-full max-w-[480px] mx-auto flex-col',
         'bg-surface border-t border-rule shadow-none outline-none',
@@ -78,7 +85,9 @@ export const BottomSheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('font-heading text-[18px] font-semibold text-ink leading-tight', className)}
+    data-sheet-title
+    tabIndex={-1}
+    className={cn('font-heading text-[18px] font-semibold text-ink leading-tight outline-none', className)}
     {...props}
   />
 ));

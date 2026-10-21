@@ -33,6 +33,8 @@ import {
   DrawerFooter,
   DrawerClose,
 } from '../../components/ui/Drawer';
+import { useAction } from '../../lib/useAction';
+import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import { cn } from '../../lib/utils';
 import {
   Scale,
@@ -46,6 +48,7 @@ import {
   FileCheck2,
   SlidersHorizontal,
   Info,
+  Trash2,
 } from 'lucide-react';
 
 interface QueueItem {
@@ -160,8 +163,14 @@ export default function CollectionManagerPage() {
     id: string;
     variant: ToastVariant;
     title: string;
-    description: string;
+    description?: string;
+    onUndo?: () => void;
+    undoLabel?: string;
   } | null>(null);
+
+  // Stale data timestamp (INTERACTION.md Rule 7)
+  const [lastFetched, setLastFetched] = useState<Date>(new Date());
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
 
   // Computed net weight: tabular and read-only
   const computedNet = Number((grossWeight - tareWeight).toFixed(2));
@@ -208,125 +217,202 @@ export default function CollectionManagerPage() {
   // Open drawer for a specific queue item
   const handleOpenRecordDrawer = (code: string) => {
     setSelectedQueueCode(code);
+    setShowDiscardPrompt(false);
     setIsDrawerOpen(true);
   };
 
-  // Sync now action
-  const handleSyncNow = async () => {
-    if (isOffline) {
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'warning',
-        title: 'Still offline — will retry',
-        description: 'Network disconnected. Records remain safely stored in local IndexedDB.',
-      });
-      return;
-    }
-
-    try {
-      const db = getDatabase();
-      await db.pendingSync.clear();
-      setOfflineQueue([]);
-
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'success',
-        title: 'Cloud handshake confirmed',
-        description: 'All queued collection records promoted to central ledger with audit hash.',
-      });
-    } catch (e) {
-      setOfflineQueue([]);
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'success',
-        title: 'Sync completed',
-        description: '2 queued records verified and synchronized with TDCCOL Mayurbhanj.',
-      });
+  const handleAttemptCloseDrawer = () => {
+    const hasUnsavedChanges = grossWeight !== 104.2 || tareWeight !== 4.2 || qualityGrade !== 'A';
+    if (hasUnsavedChanges) {
+      setShowDiscardPrompt(true);
+    } else {
+      setIsDrawerOpen(false);
     }
   };
 
-  // Confirm collection handler
-  const handleConfirmCollection = async (forceOffline?: boolean) => {
-    if (grossWeight <= tareWeight) {
-      setWeightError('Tare weight cannot equal or exceed gross weight.');
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'danger',
-        title: 'Tare weight exceeds gross weight · Check scale calibration',
-        description: '',
-      });
-      return;
-    }
-    setWeightError(null);
+  // 1. Refresh Queue Action
+  const refreshQueueAction = useAction({
+    name: 'refresh-pickup-queue',
+    showToast: (t) => setActiveToast(t),
+    receipt: {
+      variant: 'info',
+      title: 'Pickup queue refreshed',
+      description: 'Synchronized with local field cache.',
+    },
+    onExecute: () => {
+      setLastFetched(new Date());
+    },
+  });
 
-    const shouldSaveOffline = forceOffline || isOffline;
-
-    const newRecord: PendingSyncItem = {
-      id: `BS-${Math.floor(403 + Math.random() * 50)}`,
-      code: selectedQueueCode,
-      collector: 'Raimati Soren',
-      product: DEMO_PRODUCT.name,
-      quantityKg: acceptedQty,
-      amount: acceptedQty * ratePerKg,
-      timestamp: '14 Mar 2025 · Just now',
-      data: {
-        gross: grossWeight,
-        tare: tareWeight,
-        net: computedNet,
-        grade: qualityGrade,
-        individualReceipt: individualReceiptToggle,
-      },
-    };
-
-    if (shouldSaveOffline) {
-      try {
-        const db = getDatabase();
-        await db.pendingSync.put(newRecord);
-      } catch (err) {
-        console.warn('Dexie save offline error:', err);
+  // 2. Sync Now Action (Semi-reversible with inline confirmation)
+  const syncNowAction = useAction({
+    name: 'sync-offline-queue',
+    showToast: (t) => setActiveToast(t),
+    receipt: {
+      variant: 'success',
+      title: 'Cloud handshake confirmed',
+      description: 'Queued collection records promoted to central ledger with audit hash.',
+    },
+    onExecute: async () => {
+      if (isOffline) {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: 'Still offline — will retry',
+          description: 'Network disconnected. Records remain safely stored in local IndexedDB.',
+        });
+        return;
       }
 
-      setOfflineQueue((prev) => [newRecord, ...prev]);
-      setIsDrawerOpen(false);
+      try {
+        const db = getDatabase();
+        await db.pendingSync.clear();
+        setOfflineQueue([]);
+      } catch (e) {
+        setOfflineQueue([]);
+      }
+    },
+  });
 
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'warning',
-        title: `Saved offline · ${selectedQueueCode}`,
-        description: 'Network offline. Record queued in device IndexedDB pending sync.',
-      });
-    } else {
-      // Online confirmation: move batch to pending_verification
-      setQueueItems((prev) =>
-        prev.map((item) =>
-          item.code === selectedQueueCode
-            ? { ...item, status: 'Collected', statusVariant: 'info' }
-            : item
-        )
-      );
+  // 3. Remove Offline Item Action (INTERACTION.md Rule 8 - Mandatory Undo Scenario 1)
+  const removeOfflineItemAction = useAction({
+    name: 'remove-offline-item',
+    undoable: true,
+    undoLabel: 'Undo',
+    undoDurationMs: 6000,
+    showToast: (t) => setActiveToast(t),
+    capturePreviousState: () => ({ queue: [...offlineQueue] }),
+    receipt: {
+      variant: 'info',
+      title: (code) => `Item ${code} removed from offline queue`,
+      description: 'Record removed from local sync buffer. Click Undo within 6s to restore.',
+    },
+    onExecute: async ({ args }) => {
+      const idToRemove = args[0] as string;
+      const targetItem = offlineQueue.find((i) => i.id === idToRemove);
+      const code = targetItem?.code || idToRemove;
+      setOfflineQueue((prev) => prev.filter((i) => i.id !== idToRemove));
+      try {
+        const db = getDatabase();
+        await db.pendingSync.delete(idToRemove);
+      } catch (e) {
+        console.warn('Dexie delete error:', e);
+      }
+      return code;
+    },
+    onUndo: async ({ previousState }) => {
+      if (previousState?.queue) {
+        setOfflineQueue(previousState.queue);
+        try {
+          const db = getDatabase();
+          for (const item of previousState.queue) {
+            await db.pendingSync.put(item);
+          }
+        } catch (e) {
+          console.warn('Dexie restore error:', e);
+        }
+      }
+    },
+  });
 
-      setIsDrawerOpen(false);
+  // 4. Confirm Collection Action (Enforces idempotency & receipt-of-action)
+  const confirmCollectionAction = useAction({
+    name: 'confirm-collection',
+    showToast: (t) => setActiveToast(t),
+    onExecute: async ({ idempotencyKey, args }) => {
+      const forceOffline = args[0] === true;
+      if (grossWeight <= tareWeight) {
+        setWeightError('Tare weight cannot equal or exceed gross weight.');
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'danger',
+          title: 'Tare weight exceeds gross weight · Check scale calibration',
+          description: '',
+        });
+        throw new Error('Tare weight exceeds gross weight');
+      }
+      setWeightError(null);
 
-      setActiveToast({
-        id: `toast-${Date.now()}`,
-        variant: 'success',
-        title: `Collection confirmed · ${selectedQueueCode}`,
-        description: `Batch verified (${acceptedQty} kg net). Promoted to pending_verification.`,
-      });
-    }
-  };
+      const shouldSaveOffline = forceOffline || isOffline;
+      const newRecord: PendingSyncItem = {
+        id: `BS-${Math.floor(403 + Math.random() * 50)}`,
+        code: selectedQueueCode,
+        collector: 'Raimati Soren',
+        product: DEMO_PRODUCT.name,
+        quantityKg: acceptedQty,
+        amount: acceptedQty * ratePerKg,
+        timestamp: '14 Mar 2025 · Just now',
+        data: {
+          gross: grossWeight,
+          tare: tareWeight,
+          net: computedNet,
+          grade: qualityGrade,
+          individualReceipt: individualReceiptToggle,
+          idempotencyKey,
+        },
+      };
+
+      if (shouldSaveOffline) {
+        try {
+          const db = getDatabase();
+          await db.pendingSync.put(newRecord);
+        } catch (err) {
+          console.warn('Dexie save offline error:', err);
+        }
+
+        setOfflineQueue((prev) => [newRecord, ...prev]);
+        setIsDrawerOpen(false);
+        setShowDiscardPrompt(false);
+
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: `Saved offline · ${selectedQueueCode}`,
+          description: 'Network offline. Record queued in device IndexedDB pending sync.',
+        });
+      } else {
+        setQueueItems((prev) =>
+          prev.map((item) =>
+            item.code === selectedQueueCode
+              ? { ...item, status: 'Collected', statusVariant: 'info' }
+              : item
+          )
+        );
+
+        setIsDrawerOpen(false);
+        setShowDiscardPrompt(false);
+
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'success',
+          title: `Collection confirmed · ${selectedQueueCode}`,
+          description: `Batch verified (${acceptedQty} kg net). Promoted to pending_verification.`,
+        });
+      }
+    },
+  });
 
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Top of Content Header */}
-        <div className="border-b border-rule pb-3">
-          <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
-            Collection
-          </h1>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
-            Today · 14 Mar 2025 · Mayurbhanj
+        {/* Top of Content Header with Top-Right Primary Action (Rule 2) */}
+        <div className="border-b border-rule pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
+              Collection
+            </h1>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
+              Today · 14 Mar 2025 · Mayurbhanj
+            </div>
           </div>
+          {/* Primary Action Placement: Top-right aligned with page title row */}
+          <Button
+            variant="primary"
+            onClick={() => handleOpenRecordDrawer('#BS-402')}
+            className="self-start sm:self-auto shadow-none"
+          >
+            Record collection
+          </Button>
         </div>
 
         {/* 2-Column Split: 2/3 Left, 1/3 Right */}
@@ -337,8 +423,14 @@ export default function CollectionManagerPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
               <div className="px-4 py-3 border-b border-rule bg-bg-sunken/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <SectionLabel as="h2">Pickup queue</SectionLabel>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <SectionLabel as="h2">Pickup queue</SectionLabel>
+                    <LastFetchedBadge
+                      timestamp={lastFetched}
+                      onRefresh={() => refreshQueueAction.execute()}
+                    />
+                  </div>
                   <p className="text-[12px] text-ink-muted mt-0.5">
                     Field collection lots awaiting electronic weighment and seal dispatch
                   </p>
@@ -521,13 +613,24 @@ export default function CollectionManagerPage() {
                             {item.timestamp}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-mono tabular-nums text-[13px] font-medium text-ink">
-                            {item.quantityKg.toFixed(1)} kg
-                          </span>
-                          <span className="text-[10px] font-mono text-warning block">
-                            AWAITING SYNC
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="font-mono tabular-nums text-[13px] font-medium text-ink">
+                              {item.quantityKg.toFixed(1)} kg
+                            </span>
+                            <span className="text-[10px] font-mono text-warning block">
+                              AWAITING SYNC
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeOfflineItemAction.execute(item.id)}
+                            disabled={removeOfflineItemAction.isDisabled}
+                            title="Remove from offline queue (undoable)"
+                            className="p-1 rounded-[2px] text-ink-subtle hover:text-danger hover:bg-bg-sunken transition-colors focus:outline-2 focus:outline-accent focus:outline-offset-0"
+                          >
+                            <Trash2 size={14} strokeWidth={1.5} />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -539,8 +642,10 @@ export default function CollectionManagerPage() {
                   STATUS: {isOffline ? 'OFFLINE SIMULATED' : 'ONLINE LINK'}
                 </span>
                 <button
-                  onClick={handleSyncNow}
-                  className="h-[36px] px-3.5 rounded-[4px] border border-rule bg-surface text-ink text-[13px] font-medium hover:border-ink-subtle hover:bg-bg-sunken flex items-center gap-1.5 focus:outline-2 focus:outline-accent"
+                  type="button"
+                  onClick={() => syncNowAction.execute()}
+                  disabled={syncNowAction.isDisabled}
+                  className="h-[36px] px-3.5 rounded-[4px] border border-rule bg-surface text-ink text-[13px] font-medium hover:border-ink-subtle hover:bg-bg-sunken flex items-center gap-1.5 focus:outline-2 focus:outline-accent disabled:opacity-40"
                 >
                   <RefreshCw size={16} strokeWidth={1.5} />
                   <span>Sync now</span>
@@ -554,7 +659,16 @@ export default function CollectionManagerPage() {
       {/* ========================================================
           CORE SCREEN: Record Collection Drawer (480px width)
          ======================================================== */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+      <Drawer
+        open={isDrawerOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleAttemptCloseDrawer();
+          } else {
+            setIsDrawerOpen(true);
+          }
+        }}
+      >
         <DrawerContent className="w-[480px] max-w-full">
           <DrawerHeader>
             <SectionLabel>Field Intake Handshake</SectionLabel>
@@ -814,6 +928,33 @@ export default function CollectionManagerPage() {
 
           {/* Drawer Footer: Secondary "Save offline" and Primary "Confirm collection" */}
           <DrawerFooter className="flex-col gap-2.5 bg-bg-sunken border-t border-rule p-4">
+            {showDiscardPrompt && (
+              <div className="w-full p-2.5 border border-warning/60 bg-warning/5 rounded-[2px] text-[12px] flex items-center justify-between gap-2">
+                <span className="text-warning font-semibold">Unsaved collection changes — discard?</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGrossWeight(104.2);
+                      setTareWeight(4.2);
+                      setQualityGrade('A');
+                      setShowDiscardPrompt(false);
+                      setIsDrawerOpen(false);
+                    }}
+                    className="px-2 py-0.5 rounded-[2px] bg-danger text-white text-[11px] font-semibold hover:bg-danger/90"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscardPrompt(false)}
+                    className="px-2 py-0.5 rounded-[2px] border border-rule bg-surface text-ink text-[11px] hover:bg-bg-sunken"
+                  >
+                    Keep Editing
+                  </button>
+                </div>
+              </div>
+            )}
             {isOffline && (
               <p className="text-[12px] text-ink-subtle text-center select-none w-full">
                 Will be saved locally and sync when online.
@@ -822,15 +963,17 @@ export default function CollectionManagerPage() {
             <div className="flex items-center justify-between gap-3 w-full">
               <Button
                 variant="secondary"
-                onClick={() => handleConfirmCollection(true)}
-                className="flex-1"
+                onClick={() => confirmCollectionAction.execute(true)}
+                disabled={confirmCollectionAction.isDisabled}
+                className="flex-1 shadow-none"
               >
                 Save offline
               </Button>
               <Button
                 variant="primary"
-                onClick={() => handleConfirmCollection(false)}
-                className="flex-1"
+                onClick={() => confirmCollectionAction.execute(false)}
+                disabled={confirmCollectionAction.isDisabled}
+                className="flex-1 shadow-none"
               >
                 Confirm collection
               </Button>
@@ -846,6 +989,8 @@ export default function CollectionManagerPage() {
             variant={activeToast.variant}
             title={activeToast.title}
             description={activeToast.description}
+            onUndo={activeToast.onUndo}
+            undoLabel={activeToast.undoLabel}
             onClose={() => setActiveToast(null)}
           />
         </ToastContainer>
