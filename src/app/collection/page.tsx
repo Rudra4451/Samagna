@@ -288,12 +288,12 @@ export default function CollectionManagerPage() {
     },
   ]);
 
-  // Drawer Form State
+  // Drawer Form State (Rule 7: 100, 0, 100 pre-filled, quality preselected)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedQueueCode, setSelectedQueueCode] = useState('#BS-402');
   const [individualReceiptToggle, setIndividualReceiptToggle] = useState(true);
-  const [grossWeight, setGrossWeight] = useState(104.2);
-  const [tareWeight, setTareWeight] = useState(4.2);
+  const [grossWeight, setGrossWeight] = useState(100.0);
+  const [tareWeight, setTareWeight] = useState(0.0);
   const [qualityGrade, setQualityGrade] = useState<'A' | 'B' | 'C'>('A');
   const [acceptedQty, setAcceptedQty] = useState(100.0);
   const [rejectedQty, setRejectedQty] = useState(0.0);
@@ -365,7 +365,7 @@ export default function CollectionManagerPage() {
   };
 
   const handleAttemptCloseDrawer = () => {
-    const hasUnsavedChanges = grossWeight !== 104.2 || tareWeight !== 4.2 || qualityGrade !== 'A';
+    const hasUnsavedChanges = grossWeight !== 100.0 || tareWeight !== 0.0 || qualityGrade !== 'A';
     if (hasUnsavedChanges) {
       setShowDiscardPrompt(true);
     } else {
@@ -1470,8 +1470,8 @@ export default function CollectionManagerPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setGrossWeight(104.2);
-                      setTareWeight(4.2);
+                      setGrossWeight(100.0);
+                      setTareWeight(0.0);
                       setQualityGrade('A');
                       setShowDiscardPrompt(false);
                       setIsDrawerOpen(false);

@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { TopBar } from './TopBar';
 import { ManagerSidebar } from './ManagerSidebar';
 import { CollectorTabBar } from './CollectorTabBar';
+import { DemoControlPanel } from '../demo/DemoControlPanel';
+import { ScriptMarkerOverlay } from '../demo/ScriptMarkerOverlay';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -21,6 +23,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-bg text-ink flex flex-col antialiased">
+      {/* Optional Script Teleprompter bar for ?demo=1&script=1 */}
+      <ScriptMarkerOverlay />
+
       {/* Top Bar with persistent 32px simulated prototype banner */}
       <TopBar />
 
@@ -55,6 +60,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           {children}
         </main>
       )}
+
+      {/* Global Stage Demo Control Panel (renders when ?demo=1) */}
+      <DemoControlPanel />
     </div>
   );
 };

@@ -4,15 +4,15 @@ export const INITIAL_COLLECTORS = [
   {
     id: 'COL-001',
     tribalId: 'OR-MAY-KRN-0842',
-    name: 'Raimati Soren',
-    nameOdia: 'ରାଇମତୀ ସୋରେନ',
+    name: 'Sunita Soren',
+    nameOdia: 'ସୁନୀତା ସୋରେନ',
     gender: 'F' as const,
-    age: 38,
+    age: 36,
     village: 'Badagaon, Karanjia',
     villageOdia: 'ବଡ଼ଗାଁ, କରଞ୍ଜିଆ',
     weightKg: 40.0,
-    ratePerKg: 40.0,
-    grossPayout: 1600.0,
+    ratePerKg: 42.0,
+    grossPayout: 1680.0,
     bankName: 'Canara Bank (Karanjia Branch)',
     accountEnding: '•••4812',
     dbtRef: 'DBT-OD-2024-8841',
@@ -23,15 +23,15 @@ export const INITIAL_COLLECTORS = [
   {
     id: 'COL-002',
     tribalId: 'OR-MAY-KRN-1109',
-    name: 'Gura Marndi',
-    nameOdia: 'ଗୁରା ମାରାଣ୍ଡି',
+    name: 'Budhu Marndi',
+    nameOdia: 'ବୁଧୁ ମାରାଣ୍ଡି',
     gender: 'M' as const,
     age: 44,
     village: 'Badagaon, Karanjia',
     villageOdia: 'ବଡ଼ଗାଁ, କରଞ୍ଜିଆ',
     weightKg: 35.0,
-    ratePerKg: 40.0,
-    grossPayout: 1400.0,
+    ratePerKg: 42.0,
+    grossPayout: 1470.0,
     bankName: 'Odisha Gramya Bank (Karanjia)',
     accountEnding: '•••9103',
     dbtRef: 'DBT-OD-2024-8842',
@@ -42,15 +42,15 @@ export const INITIAL_COLLECTORS = [
   {
     id: 'COL-003',
     tribalId: 'OR-MAY-KRN-0623',
-    name: 'Sombari Murmu',
-    nameOdia: 'ସୋମବାରୀ ମୁର୍ମୁ',
+    name: 'Kamla Majhi',
+    nameOdia: 'କମଳା ମାଝି',
     gender: 'F' as const,
-    age: 29,
+    age: 31,
     village: 'Kadamdiha, Karanjia',
     villageOdia: 'କଦମଡିହା, କରଞ୍ଜିଆ',
     weightKg: 25.0,
-    ratePerKg: 40.0,
-    grossPayout: 1000.0,
+    ratePerKg: 42.0,
+    grossPayout: 1050.0,
     bankName: 'State Bank of India (Karanjia)',
     accountEnding: '•••2271',
     dbtRef: 'DBT-OD-2024-8843',
@@ -60,6 +60,67 @@ export const INITIAL_COLLECTORS = [
   },
 ];
 
+/**
+ * Batch #BS-400 — Verified stock baseline
+ * Status: VERIFIED_SALEABLE, ₹42/kg, 60 kg available
+ */
+export const INITIAL_BATCH_BS400: BatchRecord = {
+  id: 'BS-400',
+  produceName: 'Dried Mahua Flowers',
+  produceOdia: 'ଶୁଖିଲା ମହୁଲ ଫୁଲ',
+  scientificName: 'Madhuca longifolia',
+  district: 'Mayurbhanj (ମୟୂରଭଞ୍ଜ)',
+  block: 'Karanjia (କରଞ୍ଜିଆ)',
+  gramPanchayat: 'Badagaon GP',
+  centerName: 'Karanjia Primary MFP Procurement Point #04',
+  shgName: 'Maa Tarini SHG (ମା’ ତାରିଣୀ ମହିଳା ସ୍ୱୟଂ ସହାୟକ ଗୋଷ୍ଠୀ)',
+  facilitatorName: 'Champa Majhi (SHG-FAC-09)',
+  referenceRatePerKg: 42.0,
+  rateSource: 'TDCCOL / LABHA Yojana MSP Circular Ref: TDC/MFP/2024-R4',
+  ratePublishedDate: '15-Apr-2024 (Verified State Rate Card)',
+  seasonalReadinessStatus: 'Verified into Central Warehouse Stack',
+  pickupRequestId: 'REQ-107',
+  collectors: [INITIAL_COLLECTORS[1], INITIAL_COLLECTORS[2]],
+  status: 'VERIFIED_SALEABLE',
+  step1: {
+    grossWeightKg: 61.2,
+    tareWeightKg: 1.2,
+    netAcceptedKg: 60.0,
+    grade: 'Grade A - Properly Dried',
+    sackCount: 1,
+    sealTagId: 'OD-MBJ-KRN-400',
+    vehicleNumber: 'OD-11-AB-1234',
+    driverName: 'B. Nayak (Ph: 94371-XXXXX)',
+    tarpaulinConfirmed: true,
+    transitWaybillId: 'WB-OD-24-097',
+    observedMoisturePercent: 8.4,
+    verifiedBy: 'R. Mohanty (ID: CM-12)',
+    verifiedByRole: 'Field Collection Manager',
+    verifiedAt: '2024-04-17 10:00 AM',
+    notes: 'Verified intake batch #BS-400 dispatched to Baripada.',
+  },
+  step2: {
+    arrivalGrossWeightKg: 61.0,
+    arrivalTareWeightKg: 1.0,
+    arrivalNetWeightKg: 60.0,
+    storageZone: 'Zone A - Stack Rack 2',
+    shrinkagePercentAllowed: 1.5,
+    shrinkageKgAllowed: 0.9,
+    unexplainedVarianceKg: 0.0,
+    discrepancyTriggered: false,
+    verifiedBy: 'S. Das (ID: IM-04)',
+    verifiedByRole: 'Warehouse Inventory Manager',
+    verifiedAt: '2024-04-17 04:15 PM',
+    notes: 'Matched weight: 60.0 kg accepted directly into saleable inventory.',
+  },
+  createdAt: '2024-04-17 08:30 AM',
+  updatedAt: '2024-04-17 04:15 PM',
+};
+
+/**
+ * Batch #BS-402 — In pending_verification for live stage discrepancy
+ * Collection record 100 kg, arrival not yet entered
+ */
 export const INITIAL_BATCH_BS402: BatchRecord = {
   id: 'BS-402',
   produceName: 'Dried Mahua Flowers',
@@ -71,7 +132,7 @@ export const INITIAL_BATCH_BS402: BatchRecord = {
   centerName: 'Karanjia Primary MFP Procurement Point #04',
   shgName: 'Maa Tarini SHG (ମା’ ତାରିଣୀ ମହିଳା ସ୍ୱୟଂ ସହାୟକ ଗୋଷ୍ଠୀ)',
   facilitatorName: 'Champa Majhi (SHG-FAC-09)',
-  referenceRatePerKg: 40.0,
+  referenceRatePerKg: 42.0,
   rateSource: 'TDCCOL / LABHA Yojana MSP Circular Ref: TDC/MFP/2024-R4',
   ratePublishedDate: '15-Apr-2024 (Verified State Rate Card)',
   seasonalReadinessStatus: 'Ready in Mayurbhanj — Forecast Only (Similipal Biosphere Reserve Belt)',
@@ -96,23 +157,27 @@ export const INITIAL_BATCH_BS402: BatchRecord = {
     localRecordId: 'LOC-REC-8921-BS402',
     notes: '2 high-density jute sacks double-stitched. Stencil #BS-402 tagged on outer gunny. Tarpaulin cover checked & dry.',
   },
-  step2: {
-    arrivalGrossWeightKg: 96.5,
-    arrivalTareWeightKg: 1.5,
-    arrivalNetWeightKg: 95.0,
-    storageZone: 'Zone B - Dry Ventilated Rack 4',
-    shrinkagePercentAllowed: 2.0,
-    shrinkageKgAllowed: 2.0,
-    unexplainedVarianceKg: -3.0,
-    discrepancyTriggered: true,
-    supervisorCaseId: 'DISC-402',
-    verifiedBy: 'S. Das (ID: IM-04)',
-    verifiedByRole: 'Warehouse Inventory Manager',
-    verifiedAt: '2024-04-19 03:45 PM',
-    notes: 'Arrival re-weigh conducted on calibrated electronic platform scale (Depôt 02). 5.0 kg total loss vs village dispatch of 100.0 kg. 2.0 kg absorbed under natural transit moisture loss (2%). Balance 3.0 kg variance unexplained. Stock placed in physical quarantine bay.',
-  },
+  step2: null, // Arrival not yet entered per Rule 1
   createdAt: '2024-04-18 09:00 AM',
-  updatedAt: '2024-04-19 03:45 PM',
+  updatedAt: '2024-04-18 11:30 AM',
+};
+
+/**
+ * Historical Discrepancy Case (#BS-395) — "Resolved by supervisor"
+ * Shows the integrity and reconciliation engine works
+ */
+export const INITIAL_DISCREPANCY_CASE_BS395: DiscrepancyCase = {
+  id: 'DISC-395',
+  batchId: 'BS-395',
+  dispatchedNetKg: 80.0,
+  arrivalNetKg: 78.5,
+  shrinkageAllowedKg: 1.5,
+  unexplainedVarianceKg: 0.0,
+  status: 'RECONCILED',
+  currentActionTaken: 'Resolved by supervisor: Natural transit shrinkage (1.87%) validated against calibrated moisture sensor. Full collector payout released under LABHA Tribal Guarantee.',
+  assignedSupervisor: 'A. K. Patnaik, District Procurement Officer (Mayurbhanj TDCCOL)',
+  createdAt: '2024-04-12 02:30 PM',
+  notes: 'Resolved by supervisor: Moisture equilibrium confirmed between dispatch and depot platform scale. Case closed without penalty.',
 };
 
 export const INITIAL_DISCREPANCY_CASE: DiscrepancyCase = {

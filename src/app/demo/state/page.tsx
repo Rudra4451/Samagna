@@ -11,6 +11,8 @@ import { SectionLabel } from '../../../components/ui/SectionLabel';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/Card';
 import { WifiOff, Wifi, Languages, Type, ArrowLeft, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 
+import { resetDemoState } from '../../../demo/seedData';
+
 export default function DemoStatePage() {
   const { isOffline, setOffline, language, setLanguage } = useAppStore();
   const { fontScale, setFontScale } = useFontScale();
@@ -28,14 +30,67 @@ export default function DemoStatePage() {
               Live state toggles for evaluator and field inspection.
             </p>
           </div>
-          <Link href="/collector?demo=1">
-            <Button variant="secondary" size="sm" className="gap-1">
-              <ArrowLeft size={14} /> Back to Collector
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/demo?demo=1">
+              <Button variant="secondary" size="sm" className="gap-1">
+                Demo Hub
+              </Button>
+            </Link>
+            <Link href="/collector?demo=1">
+              <Button variant="secondary" size="sm" className="gap-1">
+                <ArrowLeft size={14} /> Collector
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4">
+          {/* Card 0: Master Rule 1 Pre-Seeded Reset */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[16px] flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-accent" />
+                Deterministic Stage State Seeding
+              </CardTitle>
+              <CardDescription>
+                Resets IndexedDB and localStorage to the exact pre-seeded state required by Rule 1.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-2">
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    await resetDemoState(1);
+                    alert('Seeded to Act 1 baseline (#BS-400 verified, #BS-402 pending).');
+                  }}
+                >
+                  Seed Act 1
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    await resetDemoState(2);
+                    alert('Seeded to Act 2 baseline (ready for warehouse re-weigh).');
+                  }}
+                >
+                  Seed Act 2
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    await resetDemoState(3);
+                    alert('Seeded to Act 3 baseline (discrepancy quarantined).');
+                  }}
+                >
+                  Seed Act 3
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
           {/* Card 1: Offline Simulation */}
           <Card>
             <CardHeader>
