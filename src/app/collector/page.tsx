@@ -22,6 +22,9 @@ import {
   TamarindIcon,
   HoneyIcon,
 } from '../../components/ui/ProductIcons';
+import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
+import { SyncState, db } from '../../lib/db';
+import { generateULID } from '../../lib/ulid';
 import {
   BottomSheet,
   BottomSheetContent,
@@ -64,6 +67,8 @@ interface PickupRequest {
   statusCode: string;
   status: 'Pending' | 'Scheduled' | 'Collected' | 'Paid';
   statusVariant: StatusVariant;
+  syncState?: SyncState;
+  localId?: string;
   scheduledDate: string;
   center: string;
   notes: string;
@@ -81,6 +86,7 @@ interface ReceiptRecord {
   totalAmount: number;
   dbtRef: string;
   bankAccount: string;
+  syncState?: SyncState;
 }
 
 interface InlineConfirmationReceipt {
@@ -94,6 +100,8 @@ interface InlineConfirmationReceipt {
   totalAmount: number;
   date: string;
   dbtRef: string;
+  syncState?: SyncState;
+  localId?: string;
 }
 
 const AVAILABLE_PRODUCTS = [
@@ -148,6 +156,8 @@ export default function CollectorMobilePage() {
       statusCode: '#BS-402',
       status: 'Collected',
       statusVariant: 'info',
+      syncState: 'queued',
+      localId: '01HRX9Z4K00000000000000001',
       scheduledDate: '18 Apr 2024, 09:15 AM',
       center: 'Badagaon Van Dhan Kendra',
       notes: 'Dispatched to Baripada central depôt under seal tag #OD-ST-8840.',
@@ -161,6 +171,8 @@ export default function CollectorMobilePage() {
       statusCode: '#BS-401',
       status: 'Scheduled',
       statusVariant: 'warning',
+      syncState: 'synced',
+      localId: '01HRX9Z4K00000000000000002',
       scheduledDate: '20 Apr 2024, 10:30 AM',
       center: 'Badagaon Van Dhan Kendra',
       notes: 'Van pickup vehicle scheduled for Kadamdiha village cluster.',
@@ -174,6 +186,8 @@ export default function CollectorMobilePage() {
       statusCode: '#BS-398',
       status: 'Paid',
       statusVariant: 'success',
+      syncState: 'synced',
+      localId: '01HRX9Z4K00000000000000003',
       scheduledDate: '12 Apr 2024, 11:00 AM',
       center: 'Badagaon Van Dhan Kendra',
       notes: 'DBT credit confirmed to Canara Bank •••4812.',
@@ -194,6 +208,7 @@ export default function CollectorMobilePage() {
       totalAmount: 1470.0,
       dbtRef: 'DBT-OD-2024-8842',
       bankAccount: 'Canara Bank (•••4812)',
+      syncState: 'synced',
     },
     {
       id: 'REC-385',
@@ -207,6 +222,7 @@ export default function CollectorMobilePage() {
       totalAmount: 2100.0,
       dbtRef: 'DBT-OD-2024-7719',
       bankAccount: 'Canara Bank (•••4812)',
+      syncState: 'synced',
     },
   ]);
 
@@ -271,6 +287,40 @@ export default function CollectorMobilePage() {
     },
     onExecute: async ({ idempotencyKey }) => {
       const newCode = `#BS-${Math.floor(404 + Math.random() * 50)}`;
+      const localId = generateULID();
+      const recordState: SyncState = isOffline ? 'queued' : 'synced';
+
+      // Rule 1: Write to IndexedDB syncQueue first
+      try {
+        await db.syncQueue.put({
+          local_id: localId,
+          batch_code: newCode,
+          entity: 'pickup_request',
+          action: 'create',
+          actor: {
+            id: collector.id,
+            name: collector.name,
+            role: 'collector',
+          },
+          payload: {
+            productKey: currentProduct.key,
+            productName: currentProduct.name,
+            quantityKg: isPhotoOnlyMode ? 0 : stepperQuantity,
+            collectorId: collector.id,
+            collectorName: collector.name,
+            center: 'Badagaon Van Dhan Kendra',
+            isPhotoOnly: isPhotoOnlyMode,
+          },
+          state: recordState,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          retryCount: 0,
+          approxSizeBytes: 1024,
+        });
+      } catch (err) {
+        console.warn('Failed to persist pickup request to sync queue:', err);
+      }
+
       const newReq: PickupRequest = {
         id: `REQ-${Date.now()}`,
         productKey: currentProduct.key,
@@ -281,6 +331,8 @@ export default function CollectorMobilePage() {
         statusCode: newCode,
         status: 'Pending',
         statusVariant: 'warning',
+        syncState: recordState,
+        localId,
         scheduledDate: 'Expected Today or Tomorrow',
         center: 'Badagaon Van Dhan Kendra',
         notes: isPhotoOnlyMode
@@ -302,6 +354,8 @@ export default function CollectorMobilePage() {
         totalAmount: isPhotoOnlyMode ? 0 : stepperQuantity * currentProduct.rate,
         date: '14 Mar 2025 · Today',
         dbtRef: 'TXN-998-SIMULATED',
+        syncState: recordState,
+        localId,
       });
 
       // Close the entry sheet; receipt is rendered inline immediately
@@ -495,16 +549,26 @@ export default function CollectorMobilePage() {
                   {t('collector.receipt_confirmation_title')}
                 </span>
               </div>
-              <span className="font-mono text-[11px] text-ink-subtle">
-                {activeConfirmationReceipt.date}
-              </span>
+              <div className="flex items-center gap-2">
+                <SyncStatusBadge state={activeConfirmationReceipt.syncState || (isOffline ? 'queued' : 'synced')} />
+                <span className="font-mono text-[11px] text-ink-subtle">
+                  {activeConfirmationReceipt.date}
+                </span>
+              </div>
             </div>
 
-            {/* Batch code in large Fraunces tabular */}
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[12px] uppercase text-ink-muted font-mono font-semibold">
-                Official Batch Code:
-              </span>
+            {/* Batch code and client ULID */}
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div>
+                <span className="text-[12px] uppercase text-ink-muted font-mono font-semibold block">
+                  Official Batch Code:
+                </span>
+                {activeConfirmationReceipt.localId && (
+                  <span className="text-[10px] font-mono text-ink-subtle block">
+                    ULID: {activeConfirmationReceipt.localId}
+                  </span>
+                )}
+              </div>
               <span className="font-heading text-[32px] font-bold text-ink tabular-nums">
                 {activeConfirmationReceipt.code}
               </span>
@@ -677,6 +741,7 @@ export default function CollectorMobilePage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <SyncStatusBadge state={req.syncState || (req.statusCode === '#BS-402' ? 'queued' : 'synced')} />
                     <StatusBadge variant={req.statusVariant}>
                       {req.status}
                     </StatusBadge>
@@ -727,13 +792,16 @@ export default function CollectorMobilePage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedReceipt(rec)}
-                  className="min-h-[44px] px-3 rounded-[4px] border border-rule bg-bg-sunken text-[13px] font-medium text-ink hover:border-ink-subtle inline-flex items-center gap-1.5 focus:outline-2 focus:outline-accent focus:outline-offset-0 shrink-0"
-                >
-                  <Receipt size={16} strokeWidth={1.5} className="text-ink-muted" />
-                  <span className={cn(isOr && 'font-odia')}>{t('collector.view_receipt')}</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <SyncStatusBadge state={rec.syncState || 'synced'} />
+                  <button
+                    onClick={() => setSelectedReceipt(rec)}
+                    className="min-h-[44px] px-3 rounded-[4px] border border-rule bg-bg-sunken text-[13px] font-medium text-ink hover:border-ink-subtle inline-flex items-center gap-1.5 focus:outline-2 focus:outline-accent focus:outline-offset-0 shrink-0"
+                  >
+                    <Receipt size={16} strokeWidth={1.5} className="text-ink-muted" />
+                    <span className={cn(isOr && 'font-odia')}>{t('collector.view_receipt')}</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1038,9 +1106,12 @@ export default function CollectorMobilePage() {
       <BottomSheet open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
         <BottomSheetContent>
           <BottomSheetHeader>
-            <BottomSheetTitle>Request Details</BottomSheetTitle>
+            <div className="flex items-center justify-between gap-2 pr-6">
+              <BottomSheetTitle>Request Details</BottomSheetTitle>
+              <SyncStatusBadge state={selectedRequest?.syncState || (selectedRequest?.statusCode === '#BS-402' ? 'queued' : 'synced')} />
+            </div>
             <BottomSheetDescription>
-              Official Tracking Code: {selectedRequest?.statusCode}
+              Official Tracking Code: {selectedRequest?.statusCode} {selectedRequest?.localId ? `· ULID: ${selectedRequest.localId}` : ''}
             </BottomSheetDescription>
           </BottomSheetHeader>
 

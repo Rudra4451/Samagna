@@ -10,6 +10,7 @@ import {
 } from '../../../../demo/seed';
 import { Button } from '../../../../components/ui/Button';
 import { StatusBadge } from '../../../../components/ui/StatusBadge';
+import { SyncStatusBadge } from '../../../../components/ui/SyncStatusBadge';
 import { SectionLabel } from '../../../../components/ui/SectionLabel';
 import { ArrowLeft, Printer, Download, ShieldCheck } from 'lucide-react';
 
@@ -134,13 +135,16 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
                 ଓଡ଼ିଶା ଆଦିବାସୀ ଉନ୍ନୟନ ସମବାୟ ନିଗମ
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right space-y-1">
               <span className="text-[10px] font-mono uppercase tracking-[0.06em] text-ink-muted block font-semibold">
                 Batch Code
               </span>
-              <span className="font-heading text-[20px] font-bold tabular-nums text-accent">
-                {code}
-              </span>
+              <div className="flex items-center gap-2 justify-end">
+                <span className="font-heading text-[20px] font-bold tabular-nums text-accent">
+                  {code}
+                </span>
+                <SyncStatusBadge state={code === '#BS-402' ? 'queued' : 'synced'} />
+              </div>
             </div>
           </div>
 

@@ -37,6 +37,8 @@ import {
 } from '../../components/ui/Drawer';
 import { useAction } from '../../lib/useAction';
 import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
+import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
+import { SyncState } from '../../lib/db';
 import { cn } from '../../lib/utils';
 import {
   Warehouse,
@@ -60,6 +62,7 @@ interface BatchRow {
   deltaKg: number | null;
   status: 'Pending Verification' | 'Available' | 'Quarantined';
   statusVariant: StatusVariant;
+  syncState?: SyncState;
   updatedAt: string;
 }
 
@@ -91,6 +94,7 @@ export default function InventoryManagerPage() {
       deltaKg: null,
       status: 'Pending Verification',
       statusVariant: 'warning',
+      syncState: 'queued',
       updatedAt: '14 Mar · 11:20 AM',
     },
     {
@@ -102,6 +106,7 @@ export default function InventoryManagerPage() {
       deltaKg: -0.5,
       status: 'Available',
       statusVariant: 'success',
+      syncState: 'synced',
       updatedAt: '14 Mar · 10:15 AM',
     },
     {
@@ -113,6 +118,7 @@ export default function InventoryManagerPage() {
       deltaKg: -0.4,
       status: 'Available',
       statusVariant: 'success',
+      syncState: 'synced',
       updatedAt: '13 Mar · 03:45 PM',
     },
     {
@@ -124,6 +130,7 @@ export default function InventoryManagerPage() {
       deltaKg: -4.0,
       status: 'Quarantined',
       statusVariant: 'danger',
+      syncState: 'conflict',
       updatedAt: '13 Mar · 11:10 AM',
     },
   ]);
@@ -462,6 +469,7 @@ export default function InventoryManagerPage() {
                 <TableHead numeric>Received kg</TableHead>
                 <TableHead numeric>Δ (Variance)</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Sync</TableHead>
                 <TableHead>Updated</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
@@ -506,6 +514,9 @@ export default function InventoryManagerPage() {
                     <StatusBadge variant={b.statusVariant}>
                       {b.status}
                     </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    <SyncStatusBadge state={b.syncState || 'synced'} />
                   </TableCell>
                   <TableCell className="font-mono text-[12px] text-ink-subtle">
                     {b.updatedAt}
@@ -576,7 +587,10 @@ export default function InventoryManagerPage() {
                 <SectionLabel>Depôt Intake Terminal</SectionLabel>
                 <DrawerTitle>Storage verification · #BS-402</DrawerTitle>
               </div>
-              <StatusBadge variant="warning">In Review</StatusBadge>
+              <div className="flex items-center gap-1.5">
+                <StatusBadge variant="warning">In Review</StatusBadge>
+                <SyncStatusBadge state="queued" />
+              </div>
             </div>
           </DrawerHeader>
 

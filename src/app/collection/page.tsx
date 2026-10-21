@@ -35,6 +35,9 @@ import {
 } from '../../components/ui/Drawer';
 import { useAction } from '../../lib/useAction';
 import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
+import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
+import { useOffline } from '../../lib/useOffline';
+import { SyncState } from '../../lib/db';
 import { cn } from '../../lib/utils';
 import {
   Scale,
@@ -59,6 +62,7 @@ interface QueueItem {
   requestedAt: string;
   status: 'Pending' | 'Scheduled' | 'Collected' | 'In Review' | 'Quarantined';
   statusVariant: StatusVariant;
+  syncState?: SyncState;
 }
 
 export default function CollectionManagerPage() {
@@ -74,6 +78,7 @@ export default function CollectionManagerPage() {
       requestedAt: '14 Mar · 09:15 AM',
       status: 'Pending',
       statusVariant: 'warning',
+      syncState: 'queued',
     },
     {
       code: '#BS-401',
@@ -83,6 +88,7 @@ export default function CollectionManagerPage() {
       requestedAt: '14 Mar · 09:40 AM',
       status: 'Scheduled',
       statusVariant: 'neutral',
+      syncState: 'draft',
     },
     {
       code: '#BS-400',
@@ -92,6 +98,7 @@ export default function CollectionManagerPage() {
       requestedAt: '14 Mar · 10:05 AM',
       status: 'Collected',
       statusVariant: 'info',
+      syncState: 'synced',
     },
     {
       code: '#BS-399',
@@ -101,6 +108,7 @@ export default function CollectionManagerPage() {
       requestedAt: '13 Mar · 04:30 PM',
       status: 'In Review',
       statusVariant: 'warning',
+      syncState: 'synced',
     },
     {
       code: '#BS-398',
@@ -110,6 +118,7 @@ export default function CollectionManagerPage() {
       requestedAt: '13 Mar · 02:15 PM',
       status: 'Collected',
       statusVariant: 'success',
+      syncState: 'synced',
     },
     {
       code: '#BS-397',
@@ -119,6 +128,7 @@ export default function CollectionManagerPage() {
       requestedAt: '12 Mar · 11:20 AM',
       status: 'Quarantined',
       statusVariant: 'danger',
+      syncState: 'conflict',
     },
   ]);
 
@@ -356,11 +366,31 @@ export default function CollectionManagerPage() {
         try {
           const db = getDatabase();
           await db.pendingSync.put(newRecord);
+          await db.syncQueue.put({
+            local_id: `ULID-${Date.now()}`,
+            batch_code: selectedQueueCode,
+            entity: 'collection',
+            action: 'create',
+            actor: { id: 'COL-MGR-02', name: 'R. Mohanty', role: 'Collection Manager' },
+            payload: newRecord,
+            state: 'queued',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            retryCount: 0,
+            approxSizeBytes: 3500,
+          });
         } catch (err) {
           console.warn('Dexie save offline error:', err);
         }
 
         setOfflineQueue((prev) => [newRecord, ...prev]);
+        setQueueItems((prev) =>
+          prev.map((item) =>
+            item.code === selectedQueueCode
+              ? { ...item, status: 'Collected', statusVariant: 'info', syncState: 'queued' }
+              : item
+          )
+        );
         setIsDrawerOpen(false);
         setShowDiscardPrompt(false);
 
@@ -457,6 +487,7 @@ export default function CollectionManagerPage() {
                     <TableHead numeric>Est. qty</TableHead>
                     <TableHead>Requested</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Sync</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -486,6 +517,9 @@ export default function CollectionManagerPage() {
                         <StatusBadge variant={row.statusVariant}>
                           {row.status}
                         </StatusBadge>
+                      </TableCell>
+                      <TableCell>
+                        <SyncStatusBadge state={row.syncState || 'synced'} />
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="inline-flex items-center gap-1 text-[12px] font-medium text-accent hover:underline">
@@ -671,7 +705,10 @@ export default function CollectionManagerPage() {
       >
         <DrawerContent className="w-[480px] max-w-full">
           <DrawerHeader>
-            <SectionLabel>Field Intake Handshake</SectionLabel>
+            <div className="flex items-center justify-between mb-1">
+              <SectionLabel>Field Intake Handshake</SectionLabel>
+              <SyncStatusBadge state={selectedQueueCode === '#BS-402' ? 'queued' : 'synced'} />
+            </div>
             <DrawerTitle>Record collection · {selectedQueueCode}</DrawerTitle>
             <DrawerDescription>
               Direct weighment calibration for Van Dhan collection batch

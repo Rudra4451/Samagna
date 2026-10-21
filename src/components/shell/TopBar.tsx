@@ -7,6 +7,9 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useFontScale } from '../../lib/useFontScale';
+import { useOffline } from '../../lib/useOffline';
+import { SyncDrawer } from '../sync/SyncDrawer';
+import { ConflictDrawer } from '../sync/ConflictDrawer';
 import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
@@ -25,9 +28,29 @@ export const TopBar: React.FC = () => {
   } = useAppStore();
 
   const { fontScale, cycleFontScale } = useFontScale();
+  const {
+    isOffline: offlineState,
+    isSyncing: syncingState,
+    queue,
+    queuedCount,
+    conflictCount,
+    lastSyncedFormatted,
+    queueSizeKb,
+    wifiOnly,
+    setWifiOnly,
+    syncAll,
+    retryItem,
+    deleteItem,
+    activeConflict,
+    setActiveConflict,
+    resolveConflictKeepLocal,
+    resolveConflictKeepServer,
+    resolveConflictMerge,
+    isRecordBlocked,
+  } = useOffline();
 
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [isSyncDrawerOpen, setIsSyncDrawerOpen] = useState(false);
+  const [isConflictDrawerOpen, setIsConflictDrawerOpen] = useState(false);
 
   // Sync role state from route
   useEffect(() => {
@@ -39,21 +62,6 @@ export const TopBar: React.FC = () => {
       setActiveRole('inventory_manager');
     }
   }, [pathname, activeRole, setActiveRole]);
-
-  // Handle outside click for popover
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-        setIsPopoverOpen(false);
-      }
-    }
-    if (isPopoverOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isPopoverOpen]);
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value as DemoRole;
@@ -112,75 +120,51 @@ export const TopBar: React.FC = () => {
           </span>
         </div>
 
-        {/* Center: Offline Status Pill & Popover */}
-        <div className="relative flex items-center justify-center" ref={popoverRef}>
-          {!isOffline ? (
-            <StatusBadge variant="success" className="cursor-default">
-              {language === 'OR' ? 'ଅନଲାଇନ୍' : 'Online'}
-            </StatusBadge>
-          ) : (
-            <button
-              onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-              className="inline-flex items-center gap-1 focus:outline-2 focus:outline-accent focus:outline-offset-0 rounded-[4px]"
-              aria-label="View offline pending sync queue"
-            >
-              <StatusBadge variant="warning" className="cursor-pointer hover:border-warning/80">
-                {language === 'OR'
-                  ? `ଅଫଲାଇନ୍ · ${pendingRecords.length || 1} ରେକର୍ଡ ସିଙ୍କ ବାକି`
-                  : `Offline · ${pendingRecords.length || 1} record pending sync`}
-              </StatusBadge>
-            </button>
-          )}
+        {/* Center: Always-Visible, Always-Tappable Offline Pill (Rule 9) */}
+        <div className="flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => setIsSyncDrawerOpen(true)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border transition-colors shadow-none select-none",
+              offlineState
+                ? "border-warning/60 bg-warning/10 hover:border-warning"
+                : "border-rule bg-surface hover:bg-bg-sunken hover:border-ink-subtle"
+            )}
+            aria-label="Open global sync ledger drawer"
+            title="Click to view global sync queue and conflict status"
+          >
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                offlineState ? "bg-warning" : "bg-success"
+              )}
+            />
+            <span className="font-mono text-[11px] font-bold text-ink">
+              {offlineState ? (language === 'OR' ? 'ଅଫଲାଇନ୍' : 'Offline') : (language === 'OR' ? 'ଅନଲାଇନ୍' : 'Online')}
+            </span>
 
-          {/* Offline Sync Popover */}
-          {isPopoverOpen && isOffline && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 rounded-[4px] border border-rule bg-surface p-3.5 z-50 shadow-none text-left">
-              <div className="flex items-center justify-between border-b border-rule pb-2 mb-2.5">
-                <div className="flex items-center gap-1.5 text-warning font-semibold text-[12px] uppercase tracking-[0.04em]">
-                  <WifiOff size={16} strokeWidth={1.5} />
-                  Offline Sync Queue
-                </div>
-                <button
-                  onClick={() => setIsPopoverOpen(false)}
-                  className="text-ink-subtle hover:text-ink p-0.5 rounded-[2px]"
-                  aria-label="Close offline popover"
-                >
-                  <X size={16} strokeWidth={1.5} />
-                </button>
-              </div>
+            <span className="text-ink-subtle font-mono text-[11px]">·</span>
 
-              <div className="space-y-2 mb-3">
-                <div className="border border-rule rounded-[2px] p-2 bg-bg-sunken/50 text-[12px]">
-                  <div className="font-semibold text-ink">Batch #BS-402 (100.00 kg)</div>
-                  <div className="text-ink-muted text-[11px] leading-snug mt-0.5">
-                    Field weigh verification recorded offline at Badagaon VK.
-                  </div>
-                  <div className="text-[10px] font-mono tabular-nums text-ink-subtle mt-1">
-                    QUEUED: 2024-04-18 11:20 AM IST
-                  </div>
-                </div>
-              </div>
+            <span className={cn(
+              "font-mono text-[11px] font-semibold tabular-nums",
+              queuedCount > 0 ? "text-warning" : "text-ink-muted"
+            )}>
+              {queuedCount} {language === 'OR' ? 'ବାକି' : 'queued'}
+            </span>
 
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[10px] font-mono text-ink-subtle">1 PENDING TRANSACTION</span>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={isSyncing}
-                  onClick={() => {
-                    syncNow();
-                    setIsPopoverOpen(false);
-                  }}
-                >
-                  <RefreshCw
-                    size={16}
-                    strokeWidth={1.5}
-                  />
-                  {isSyncing ? 'Syncing...' : 'Sync now'}
-                </Button>
-              </div>
-            </div>
-          )}
+            {conflictCount > 0 && (
+              <span className="text-[10px] font-mono px-1 rounded-[2px] bg-danger text-white font-bold animate-pulse">
+                {conflictCount} conflict
+              </span>
+            )}
+
+            <span className="text-ink-subtle font-mono text-[11px] hidden sm:inline">·</span>
+
+            <span className="font-mono text-[10px] text-ink-subtle hidden sm:inline tabular-nums">
+              {lastSyncedFormatted}
+            </span>
+          </button>
         </div>
 
         {/* Right: Language Toggle & Mobile Offline Toggle */}
@@ -249,21 +233,55 @@ export const TopBar: React.FC = () => {
       {/* Persistent 32px Banner (Offline Signal / Prototype Disclaimer) */}
       <div className={cn(
         "h-[32px] w-full border-t border-rule flex items-center justify-center px-4 text-center transition-colors",
-        isOffline ? "bg-warning/10 text-warning border-warning/40 font-semibold" : "bg-bg-sunken text-ink-muted"
+        offlineState ? "bg-warning/10 text-warning border-warning/40 font-semibold" : "bg-bg-sunken text-ink-muted"
       )}>
         <span className={cn(
           "text-[12px] uppercase tracking-[0.06em] font-medium font-mono truncate",
           language === 'OR' && "font-odia tracking-normal text-[13px]"
         )}>
-          {isOffline
+          {offlineState
             ? (language === 'OR'
-                ? `ଏହି ଫୋନରେ ସାଇତା ହୋଇଛି। ନେଟୱର୍କ ଫେରିଲେ ପଠାଯିବ (${pendingRecords.length || 1} ଟି ବାକି ଅଛି)`
-                : `Saved on this phone. Will send when network returns (${pendingRecords.length || 1} pending).`)
+                ? `ଏହି ଫୋନରେ ସାଇତା ହୋଇଛି। ନେଟୱର୍କ ଫେରିଲେ ପଠାଯିବ (${queuedCount || 1} ଟି ବାକି ଅଛି)`
+                : `Saved on this phone. Will send when network returns (${queuedCount || 1} pending).`)
             : (language === 'OR'
                 ? 'ପ୍ରୋଟୋଟାଇପ୍ — ଦର, ପେମେଣ୍ଟ ଏବଂ ପରିଚୟ ଯାଞ୍ଚ କେବଳ ପରୀକ୍ଷାମୂଳକ।'
                 : 'Prototype — rates, payments, and identity checks are simulated.')}
         </span>
       </div>
+
+      {/* Global Sync Drawer (Rule 4, 8, 9) */}
+      <SyncDrawer
+        open={isSyncDrawerOpen}
+        onOpenChange={setIsSyncDrawerOpen}
+        queue={queue}
+        isSyncing={syncingState}
+        isOffline={offlineState}
+        lastSyncedFormatted={lastSyncedFormatted}
+        queueSizeKb={queueSizeKb}
+        wifiOnly={wifiOnly}
+        onToggleWifiOnly={setWifiOnly}
+        onSyncAll={syncAll}
+        onRetryItem={retryItem}
+        onDeleteItem={deleteItem}
+        onOpenConflict={(item) => {
+          setActiveConflict(item);
+          setIsConflictDrawerOpen(true);
+        }}
+        isRecordBlocked={isRecordBlocked}
+      />
+
+      {/* Global Conflict Drawer (Rule 5) */}
+      <ConflictDrawer
+        conflict={activeConflict}
+        open={isConflictDrawerOpen || !!activeConflict}
+        onOpenChange={(open) => {
+          setIsConflictDrawerOpen(open);
+          if (!open) setActiveConflict(null);
+        }}
+        onKeepLocal={resolveConflictKeepLocal}
+        onKeepServer={resolveConflictKeepServer}
+        onMerge={resolveConflictMerge}
+      />
     </header>
   );
 };

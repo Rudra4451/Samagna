@@ -4,8 +4,9 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '../../store/useAppStore';
 import { useFontScale } from '../../lib/useFontScale';
+import { useOffline } from '../../lib/useOffline';
 import { cn } from '../../lib/utils';
-import { SlidersHorizontal, WifiOff, Wifi, Languages, Type, Camera, RefreshCw } from 'lucide-react';
+import { SlidersHorizontal, WifiOff, Wifi, Languages, Type, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface DemoStatePanelProps {
   onTriggerZeroTyping?: () => void;
@@ -17,6 +18,7 @@ function DemoStateContent({ onTriggerZeroTyping }: DemoStatePanelProps) {
 
   const { isOffline, setOffline, language, setLanguage } = useAppStore();
   const { fontScale, setFontScale } = useFontScale();
+  const { forceMockConflict } = useOffline();
   const [isOpen, setIsOpen] = useState(true);
 
   if (!isDemo) {
@@ -95,6 +97,15 @@ function DemoStateContent({ onTriggerZeroTyping }: DemoStatePanelProps) {
               <span>Zero-Typing</span>
             </button>
           </div>
+
+          {/* Force Conflict Trigger (Offline Deliverable) */}
+          <button
+            onClick={() => forceMockConflict()}
+            className="w-full h-[32px] px-2 rounded-[2px] border border-danger/70 bg-danger/10 text-danger text-[11px] font-mono font-bold flex items-center justify-center gap-1.5 transition-colors hover:bg-danger/20"
+          >
+            <AlertTriangle size={13} strokeWidth={1.5} />
+            <span>Force Conflict (#BS-402)</span>
+          </button>
 
           <div className="flex items-center justify-between pt-1 border-t border-rule text-[10px] font-mono text-ink-subtle">
             <span>Flip live states for judge review</span>

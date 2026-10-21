@@ -23,21 +23,51 @@ export interface PendingSyncItem {
   data: any;
 }
 
+export type SyncState = 'draft' | 'queued' | 'syncing' | 'synced' | 'conflict' | 'failed';
+
+export type SyncEntityType = 'pickup_request' | 'collection' | 'dispatch' | 'storage_receipt';
+
+export interface SyncRecord {
+  local_id: string; // Client-generated ULID
+  server_id?: string;
+  batch_code: string; // e.g. "#BS-402"
+  entity: SyncEntityType;
+  action: 'create' | 'update' | 'verify' | 'quarantine';
+  actor: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  payload: any;
+  server_payload?: any; // Populated when conflict occurs
+  state: SyncState;
+  createdAt: number; // Timestamp ms
+  updatedAt: number; // Timestamp ms
+  retryCount: number;
+  lastAttemptAt?: number;
+  error?: string;
+  dependsOn?: string; // local_id of prerequisite record
+  approxSizeBytes: number;
+  hasPhotos?: boolean;
+}
+
 export class BanaSetuDatabase extends Dexie {
   batches!: Table<BatchRecord, string>;
   auditEvents!: Table<AuditEvent, string>;
   discrepancyCases!: Table<DiscrepancyCase, string>;
   appSettings!: Table<AppSetting, string>;
   pendingSync!: Table<PendingSyncItem, string>;
+  syncQueue!: Table<SyncRecord, string>;
 
   constructor() {
     super('BanaSetuLedgerDB');
-    this.version(2).stores({
+    this.version(3).stores({
       batches: 'id, status, pickupRequestId, updatedAt',
       auditEvents: 'id, timestamp, actorId, actionType',
       discrepancyCases: 'id, batchId, status',
       appSettings: 'key',
       pendingSync: 'id, code, timestamp',
+      syncQueue: 'local_id, batch_code, entity, state, createdAt, dependsOn',
     });
   }
 }
@@ -54,6 +84,15 @@ export function getDatabase(): BanaSetuDatabase {
   }
   return dbInstance;
 }
+
+export const db = {
+  get batches() { return getDatabase().batches; },
+  get auditEvents() { return getDatabase().auditEvents; },
+  get discrepancyCases() { return getDatabase().discrepancyCases; },
+  get appSettings() { return getDatabase().appSettings; },
+  get pendingSync() { return getDatabase().pendingSync; },
+  get syncQueue() { return getDatabase().syncQueue; },
+};
 
 export async function seedInitialData(forceReset: boolean = false): Promise<void> {
   if (typeof window === 'undefined') return;

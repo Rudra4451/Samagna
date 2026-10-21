@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { AppShell } from '../../../components/shell/AppShell';
 import { useAppStore } from '../../../store/useAppStore';
 import { useFontScale } from '../../../lib/useFontScale';
+import { useOffline } from '../../../lib/useOffline';
 import { Button } from '../../../components/ui/Button';
 import { SectionLabel } from '../../../components/ui/SectionLabel';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/Card';
-import { WifiOff, Wifi, Languages, Type, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { WifiOff, Wifi, Languages, Type, ArrowLeft, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 
 export default function DemoStatePage() {
   const { isOffline, setOffline, language, setLanguage } = useAppStore();
   const { fontScale, setFontScale } = useFontScale();
+  const { forceMockConflict } = useOffline();
 
   return (
     <AppShell>
@@ -136,12 +138,44 @@ export default function DemoStatePage() {
             </CardContent>
           </Card>
 
+          {/* Card 4: Force Sync Conflict (Offline Rule 5 Deliverable) */}
+          <Card className="border-danger/60 bg-danger/5">
+            <CardHeader>
+              <CardTitle className="text-[16px] flex items-center gap-2 text-danger">
+                <AlertTriangle size={18} />
+                Force Sync Conflict (#BS-402)
+              </CardTitle>
+              <CardDescription>
+                Simulates offline field collection weigh-in (100 kg Mahua) colliding with diverging central warehouse intake (92 kg).
+                Opening the Conflict Drawer enforces non-auto-merge adjudication.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between pt-2">
+              <span className="font-mono text-[12px] text-danger font-semibold">
+                Batch #BS-402 Discrepancy
+              </span>
+              <Button
+                variant="danger"
+                onClick={() => forceMockConflict()}
+              >
+                Trigger Forced Conflict
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Quick Links */}
           <div className="border border-rule rounded-[4px] p-4 bg-bg-sunken flex items-center justify-between">
-            <span className="text-[13px] text-ink-muted">Ready to test collector view?</span>
-            <Link href="/collector?demo=1">
-              <Button variant="primary">Launch /collector (?demo=1)</Button>
-            </Link>
+            <span className="text-[13px] text-ink-muted">View Global Sync Queue:</span>
+            <div className="flex gap-2">
+              <Link href="/settings/sync">
+                <Button variant="secondary" className="gap-1.5">
+                  <ExternalLink size={14} /> /settings/sync
+                </Button>
+              </Link>
+              <Link href="/collector?demo=1">
+                <Button variant="primary">Launch /collector (?demo=1)</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

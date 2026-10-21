@@ -12,6 +12,7 @@ import {
 } from '../../../../demo/seed';
 import { Button } from '../../../../components/ui/Button';
 import { StatusBadge } from '../../../../components/ui/StatusBadge';
+import { SyncStatusBadge } from '../../../../components/ui/SyncStatusBadge';
 import { SectionLabel } from '../../../../components/ui/SectionLabel';
 import { ArrowLeft, Printer, Download, Check } from 'lucide-react';
 
@@ -147,9 +148,12 @@ export default function CollectionTagPage({ params }: TagPageProps) {
           {/* Top Row: Short Code in Fraunces 28px + 96x96 QR Placeholder */}
           <div className="flex items-start justify-between gap-3 border-b border-rule pb-3.5">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-[0.06em] text-ink-muted block font-bold">
-                Produce Batch Tag
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-[0.06em] text-ink-muted block font-bold">
+                  Produce Batch Tag
+                </span>
+                <SyncStatusBadge state={code === '#BS-402' ? 'queued' : 'synced'} />
+              </div>
               <div className="font-heading text-[28px] font-bold tabular-nums text-ink leading-tight">
                 {code}
               </div>
