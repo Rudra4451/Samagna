@@ -39,6 +39,8 @@ export const Toast: React.FC<ToastProps> = ({
   return (
     <div
       role="status"
+      aria-live="polite"
+      aria-atomic="true"
       className={cn(
         'flex w-full max-w-[440px] rounded-[4px] border bg-surface px-3.5 py-2.5 text-ink shadow-none',
         description ? 'items-start gap-3' : 'items-center gap-2.5',

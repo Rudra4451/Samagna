@@ -88,11 +88,15 @@ export const TopBar: React.FC = () => {
         {/* Left: Role Switcher */}
         <div className="flex flex-col justify-center">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted whitespace-nowrap hidden sm:inline">
+            <label
+              htmlFor="demo-role-select"
+              className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted whitespace-nowrap sr-only sm:not-sr-only"
+            >
               {language === 'OR' ? 'ଡେମୋ ଭୂମିକା:' : 'Demo role:'}
-            </span>
+            </label>
             <div className="relative">
               <select
+                id="demo-role-select"
                 value={activeRole}
                 onChange={handleRoleChange}
                 aria-label="Demo role switcher"

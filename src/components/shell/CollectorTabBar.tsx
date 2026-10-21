@@ -16,7 +16,11 @@ export const CollectorTabBar: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 h-[64px] bg-surface border-t border-rule flex items-center justify-around px-2 select-none shadow-none">
+    <nav
+      role="tablist"
+      aria-label="Collector Navigation Tabs"
+      className="fixed bottom-0 inset-x-0 z-40 h-[64px] bg-surface border-t border-rule flex items-center justify-around px-2 select-none shadow-none"
+    >
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeCollectorTab === tab.id;
@@ -25,6 +29,8 @@ export const CollectorTabBar: React.FC = () => {
         return (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={isActive}
             onClick={() => setActiveCollectorTab(tab.id)}
             className={cn(
               'flex-1 flex flex-col items-center justify-center h-full transition-colors focus:outline-2 focus:outline-accent focus:outline-offset-0',

@@ -10,17 +10,17 @@
   --bg-sunken: #F2EBDD;
   --surface: #FFFFFF;
   --ink: #1F1A14;
-  --ink-muted: #5E5245; /* Bumped from #6B5F52 for strict >4.5:1 contrast against #FAF6EE */
-  --ink-subtle: #6B5E50; /* Bumped for strict >5.5:1 contrast on all backgrounds */
+  --ink-muted: #5E5245; /* Measured >7:1 contrast on #FAF6EE and #FFFFFF */
+  --ink-subtle: #6B5E50; /* Measured >5.4:1 contrast on #FAF6EE and #FFFFFF */
   --rule: #E4DBC9;
-  --accent: #B24E2E; /* terracotta: primary actions, active nav, focus ring only */
+  --accent: #B24E2E; /* terracotta: primary actions, active nav, focus ring */
   --accent-ink: #FFFFFF;
-  --success: #3F6B3E;
-  --warning: #A8641B;
-  --danger: #8E2F26;
-  --info: #2E4E5E;
+  --success: #2E5C2D; /* Adjusted for strict >7.2:1 contrast on bg and >5.9:1 on 10% tint */
+  --warning: #854C0E; /* Adjusted from #A8641B for strict >6.4:1 on bg and >5.2:1 on 10% tint */
+  --danger: #8E2F26;  /* Measured >7.5:1 contrast on bg */
+  --info: #234252;    /* Adjusted for strict >7.8:1 contrast on bg */
   --sidebar-bg: #1F2A22;
-  --sidebar-ink: #E9E3D3;
+  --sidebar-ink: #E9E3D3; /* Measured 11.6:1 contrast on sidebar-bg */
 
   /* Font variables */
   --font-fraunces: 'Fraunces', Georgia, serif;
@@ -75,10 +75,30 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   color: var(--ink);
 }
 
-/* Focus styles: accent focus ring 2px offset 0 visible on keyboard focus */
+/* Focus styles: accent focus ring 2px, 2px offset, never suppressed */
 :focus-visible {
   outline: 2px solid var(--accent) !important;
-  outline-offset: 0px !important;
+  outline-offset: 2px !important;
+}
+
+/* Sidebar focus visibility: high contrast light border on dark background */
+aside :focus-visible,
+.sidebar :focus-visible,
+[data-sidebar] :focus-visible {
+  outline: 2px solid #E9E3D3 !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduced motion preference: disable all transitions and animations instantly */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Strict Hard Rules: No box shadows */

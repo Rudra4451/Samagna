@@ -62,41 +62,55 @@ export const InlineEditableCell: React.FC<InlineEditableCellProps> = ({
     }
   };
 
+  const cellId = React.useId();
+
   if (isEditing) {
     if (type === 'grade' && options) {
       return (
-        <select
-          ref={inputRef as any}
-          value={String(currentVal)}
-          onChange={(e) => setCurrentVal(e.target.value)}
-          onBlur={handleCommit}
-          onKeyDown={handleKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          className="h-[26px] px-1 rounded-[2px] border border-accent bg-surface font-mono text-[12px] text-ink focus:outline-none"
-        >
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+        <span className="inline-flex items-center">
+          <label htmlFor={`edit-grade-${cellId}`} className="sr-only">
+            Edit quality grade
+          </label>
+          <select
+            id={`edit-grade-${cellId}`}
+            ref={inputRef as any}
+            value={String(currentVal)}
+            onChange={(e) => setCurrentVal(e.target.value)}
+            onBlur={handleCommit}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            className="h-[26px] px-1 rounded-[2px] border border-accent bg-surface font-mono text-[12px] text-ink focus:outline-none"
+          >
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </span>
       );
     }
 
     return (
-      <input
-        ref={inputRef as any}
-        type={type === 'number' ? 'number' : 'text'}
-        value={currentVal}
-        step={type === 'number' ? '0.1' : undefined}
-        onChange={(e) =>
-          setCurrentVal(type === 'number' ? e.target.value : e.target.value)
-        }
-        onBlur={handleCommit}
-        onKeyDown={handleKeyDown}
-        onClick={(e) => e.stopPropagation()}
-        className="w-20 h-[26px] px-1 rounded-[2px] border border-accent bg-surface font-mono text-[12px] text-ink focus:outline-none"
-      />
+      <span className="inline-flex items-center">
+        <label htmlFor={`edit-input-${cellId}`} className="sr-only">
+          Edit table cell value
+        </label>
+        <input
+          id={`edit-input-${cellId}`}
+          ref={inputRef as any}
+          type={type === 'number' ? 'number' : 'text'}
+          value={currentVal}
+          step={type === 'number' ? '0.1' : undefined}
+          onChange={(e) =>
+            setCurrentVal(type === 'number' ? e.target.value : e.target.value)
+          }
+          onBlur={handleCommit}
+          onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()}
+          className="w-20 h-[26px] px-1 rounded-[2px] border border-accent bg-surface font-mono text-[12px] text-ink focus:outline-none"
+        />
+      </span>
     );
   }
 

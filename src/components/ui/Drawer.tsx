@@ -31,6 +31,7 @@ export const DrawerContent = React.forwardRef<
     <DrawerOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      aria-live="polite"
       onOpenAutoFocus={(e) => {
         const titleEl = document.querySelector('[data-drawer-title]') as HTMLElement;
         if (titleEl) {

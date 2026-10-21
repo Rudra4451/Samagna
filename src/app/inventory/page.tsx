@@ -295,6 +295,7 @@ export default function InventoryManagerPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'verification' | 'audit'>('verification');
   const [arrivalWeight, setArrivalWeight] = useState<number>(95.0);
+  const [arrivalWeightError, setArrivalWeightError] = useState<string | null>(null);
   const [qualityGrade, setQualityGrade] = useState<'A' | 'B' | 'C'>('A');
   const [storageLocation, setStorageLocation] = useState<string>('Rack B (Dry Stack)');
   const [supervisorNote, setSupervisorNote] = useState<string>(
@@ -667,6 +668,18 @@ export default function InventoryManagerPage() {
       description: 'Stock held in segregation bay. Click Undo within 6s to restore Pending Verification.',
     },
     onExecute: async () => {
+      if (arrivalWeight <= 0 || arrivalWeight > 1000 || isNaN(arrivalWeight)) {
+        setArrivalWeightError('Arrival weight must be a number between 1 and 1000.');
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'danger',
+          title: 'Arrival weight must be a number between 1 and 1000.',
+          description: 'Please correct arrival weight before proceeding.',
+        });
+        throw new Error('Arrival weight must be a number between 1 and 1000.');
+      }
+      setArrivalWeightError(null);
+
       setBatches((prev) =>
         prev.map((b) =>
           b.code === '#BS-402'
@@ -719,6 +732,18 @@ export default function InventoryManagerPage() {
       description: 'Expected unchanged · Available +95.0 kg. Discrepancy logged as non-punitive audit flag.',
     },
     onExecute: async () => {
+      if (arrivalWeight <= 0 || arrivalWeight > 1000 || isNaN(arrivalWeight)) {
+        setArrivalWeightError('Arrival weight must be a number between 1 and 1000.');
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'danger',
+          title: 'Arrival weight must be a number between 1 and 1000.',
+          description: 'Please correct arrival weight before proceeding.',
+        });
+        throw new Error('Arrival weight must be a number between 1 and 1000.');
+      }
+      setArrivalWeightError(null);
+
       setBatches((prev) =>
         prev.map((b) =>
           b.code === '#BS-402'
@@ -870,7 +895,11 @@ export default function InventoryManagerPage() {
                 <TableRow className="sticky top-0 bg-surface z-20 border-b border-rule shadow-[0_1px_0_0_var(--rule)]">
                   {/* Leading Checkbox Column */}
                   <TableHead className="w-10 px-2 text-center sticky left-0 bg-surface z-20">
+                    <label htmlFor="select-all-inventory-rows" className="sr-only">
+                      Select all rows
+                    </label>
                     <input
+                      id="select-all-inventory-rows"
                       type="checkbox"
                       checked={
                         filteredBatches.length > 0 &&
@@ -990,7 +1019,11 @@ export default function InventoryManagerPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="px-2 text-center sticky left-0 bg-surface z-10"
                         >
+                          <label htmlFor={`select-inventory-row-${b.code}`} className="sr-only">
+                            Select batch {b.code}
+                          </label>
                           <input
+                            id={`select-inventory-row-${b.code}`}
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => toggleSelectRow(b.code)}
@@ -1378,12 +1411,18 @@ export default function InventoryManagerPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase text-ink-muted block">
+                      <label htmlFor="arrival-weight-input" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
                         Arrival Weight (kg)
                       </label>
                       <NumberInput
+                        id="arrival-weight-input"
                         value={arrivalWeight}
-                        onChange={(e) => setArrivalWeight(Number(e.target.value))}
+                        onChange={(e) => {
+                          setArrivalWeight(Number(e.target.value));
+                          if (arrivalWeightError) setArrivalWeightError(null);
+                        }}
+                        error={Boolean(arrivalWeightError)}
+                        errorText={arrivalWeightError || undefined}
                         step={0.1}
                         unit="kg"
                       />

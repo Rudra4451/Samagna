@@ -293,11 +293,15 @@ export const ManagerFilterBar: React.FC<ManagerFilterBarProps> = ({
 
         {/* Global Search Box (Rule 2) */}
         <div className="relative min-w-[260px] max-w-full lg:max-w-[340px]">
+          <label htmlFor="manager-search-input" className="sr-only">
+            Search code, collector, village, product
+          </label>
           <Search
             size={15}
             className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none"
           />
           <input
+            id="manager-search-input"
             ref={searchInputRef}
             type="text"
             value={searchInput}
@@ -340,7 +344,7 @@ export const ManagerFilterBar: React.FC<ManagerFilterBarProps> = ({
                     'h-[26px] px-2 rounded-[2px] border text-[11px] font-mono transition-colors select-none',
                     isSelected
                       ? 'border-accent bg-accent/15 text-accent font-bold'
-                      : 'border-rule bg-surface text-ink-muted hover:text-ink hover:border-ink-subtle'
+                    : 'border-rule bg-surface text-ink-muted hover:text-ink hover:border-ink-subtle'
                   )}
                 >
                   {st.label}
@@ -353,10 +357,14 @@ export const ManagerFilterBar: React.FC<ManagerFilterBarProps> = ({
 
           {/* Village Filter (Single select) */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-mono text-ink-subtle uppercase font-bold">
+            <label
+              htmlFor="manager-village-select"
+              className="text-[11px] font-mono text-ink-subtle uppercase font-bold"
+            >
               Village:
-            </span>
+            </label>
             <select
+              id="manager-village-select"
               value={filters.village}
               onChange={(e) =>
                 onFiltersChange({ ...filters, village: e.target.value, savedView: 'all' })
@@ -379,7 +387,11 @@ export const ManagerFilterBar: React.FC<ManagerFilterBarProps> = ({
             <span className="text-[11px] font-mono text-ink-subtle uppercase font-bold">
               Dates:
             </span>
+            <label htmlFor="manager-date-from" className="sr-only">
+              From date
+            </label>
             <input
+              id="manager-date-from"
               type="date"
               value={filters.dateFrom}
               onChange={(e) =>
@@ -389,7 +401,11 @@ export const ManagerFilterBar: React.FC<ManagerFilterBarProps> = ({
               title="From date"
             />
             <span className="text-[11px] font-mono text-ink-subtle">to</span>
+            <label htmlFor="manager-date-to" className="sr-only">
+              To date
+            </label>
             <input
+              id="manager-date-to"
               type="date"
               value={filters.dateTo}
               onChange={(e) =>

@@ -1021,7 +1021,24 @@ export default function CollectorMobilePage() {
                       <Minus size={22} strokeWidth={2} />
                     </button>
 
-                    <div className="text-center">
+                    <div
+                      tabIndex={0}
+                      role="spinbutton"
+                      aria-valuenow={stepperQuantity}
+                      aria-valuemin={5}
+                      aria-valuemax={250}
+                      aria-label="Quantity in kilograms. Use arrow keys to adjust."
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+                          e.preventDefault();
+                          handleIncrement();
+                        } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+                          e.preventDefault();
+                          handleDecrement();
+                        }
+                      }}
+                      className="text-center p-2 rounded-[4px] focus:outline-2 focus:outline-accent"
+                    >
                       <div className="font-heading text-[36px] font-bold tabular-nums text-ink leading-none">
                         {stepperQuantity}
                         <span className="text-[18px] font-normal text-ink-muted ml-1.5 font-sans">
@@ -1215,10 +1232,11 @@ export default function CollectorMobilePage() {
                     <span className="text-[12px] font-bold uppercase text-danger block">
                       Cancel Pickup Request
                     </span>
-                    <p className="text-[12px] text-ink-muted">
+                    <label htmlFor="confirm-cancel-request-input" className="text-[12px] text-ink-muted block select-none">
                       Type <strong className="font-mono text-danger">confirm</strong> below to purge this pickup request from dispatch:
-                    </p>
+                    </label>
                     <input
+                      id="confirm-cancel-request-input"
                       type="text"
                       value={typedConfirmWord}
                       onChange={(e) => setTypedConfirmWord(e.target.value.toLowerCase())}

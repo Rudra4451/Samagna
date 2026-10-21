@@ -222,12 +222,12 @@ export default function FacilitatorPage() {
             <table className="w-full text-[13px] border-collapse bg-surface text-left">
               <thead>
                 <tr className="bg-bg-sunken border-b border-rule text-[11px] font-mono uppercase text-ink-muted">
-                  <th className="p-2.5">Collector</th>
-                  <th className="p-2.5">Village</th>
-                  <th className="p-2.5">Product</th>
-                  <th className="p-2.5 text-right">Quantity</th>
-                  <th className="p-2.5 text-right">Entitlement</th>
-                  <th className="p-2.5 text-center">Batch Receipt</th>
+                  <th scope="col" className="p-2.5">Collector</th>
+                  <th scope="col" className="p-2.5">Village</th>
+                  <th scope="col" className="p-2.5">Product</th>
+                  <th scope="col" className="p-2.5 text-right">Quantity</th>
+                  <th scope="col" className="p-2.5 text-right">Entitlement</th>
+                  <th scope="col" className="p-2.5 text-center">Batch Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-rule font-mono">

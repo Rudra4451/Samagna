@@ -46,9 +46,10 @@ export interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElem
 }
 
 export const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
-  ({ className, numeric, ...props }, ref) => (
+  ({ className, numeric, scope = 'col', ...props }, ref) => (
     <th
       ref={ref}
+      scope={scope}
       className={cn(
         'h-9 px-3.5 align-middle text-[11px] font-medium uppercase tracking-[0.06em] text-ink-muted select-none',
         numeric ? 'text-right tabular-nums' : 'text-left',

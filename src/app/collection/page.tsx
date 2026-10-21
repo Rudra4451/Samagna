@@ -299,6 +299,7 @@ export default function CollectionManagerPage() {
   const [rejectedQty, setRejectedQty] = useState(0.0);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [weightError, setWeightError] = useState<string | null>(null);
+  const [grossError, setGrossError] = useState<string | null>(null);
 
   // Toast state
   const [activeToast, setActiveToast] = useState<{
@@ -619,13 +620,25 @@ export default function CollectionManagerPage() {
     showToast: (t) => setActiveToast(t),
     onExecute: async ({ idempotencyKey, args }) => {
       const forceOffline = args[0] === true;
+      if (grossWeight <= 0 || grossWeight > 1000 || isNaN(grossWeight)) {
+        setGrossError('Gross weight must be a number between 1 and 1000.');
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'danger',
+          title: 'Gross weight must be a number between 1 and 1000.',
+          description: 'Please correct gross scale reading before confirming.',
+        });
+        throw new Error('Gross weight must be a number between 1 and 1000.');
+      }
+      setGrossError(null);
+
       if (grossWeight <= tareWeight) {
-        setWeightError('Tare weight cannot equal or exceed gross weight.');
+        setWeightError('Tare weight must be lower than gross weight. Adjust tare deduction.');
         setActiveToast({
           id: `toast-${Date.now()}`,
           variant: 'danger',
           title: 'Tare weight exceeds gross weight · Check scale calibration',
-          description: '',
+          description: 'Tare weight must be lower than gross weight. Adjust tare deduction.',
         });
         throw new Error('Tare weight exceeds gross weight');
       }
@@ -776,7 +789,11 @@ export default function CollectionManagerPage() {
                     <TableRow className="sticky top-0 bg-surface z-20 border-b border-rule shadow-[0_1px_0_0_var(--rule)]">
                       {/* Leading Checkbox Column */}
                       <TableHead className="w-10 px-2 text-center sticky left-0 bg-surface z-20">
+                        <label htmlFor="select-all-collection-rows" className="sr-only">
+                          Select all rows
+                        </label>
                         <input
+                          id="select-all-collection-rows"
                           type="checkbox"
                           checked={
                             filteredItems.length > 0 &&
@@ -881,7 +898,11 @@ export default function CollectionManagerPage() {
                               onClick={(e) => e.stopPropagation()}
                               className="px-2 text-center sticky left-0 bg-surface z-10"
                             >
+                              <label htmlFor={`select-collection-row-${row.code}`} className="sr-only">
+                                Select batch {row.code}
+                              </label>
                               <input
+                                id={`select-collection-row-${row.code}`}
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => toggleSelectRow(row.code)}
@@ -1237,12 +1258,18 @@ export default function CollectionManagerPage() {
               {/* Three NumberInputs side-by-side: Gross, Tare, Net */}
               <div className="grid grid-cols-3 gap-2.5 items-end">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold uppercase text-ink-muted block">
+                  <label htmlFor="gross-weight-input" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
                     Gross (kg)
                   </label>
                   <NumberInput
+                    id="gross-weight-input"
                     value={grossWeight}
-                    onChange={(e) => setGrossWeight(Number(e.target.value))}
+                    onChange={(e) => {
+                      setGrossWeight(Number(e.target.value));
+                      if (grossError) setGrossError(null);
+                    }}
+                    error={Boolean(grossError)}
+                    errorText={grossError || undefined}
                     step={0.1}
                     unit="kg"
                   />
@@ -1417,10 +1444,11 @@ export default function CollectionManagerPage() {
                 <StatusBadge variant="neutral">Simulated</StatusBadge>
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold uppercase text-ink-muted block">
+                <label htmlFor="simulated-payment-ref" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
                   Reference Field
                 </label>
                 <input
+                  id="simulated-payment-ref"
                   type="text"
                   readOnly
                   defaultValue="TXN-998-SIMULATED"

@@ -38,13 +38,16 @@ export const ShortCodeLookup: React.FC<ShortCodeLookupProps> = ({
       const normalizedCode = matched.startsWith('#') ? matched : `#${matched}`;
       onSelectBatch?.(normalizedCode);
     } else {
-      setError('No batch with that code');
+      setError(`No batch found with code "${query}". Enter a valid code like BS-402.`);
     }
   };
 
   return (
     <div className={cn('relative w-full max-w-[280px]', className)}>
       <form onSubmit={handleLookup} className="relative">
+        <label htmlFor="short-code-lookup-input" className="sr-only">
+          Batch lookup code
+        </label>
         <div className="relative flex items-center">
           <Search
             size={16}
@@ -52,6 +55,7 @@ export const ShortCodeLookup: React.FC<ShortCodeLookupProps> = ({
             className="absolute left-2.5 text-ink-muted pointer-events-none"
           />
           <input
+            id="short-code-lookup-input"
             type="text"
             value={query}
             onChange={(e) => {
@@ -74,7 +78,7 @@ export const ShortCodeLookup: React.FC<ShortCodeLookupProps> = ({
         </div>
       </form>
 
-      {/* Inline error only: no toast, no modal */}
+      {/* Inline error only: names the field and the fix */}
       {error && (
         <p className="text-[12px] font-mono text-danger mt-1 pl-1 leading-none select-none">
           {error}

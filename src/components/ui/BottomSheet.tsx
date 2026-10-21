@@ -33,6 +33,7 @@ export const BottomSheetContent = React.forwardRef<
     <BottomSheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      aria-live="polite"
       onOpenAutoFocus={(e) => {
         const titleEl = document.querySelector('[data-sheet-title]') as HTMLElement;
         if (titleEl) {
