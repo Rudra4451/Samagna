@@ -138,7 +138,7 @@ export const InlineEditableCell: React.FC<InlineEditableCellProps> = ({
       ) : (
         <Pencil
           size={10}
-          className="text-ink-subtle opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          className="text-ink-subtle opacity-0 group-hover:opacity-100 shrink-0"
         />
       )}
     </button>

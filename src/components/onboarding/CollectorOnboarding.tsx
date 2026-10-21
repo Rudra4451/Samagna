@@ -81,7 +81,7 @@ export const CollectorOnboarding: React.FC<CollectorOnboardingProps> = ({ onComp
               onClick={() => setCurrentSlide(idx)}
               aria-label={`Go to slide ${idx + 1}`}
               className={cn(
-                'h-1.5 rounded-[1px] transition-all duration-200',
+                'h-1.5 rounded-[1px]',
                 idx === currentSlide
                   ? 'w-8 bg-ink'
                   : 'w-3 bg-rule hover:bg-ink-subtle'
@@ -92,7 +92,7 @@ export const CollectorOnboarding: React.FC<CollectorOnboardingProps> = ({ onComp
 
         {/* Slide 1: The price before you sell */}
         {currentSlide === 0 && (
-          <div className="w-full space-y-4 animate-in fade-in duration-200">
+          <div className="w-full space-y-4">
             {/* Headers: Exactly one line English + one line Odia */}
             <div className="text-center space-y-1">
               <h1 className="font-heading text-[22px] sm:text-[24px] font-bold text-ink leading-tight">
@@ -120,7 +120,7 @@ export const CollectorOnboarding: React.FC<CollectorOnboardingProps> = ({ onComp
 
         {/* Slide 2: Your weight, your receipt */}
         {currentSlide === 1 && (
-          <div className="w-full space-y-4 animate-in fade-in duration-200">
+          <div className="w-full space-y-4">
             {/* Headers: Exactly one line English + one line Odia */}
             <div className="text-center space-y-1">
               <h1 className="font-heading text-[22px] sm:text-[24px] font-bold text-ink leading-tight">
@@ -161,7 +161,7 @@ export const CollectorOnboarding: React.FC<CollectorOnboardingProps> = ({ onComp
 
         {/* Slide 3: Saved even without network */}
         {currentSlide === 2 && (
-          <div className="w-full space-y-4 animate-in fade-in duration-200">
+          <div className="w-full space-y-4">
             {/* Headers: Exactly one line English + one line Odia */}
             <div className="text-center space-y-1">
               <h1 className="font-heading text-[22px] sm:text-[24px] font-bold text-ink leading-tight">

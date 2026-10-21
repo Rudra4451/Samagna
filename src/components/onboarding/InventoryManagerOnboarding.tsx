@@ -18,7 +18,7 @@ export const InventoryManagerOnboarding: React.FC<InventoryManagerOnboardingProp
       role="dialog"
       aria-modal="true"
       aria-label="Inventory Manager Welcome"
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] flex items-center justify-center p-4 select-none animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] flex items-center justify-center p-4 select-none"
     >
       <div className="w-full max-w-[480px] border border-rule bg-surface p-6 rounded-[4px] shadow-none space-y-5">
         {/* Top Header Row with Skip Button */}

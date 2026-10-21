@@ -17,7 +17,7 @@ export const BottomSheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-ink/40 transition-opacity',
+      'fixed inset-0 z-50 bg-ink/40',
       className
     )}
     {...props}
@@ -44,7 +44,7 @@ export const BottomSheetContent = React.forwardRef<
       className={cn(
         'fixed bottom-0 inset-x-0 z-50 flex max-h-[90vh] w-full max-w-[480px] mx-auto flex-col',
         'bg-surface border-t border-rule shadow-none outline-none',
-        'transition-transform duration-[180ms] ease-out',
+        'motion-sheet-slide',
         className
       )}
       {...props}

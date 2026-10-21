@@ -572,7 +572,7 @@ export default function CollectorMobilePage() {
         {activeConfirmationReceipt && (
           <section
             aria-label="Submission Receipt Confirmation"
-            className="rounded-[4px] border-2 border-success bg-surface p-4 sm:p-5 space-y-3 animate-in fade-in duration-300"
+            className="rounded-[4px] border-2 border-success bg-surface p-4 sm:p-5 space-y-3"
           >
             <div className="flex items-center justify-between border-b border-rule pb-2">
               <div className="flex items-center gap-2">
@@ -900,7 +900,7 @@ export default function CollectorMobilePage() {
           <BottomSheetBody>
             {/* Rule 3: Small inline hint at the top of first request sheet */}
             {showFirstRequestHint && (
-              <div className="mb-3 p-2.5 rounded-[2px] border border-rule bg-bg-sunken text-[12px] text-ink flex items-center justify-between gap-2 animate-in fade-in duration-150">
+              <div className="mb-3 p-2.5 rounded-[2px] border border-rule bg-bg-sunken text-[12px] text-ink flex items-center justify-between gap-2">
                 <div className="space-y-0.5">
                   <p className="font-semibold text-ink">
                     Type the quantity or tap the mic. Tap Submit when done.
@@ -1073,7 +1073,7 @@ export default function CollectorMobilePage() {
                         className={cn(
                           'h-[44px] min-h-[44px] px-3.5 rounded-[4px] border flex items-center justify-center gap-2 text-[13px] font-medium transition-colors w-full',
                           isListeningVoice
-                            ? 'border-accent bg-accent/10 text-accent font-bold animate-pulse'
+                            ? 'border-accent bg-accent/10 text-accent font-bold'
                             : 'border-rule bg-bg-sunken text-ink hover:border-ink-subtle'
                         )}
                         aria-label="Speak quantity using voice"

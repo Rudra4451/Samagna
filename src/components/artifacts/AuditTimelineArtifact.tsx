@@ -106,7 +106,7 @@ export const AuditTimelineArtifact: React.FC<AuditTimelineArtifactProps> = ({
                     key={evt.id}
                     className={cn(
                       'relative flex items-start justify-between gap-3 text-[14px]',
-                      evt.isLive && 'animate-in fade-in duration-100'
+                      evt.isLive && 'motion-audit-live'
                     )}
                   >
                     {/* One 6px dot per event. No icons. */}

@@ -13,6 +13,7 @@ export interface ToastProps {
   onUndo?: () => void;
   undoLabel?: string;
   className?: string;
+  isExiting?: boolean;
 }
 
 const variantConfig: Record<
@@ -33,8 +34,17 @@ export const Toast: React.FC<ToastProps> = ({
   onUndo,
   undoLabel = 'Undo',
   className,
+  isExiting = false,
 }) => {
   const { icon: Icon, borderColor, iconColor } = variantConfig[variant];
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const isVisible = isMounted && !isExiting;
 
   return (
     <div
@@ -45,7 +55,8 @@ export const Toast: React.FC<ToastProps> = ({
         'flex w-full max-w-[440px] rounded-[4px] border bg-surface px-3.5 py-2.5 text-ink shadow-none',
         description ? 'items-start gap-3' : 'items-center gap-2.5',
         borderColor,
-        'transition-transform duration-[180ms] ease-out',
+        'motion-toast-slide',
+        isVisible ? 'motion-toast-enter' : 'motion-toast-exit',
         className
       )}
     >
@@ -87,9 +98,13 @@ export const Toast: React.FC<ToastProps> = ({
 };
 
 export const ToastContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Pattern 3: Max one toast at a time; new toasts replace rather than stack
+  const childrenArray = React.Children.toArray(children);
+  const activeChild = childrenArray[childrenArray.length - 1];
+
   return (
     <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none [&>*]:pointer-events-auto">
-      {children}
+      {activeChild}
     </div>
   );
 };

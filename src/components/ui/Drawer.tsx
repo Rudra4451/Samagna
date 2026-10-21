@@ -15,7 +15,7 @@ export const DrawerOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-ink/40 transition-opacity',
+      'fixed inset-0 z-50 bg-ink/40',
       className
     )}
     {...props}
@@ -40,7 +40,7 @@ export const DrawerContent = React.forwardRef<
         }
       }}
       className={cn(
-        'fixed inset-y-0 right-0 z-50 flex h-full w-[480px] max-w-full flex-col bg-surface border-l border-rule shadow-none outline-none transition-transform duration-[180ms] ease-out',
+        'fixed inset-y-0 right-0 z-50 flex h-full w-[480px] max-w-full flex-col bg-surface border-l border-rule shadow-none outline-none motion-drawer-slide',
         className
       )}
       {...props}

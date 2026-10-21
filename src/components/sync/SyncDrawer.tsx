@@ -279,7 +279,7 @@ export const SyncDrawer: React.FC<SyncDrawerProps> = ({
             >
               <RefreshCw
                 size={14}
-                className={cn('mr-1.5', isSyncing && 'animate-spin')}
+                className="mr-1.5"
               />
               <span>{isSyncing ? 'Syncing...' : 'Retry all'}</span>
             </Button>

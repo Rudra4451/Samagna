@@ -32,8 +32,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
       className={cn(
         'fixed bottom-6 left-1/2 -translate-x-1/2 z-40',
         'w-[92%] sm:w-auto min-w-[340px] max-w-xl',
-        'border border-ink bg-surface text-ink p-3 rounded-[4px] shadow-none',
-        'animate-in fade-in slide-in-from-bottom-4 duration-200'
+        'border border-ink bg-surface text-ink p-3 rounded-[4px] shadow-none'
       )}
     >
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">

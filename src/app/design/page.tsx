@@ -32,6 +32,21 @@ import {
   DrawerFooter,
   DrawerClose,
 } from '../../components/ui/Drawer';
+import {
+  BottomSheet,
+  BottomSheetTrigger,
+  BottomSheetContent,
+  BottomSheetHeader,
+  BottomSheetTitle,
+  BottomSheetDescription,
+  BottomSheetBody,
+  BottomSheetFooter,
+  BottomSheetClose,
+} from '../../components/ui/BottomSheet';
+import {
+  AuditTimelineArtifact,
+  AuditTimelineEvent,
+} from '../../components/artifacts/AuditTimelineArtifact';
 import { Toast, ToastContainer, ToastVariant } from '../../components/ui/Toast';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -67,6 +82,45 @@ export default function DesignSystemPage() {
     },
   ]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [badgeState, setBadgeState] = useState<StatusVariant>('warning');
+  const [motionEvents, setMotionEvents] = useState<AuditTimelineEvent[]>([
+    {
+      id: 'demo-hist-1',
+      dayHeader: '14 March 2025',
+      time: '08:30 AM',
+      actor: 'R. Soren (Collector)',
+      action: 'Aggregated 100.0 kg Mahua at Badagaon Point',
+      delta: '+100.0 kg',
+      deltaVariant: 'success',
+      isLive: false,
+    },
+    {
+      id: 'demo-hist-2',
+      dayHeader: '14 March 2025',
+      time: '09:15 AM',
+      actor: 'K. Murmu (Field Officer)',
+      action: 'Issued Bag Tag #BS-402 with calibrated test weight',
+      deltaVariant: 'neutral',
+      isLive: false,
+    },
+  ]);
+
+  const addLiveMotionEvent = () => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const newEvt: AuditTimelineEvent = {
+      id: `live-${Date.now()}`,
+      dayHeader: 'Today (Live Session)',
+      time: timeStr,
+      actor: 'S. Das (Warehouse IM-04)',
+      action: `Verified physical tare intake — Checksum SHA-256:${Math.random().toString(16).substring(2, 8)}`,
+      delta: '-2.0 kg',
+      deltaVariant: 'danger',
+      isLive: true,
+    };
+    setMotionEvents((prev) => [newEvt, ...prev]);
+  };
   const [activeNav, setActiveNav] = useState('batches');
 
   const triggerToast = (variant: ToastVariant) => {
@@ -746,6 +800,282 @@ export default function DesignSystemPage() {
               </TableBody>
             </Table>
           </div>
+        </section>
+
+        {/* 11 / Motion System (The Four Allowed Patterns) */}
+        <section id="motion" className="space-y-6 pt-4 border-t border-rule">
+          <div>
+            <SectionLabel as="h2">11 / Motion System (The Four Allowed Patterns)</SectionLabel>
+            <p className="text-[14px] text-ink-muted mt-1 max-w-[760px]">
+              All motion across BanaSetu is strictly restricted to exactly four mathematical patterns defined in{' '}
+              <code className="font-mono text-[12px] bg-bg-sunken px-1.5 py-0.5 border border-rule text-ink">
+                DESIGN_MOTION.md
+              </code>{' '}
+              and enforced via{' '}
+              <code className="font-mono text-[12px] bg-bg-sunken px-1.5 py-0.5 border border-rule text-ink">
+                src/lib/motion.ts
+              </code>.
+              All other animations—including hover scales, skeleton shimmers, confetti, loader spinners, attention pulses, and page transitions—are strictly prohibited.
+            </p>
+          </div>
+
+          {/* Pattern Matrix Table */}
+          <div className="border border-rule bg-surface p-4 space-y-3">
+            <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted font-semibold">
+              Permitted Motion Matrix & Timing Budget
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[12px]">
+              <div className="border border-rule p-3 bg-bg-sunken/40 space-y-1">
+                <div className="font-semibold text-ink font-mono text-[11px]">01. DRAWER / SHEET</div>
+                <div className="text-ink-muted">Open: 180ms cubic-bezier(0.16, 1, 0.3, 1)</div>
+                <div className="text-ink-muted">Close: 140ms reverse</div>
+                <div className="text-[11px] font-mono text-ink-subtle">translateX/Y(100%) → 0</div>
+              </div>
+              <div className="border border-rule p-3 bg-bg-sunken/40 space-y-1">
+                <div className="font-semibold text-ink font-mono text-[11px]">02. BADGE CROSSFADE</div>
+                <div className="text-ink-muted">State change: 120ms ease-out</div>
+                <div className="text-ink-muted">Zero scale, zero bounce</div>
+                <div className="text-[11px] font-mono text-ink-subtle">color / background / border</div>
+              </div>
+              <div className="border border-rule p-3 bg-bg-sunken/40 space-y-1">
+                <div className="font-semibold text-ink font-mono text-[11px]">03. TOAST SLIDE</div>
+                <div className="text-ink-muted">Enter: 150ms ease-out</div>
+                <div className="text-ink-muted">Exit: 120ms ease-in</div>
+                <div className="text-[11px] font-mono text-ink-subtle">Single-slot replacement (no stack)</div>
+              </div>
+              <div className="border border-rule p-3 bg-bg-sunken/40 space-y-1">
+                <div className="font-semibold text-ink font-mono text-[11px]">04. AUDIT TIMELINE</div>
+                <div className="text-ink-muted">Live event: 100ms ease-out</div>
+                <div className="text-ink-muted">opacity: 0 → 1</div>
+                <div className="text-[11px] font-mono text-ink-subtle">Historical events: never animate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Demos Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Demo 1: Drawer & Sheet Slide */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[16px]">Pattern 1: Drawer / Sheet Slide-in</CardTitle>
+                  <span className="font-mono text-[11px] text-ink-muted border border-rule px-1.5 py-0.5 bg-bg-sunken">
+                    180ms / 140ms
+                  </span>
+                </div>
+                <CardDescription>
+                  Hardware-accelerated transform slide without opacity crossfade.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-[13px] text-ink-muted">
+                  Drawers slide horizontally from the right (<code className="font-mono text-[11px]">translateX(100%) → 0</code>). Bottom sheets slide vertically from below (<code className="font-mono text-[11px]">translateY(100%) → 0</code>).
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="min-h-[44px]"
+                  >
+                    Open Drawer (180ms Slide)
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsSheetOpen(true)}
+                    className="min-h-[44px]"
+                  >
+                    Open Sheet (180ms Slide)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demo 2: Status Badge Crossfade */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[16px]">Pattern 2: Status Badge Crossfade</CardTitle>
+                  <span className="font-mono text-[11px] text-ink-muted border border-rule px-1.5 py-0.5 bg-bg-sunken">
+                    120ms colour
+                  </span>
+                </div>
+                <CardDescription>
+                  Smooth colour transition on state changes with zero scaling or bounce.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-bg-sunken/40 border border-rule flex items-center justify-between">
+                  <span className="text-[13px] text-ink-muted font-medium">Observed Status:</span>
+                  <StatusBadge variant={badgeState}>
+                    {badgeState === 'warning' && 'Pending Verification'}
+                    {badgeState === 'success' && 'Available (Verified)'}
+                    {badgeState === 'danger' && 'Discrepancy (Held)'}
+                    {badgeState === 'neutral' && 'Sold / Archived'}
+                    {badgeState === 'info' && 'In Transit'}
+                    {badgeState === 'accent' && 'Collection Active'}
+                  </StatusBadge>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-mono text-ink-muted uppercase">Select state to trigger crossfade:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {(['warning', 'success', 'danger', 'info', 'neutral', 'accent'] as StatusVariant[]).map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setBadgeState(st)}
+                        className={`text-[12px] font-mono px-2.5 py-1.5 rounded-[4px] border transition-colors ${
+                          badgeState === st
+                            ? 'bg-ink text-surface border-ink font-semibold'
+                            : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demo 3: Toast Single-Slot Slide */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[16px]">Pattern 3: Toast Enter / Exit</CardTitle>
+                  <span className="font-mono text-[11px] text-ink-muted border border-rule px-1.5 py-0.5 bg-bg-sunken">
+                    150ms in / 120ms out
+                  </span>
+                </div>
+                <CardDescription>
+                  Bottom slide-in. Strict single-toast invariant: new alerts replace active ones without stacking.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-[13px] text-ink-muted">
+                  Click multiple buttons rapidly to verify that incoming notifications displace the current toast instead of stacking upwards.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => triggerToast('info')}
+                    className="min-h-[40px] text-[12px]"
+                  >
+                    Trigger Info Toast
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => triggerToast('success')}
+                    className="min-h-[40px] text-[12px]"
+                  >
+                    Trigger Success Toast
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => triggerToast('warning')}
+                    className="min-h-[40px] text-[12px]"
+                  >
+                    Trigger Warning Toast
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => triggerToast('danger')}
+                    className="min-h-[40px] text-[12px]"
+                  >
+                    Trigger Danger Toast
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demo 4: Audit Timeline Live Fade */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-[16px]">Pattern 4: Audit Timeline New Event</CardTitle>
+                  <span className="font-mono text-[11px] text-ink-muted border border-rule px-1.5 py-0.5 bg-bg-sunken">
+                    100ms fade
+                  </span>
+                </div>
+                <CardDescription>
+                  Only live events created in the active session fade in. Historical events render instantly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="primary"
+                    onClick={addLiveMotionEvent}
+                    className="min-h-[40px] text-[13px]"
+                  >
+                    <Plus size={16} strokeWidth={1.5} className="mr-1.5" />
+                    Log Live Audit Event (100ms Fade)
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setMotionEvents([
+                        {
+                          id: 'demo-hist-1',
+                          dayHeader: '14 March 2025',
+                          time: '08:30 AM',
+                          actor: 'R. Soren (Collector)',
+                          action: 'Aggregated 100.0 kg Mahua at Badagaon Point',
+                          delta: '+100.0 kg',
+                          deltaVariant: 'success',
+                          isLive: false,
+                        },
+                        {
+                          id: 'demo-hist-2',
+                          dayHeader: '14 March 2025',
+                          time: '09:15 AM',
+                          actor: 'K. Murmu (Field Officer)',
+                          action: 'Issued Bag Tag #BS-402 with calibrated test weight',
+                          deltaVariant: 'neutral',
+                          isLive: false,
+                        },
+                      ])
+                    }
+                    className="min-h-[40px] text-[12px] text-ink-muted"
+                  >
+                    Reset Events
+                  </Button>
+                </div>
+                <div className="border border-rule bg-surface p-2 max-h-[220px] overflow-y-auto">
+                  <AuditTimelineArtifact events={motionEvents} batchCode="#BS-402" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Interactive Bottom Sheet Demonstration Component */}
+          <BottomSheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <BottomSheetContent>
+              <BottomSheetHeader>
+                <BottomSheetTitle>Pattern 1 Demonstration: Sheet Slide-in</BottomSheetTitle>
+                <BottomSheetDescription>
+                  translateY(100%) → 0 in 180ms cubic-bezier(0.16, 1, 0.3, 1)
+                </BottomSheetDescription>
+              </BottomSheetHeader>
+              <BottomSheetBody className="space-y-3">
+                <p className="text-[13px] text-ink">
+                  This bottom sheet slides up smoothly from the bottom edge of the viewport in exactly 180ms with no opacity crossfade.
+                </p>
+                <div className="border border-rule p-3 bg-bg-sunken text-[12px] font-mono space-y-1">
+                  <div>Timing: 180ms ease-out (cubic-bezier(0.16, 1, 0.3, 1))</div>
+                  <div>Close: 140ms ease-in</div>
+                  <div>Reduced Motion: Instant show / dismiss</div>
+                </div>
+              </BottomSheetBody>
+              <BottomSheetFooter>
+                <Button
+                  variant="primary"
+                  className="w-full min-h-[44px]"
+                  onClick={() => setIsSheetOpen(false)}
+                >
+                  Dismiss Sheet (140ms Close)
+                </Button>
+              </BottomSheetFooter>
+            </BottomSheetContent>
+          </BottomSheet>
         </section>
       </main>
 

@@ -93,7 +93,7 @@ export default function SettingsSyncPage() {
               onClick={() => syncAll()}
               className="text-[13px] font-semibold"
             >
-              <RefreshCw size={14} className={cn('mr-1.5', isSyncing && 'animate-spin')} />
+              <RefreshCw size={14} className="mr-1.5" />
               <span>{isSyncing ? 'Syncing...' : 'Retry all'}</span>
             </Button>
           </div>

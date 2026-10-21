@@ -165,7 +165,7 @@ export const TopBar: React.FC = () => {
             </span>
 
             {conflictCount > 0 && (
-              <span className="text-[10px] font-mono px-1 rounded-[2px] bg-danger text-white font-bold animate-pulse">
+              <span className="text-[10px] font-mono px-1 rounded-[2px] bg-danger text-white font-bold">
                 {conflictCount} conflict
               </span>
             )}

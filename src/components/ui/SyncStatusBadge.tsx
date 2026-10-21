@@ -43,7 +43,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
           symbol: '↻',
           label: 'Syncing',
           classes:
-            'border-warning/40 border-l-2 border-l-warning text-warning bg-warning/10 animate-pulse',
+            'border-warning/40 border-l-2 border-l-warning text-warning bg-warning/10',
         };
       case 'synced':
         return {
@@ -80,7 +80,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
       aria-label={`Sync state: ${label}`}
       className={cn(
         'inline-flex items-center gap-1.5 border rounded-[2px] px-2 py-0.5',
-        'text-[11px] font-mono leading-none select-none tracking-tight whitespace-nowrap',
+        'text-[11px] font-mono leading-none select-none tracking-tight whitespace-nowrap motion-badge-crossfade',
         classes,
         className
       )}
