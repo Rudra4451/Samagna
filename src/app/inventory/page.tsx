@@ -12,6 +12,9 @@ import {
 } from '../../demo/seed';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { StatusBadge, StatusVariant } from '../../components/ui/StatusBadge';
+import { VerifiedBadge } from '../../components/ui/VerifiedBadge';
+import { DiscrepancyCardArtifact } from '../../components/artifacts/DiscrepancyCardArtifact';
+import { AuditTimelineArtifact, AuditTimelineEvent } from '../../components/artifacts/AuditTimelineArtifact';
 import {
   Table,
   TableHeader,
@@ -105,15 +108,6 @@ const INVENTORY_STATUSES = [
 ];
 
 const INVENTORY_VILLAGES = ['Badagaon, Karanjia', 'Kadamdiha, Karanjia', 'Sundargarh'];
-
-interface AuditTimelineItem {
-  id: string;
-  timestamp: string;
-  actor: string;
-  action: string;
-  delta: string;
-  deltaVariant?: 'success' | 'warning' | 'danger' | 'neutral';
-}
 
 export default function InventoryManagerPage() {
   const { isOffline } = useAppStore();
@@ -295,10 +289,11 @@ export default function InventoryManagerPage() {
   );
 
   // Monotonic audit timeline state
-  const [auditTimeline, setAuditTimeline] = useState<AuditTimelineItem[]>([
+  const [auditTimeline, setAuditTimeline] = useState<AuditTimelineEvent[]>([
     {
       id: 'aud-1',
-      timestamp: '14 Mar 2025 · 11:20 AM',
+      dayHeader: '14 March 2025',
+      time: '11:20 AM',
       actor: 'Driver B. Soren (#VH-04)',
       action: 'Batch delivered at Central Warehouse bay 3. Seal #OD-ST-8840 intact.',
       delta: 'Arrival logged',
@@ -306,15 +301,17 @@ export default function InventoryManagerPage() {
     },
     {
       id: 'aud-2',
-      timestamp: '14 Mar 2025 · 09:30 AM',
+      dayHeader: '14 March 2025',
+      time: '09:30 AM',
       actor: 'Facilitator Birsa Munda (#BS-FAC-01)',
       action: 'Batch collected from Raimati Soren at Karanjia Point. Net weight 100.0 kg.',
-      delta: '+100.0 kg Dispatched',
+      delta: '+100.0 kg',
       deltaVariant: 'success',
     },
     {
       id: 'aud-3',
-      timestamp: '13 Mar 2025 · 04:15 PM',
+      dayHeader: '13 March 2025',
+      time: '04:15 PM',
       actor: 'Collector Raimati Soren',
       action: 'Pickup request submitted via BanaSetu Mobile.',
       delta: 'Forecast registered',
@@ -515,11 +512,13 @@ export default function InventoryManagerPage() {
     setAuditTimeline((prev) => [
       {
         id: `aud-${Date.now()}`,
-        timestamp: 'Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'Inventory Manager',
         action: `Inline correction: adjusted ${code} collection weight to ${num.toFixed(1)} kg.`,
         delta: `Δ adjusted`,
-        deltaVariant: 'warning',
+        deltaVariant: 'neutral',
+        isLive: true,
       },
       ...prev,
     ]);
@@ -543,11 +542,13 @@ export default function InventoryManagerPage() {
     setAuditTimeline((prev) => [
       {
         id: `aud-${Date.now()}`,
-        timestamp: 'Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'Inventory Manager',
         action: `Inline correction: verified arrival weight for ${code} set to ${num.toFixed(1)} kg.`,
         delta: `Weight verified`,
         deltaVariant: 'neutral',
+        isLive: true,
       },
       ...prev,
     ]);
@@ -562,11 +563,13 @@ export default function InventoryManagerPage() {
     setAuditTimeline((prev) => [
       {
         id: `aud-${Date.now()}`,
-        timestamp: 'Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'Inventory Manager',
         action: `Inline correction: quality grade of ${code} updated to Grade ${grade}.`,
         delta: `Grade ${grade}`,
         deltaVariant: 'neutral',
+        isLive: true,
       },
       ...prev,
     ]);
@@ -581,11 +584,13 @@ export default function InventoryManagerPage() {
     setAuditTimeline((prev) => [
       {
         id: `aud-${Date.now()}`,
-        timestamp: 'Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'Inventory Manager',
         action: `Storage location for ${code} assigned to ${loc}.`,
         delta: `Rack assigned`,
         deltaVariant: 'neutral',
+        isLive: true,
       },
       ...prev,
     ]);
@@ -667,13 +672,15 @@ export default function InventoryManagerPage() {
       setPendingStock(0.0);
       setQuarantinedStock((prev) => prev + arrivalWeight);
 
-      const quarantineAudit: AuditTimelineItem = {
+      const quarantineAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
-        timestamp: '14 Mar 2025 · Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'S. Das (Warehouse IM-04)',
         action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-3.5 kg excess)`,
-        delta: `${arrivalWeight.toFixed(1)} kg Quarantined`,
+        delta: `-${(collectionKg - arrivalWeight).toFixed(1)} kg`,
         deltaVariant: 'danger',
+        isLive: true,
       };
       setAuditTimeline((prev) => [...prev, quarantineAudit]);
       setIsDrawerOpen(false);
@@ -717,13 +724,15 @@ export default function InventoryManagerPage() {
       setPendingStock(0.0);
       setAvailableStock((prev) => prev + arrivalWeight);
 
-      const approvalAudit: AuditTimelineItem = {
+      const approvalAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
-        timestamp: '14 Mar 2025 · Just now',
+        dayHeader: '14 March 2025',
+        time: 'Just now',
         actor: 'S. Das (IM-04) & Supervisor Endorsement',
         action: `Approved to saleable stock in ${storageLocation} with flag note`,
-        delta: `+${arrivalWeight.toFixed(1)} kg Available`,
+        delta: `+${arrivalWeight.toFixed(1)} kg`,
         deltaVariant: 'success',
+        isLive: true,
       };
       setAuditTimeline((prev) => [...prev, approvalAudit]);
       setIsDrawerOpen(false);
@@ -786,9 +795,12 @@ export default function InventoryManagerPage() {
 
           {/* Tile 3: Available (saleable) */}
           <div className="border border-rule rounded-[4px] bg-surface p-4 shadow-none">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted block select-none">
-              Available (saleable)
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted block select-none">
+                Available (saleable)
+              </span>
+              {availableStock > 0 && <VerifiedBadge />}
+            </div>
             <div className="font-heading text-[26px] font-bold tabular-nums text-success mt-1 leading-tight">
               {availableStock.toFixed(1)}
             </div>
@@ -1069,9 +1081,13 @@ export default function InventoryManagerPage() {
 
                         {columns.find((c) => c.id === 'status')?.visible && (
                           <TableCell>
-                            <StatusBadge variant={b.statusVariant}>
-                              {b.status}
-                            </StatusBadge>
+                            {b.status === 'Available' ? (
+                              <VerifiedBadge size="sm" />
+                            ) : (
+                              <StatusBadge variant={b.statusVariant}>
+                                {b.status}
+                              </StatusBadge>
+                            )}
                           </TableCell>
                         )}
 
@@ -1220,7 +1236,11 @@ export default function InventoryManagerPage() {
                 <DrawerTitle>Storage verification · #BS-402</DrawerTitle>
               </div>
               <div className="flex items-center gap-1.5">
-                <StatusBadge variant="warning">In Review</StatusBadge>
+                {batches.find((b) => b.code === selectedBatchCode)?.status === 'Available' ? (
+                  <VerifiedBadge />
+                ) : (
+                  <StatusBadge variant="warning">In Review</StatusBadge>
+                )}
                 <SyncStatusBadge state="queued" />
               </div>
             </div>
@@ -1404,72 +1424,16 @@ export default function InventoryManagerPage() {
                   </div>
                 </div>
 
-                {/* 3. Shrinkage Panel */}
-                <div className="border border-rule rounded-[4px] p-3.5 bg-surface space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <SectionLabel>Shrinkage Evaluation Engine</SectionLabel>
-                    <StatusBadge variant={isWithinTolerance ? 'success' : 'warning'}>
-                      {isWithinTolerance ? 'Natural shrinkage' : 'Discrepancy — review required'}
-                    </StatusBadge>
-                  </div>
-
-                  <p className="text-[12px] text-ink-muted leading-snug">
-                    Configured shrinkage tolerance: 1.5% (Mahua · dried) · Source: locally validated · Placeholder value
-                  </p>
-
-                  {/* Mathematical computation readout */}
-                  <div className="border border-rule rounded-[2px] p-2.5 bg-bg-sunken/40 font-mono text-[13px] text-ink space-y-1 tabular-nums">
-                    <div className="flex justify-between">
-                      <span>Acceptable loss ({tolerancePercent}% of 100 kg):</span>
-                      <span className="font-semibold">{acceptableLossKg.toFixed(1)} kg</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Actual loss (100 kg − {arrivalWeight} kg):</span>
-                      <span className="font-semibold text-warning">{actualLossKg.toFixed(1)} kg</span>
-                    </div>
-                    <div className="flex justify-between border-t border-rule pt-1 font-bold">
-                      <span className={excessLossKg > 0 ? 'text-danger' : 'text-success'}>
-                        {excessLossKg > 0 ? 'Excess Loss (Flag):' : 'Conforming Margin:'}
-                      </span>
-                      <span className={excessLossKg > 0 ? 'text-danger' : 'text-success'}>
-                        {excessLossKg > 0 ? `+${excessLossKg.toFixed(1)} kg` : `${Math.abs(excessLossKg).toFixed(1)} kg within`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Guidance Note based on tolerance */}
-                  {isWithinTolerance ? (
-                    <div className="p-2 border border-success/30 bg-success/5 rounded-[2px] text-[12px] text-success">
-                      Will be recorded, not hidden.
-                    </div>
-                  ) : (
-                    <div className="p-2.5 border border-warning/40 bg-warning/5 rounded-[2px] text-[12px] text-ink-muted space-y-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-warning">
-                        <AlertTriangle size={15} strokeWidth={1.5} />
-                        Discrepancy flag logged
-                      </div>
-                      <p>
-                        Do not accuse. This is a flag, not a finding. Explain physical or meteorological factors.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Rectangular "Add supervisor note" Textarea */}
-                  <div className="space-y-1 pt-1">
-                    <label htmlFor="supervisor-note-input" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
-                      Supervisor Note (Required for excess variance approval)
-                    </label>
-                    <Textarea
-                      id="supervisor-note-input"
-                      rows={3}
-                      value={supervisorNote}
-                      onChange={(e) => setSupervisorNote(e.target.value)}
-                      error={!isWithinTolerance && !supervisorNote.trim()}
-                      errorText={!isWithinTolerance && !supervisorNote.trim() ? "Supervisor note required to clear excess shrinkage flag" : undefined}
-                      placeholder="Enter supervisor observation regarding bag seals, drying time, or moisture..."
-                    />
-                  </div>
-                </div>
+                {/* 3. Discrepancy Card Artifact */}
+                <DiscrepancyCardArtifact
+                  collectionKg={collectionKg}
+                  receivedKg={arrivalWeight}
+                  productName="Mahua · dried"
+                  configuredTolerancePercent={1.5}
+                  supervisorNote={supervisorNote}
+                  onSupervisorNoteChange={setSupervisorNote}
+                  showSupervisorTextarea={true}
+                />
 
                 {/* Live Delta Line */}
                 <div className="border border-rule rounded-[2px] p-2.5 bg-bg-sunken text-center text-[12px] font-mono font-medium text-ink select-none">
@@ -1479,39 +1443,10 @@ export default function InventoryManagerPage() {
             ) : (
               /* Monotonic Audit Timeline Tab */
               <div className="space-y-3">
-                <SectionLabel>Monotonic Audit Log (#BS-402)</SectionLabel>
-                <div className="border-l border-rule relative pl-4 ml-2 space-y-5 py-2">
-                  {auditTimeline.map((item) => (
-                    <div key={item.id} className="relative group">
-                      {/* 6px Dot on the 1px rule (no shadows, no icons) */}
-                      <span className="absolute -left-[19.5px] top-1.5 w-[7px] h-[7px] rounded-full bg-ink border border-surface" />
-                      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                        <div>
-                          <div className="text-[12px] font-mono text-ink-subtle tabular-nums">
-                            {item.timestamp}
-                          </div>
-                          <div className="font-semibold text-[13px] text-ink mt-0.5">
-                            {item.action}
-                          </div>
-                          <div className="text-[12px] text-ink-muted">
-                            Actor: {item.actor}
-                          </div>
-                        </div>
-                        <div
-                          className={cn(
-                            'font-mono tabular-nums text-[12px] font-bold shrink-0',
-                            item.deltaVariant === 'success' && 'text-success',
-                            item.deltaVariant === 'danger' && 'text-danger',
-                            item.deltaVariant === 'warning' && 'text-warning',
-                            item.deltaVariant === 'neutral' && 'text-ink-muted'
-                          )}
-                        >
-                          {item.delta}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <AuditTimelineArtifact
+                  events={auditTimeline}
+                  batchCode={selectedBatchCode}
+                />
               </div>
             )}
           </DrawerBody>
