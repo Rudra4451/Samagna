@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '../../components/shell/AppShell';
 import { useAppStore } from '../../store/useAppStore';
+import { getDatabase } from '../../lib/db';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
 import { SectionLabel } from '../../components/ui/SectionLabel';
+import { Toast, ToastContainer } from '../../components/ui/Toast';
 import { FacilitatorOnboarding } from '../../components/onboarding/FacilitatorOnboarding';
 import { useRoleOnboarding } from '../../lib/useOnboarding';
 import {
@@ -18,6 +20,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -78,18 +81,200 @@ export default function FacilitatorPage() {
   ]);
 
   const [isGroupSubmitted, setIsGroupSubmitted] = useState<boolean>(false);
+  const [showAddForm, setShowAddForm] = useState<boolean>(false);
+  const [newName, setNewName] = useState('');
+  const [newTribalId, setNewTribalId] = useState('');
+  const [newVillage, setNewVillage] = useState('Badampahar');
+  const [newProduct, setNewProduct] = useState('Dried Mahua Flowers');
+  const [newQty, setNewQty] = useState(30);
+
+  const [activeToast, setActiveToast] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    variant: 'success' | 'info' | 'warning';
+  } | null>(null);
 
   const totalQtyKg = members.reduce((acc, m) => acc + m.qtyKg, 0);
   const totalEntitlement = members.reduce((acc, m) => acc + m.totalAmount, 0);
 
   const handleRecordGroupPickup = () => {
     complete();
-    // Scroll to group form
     document.getElementById('group-intake-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    const rate = newProduct === 'Dried Mahua Flowers' ? 42.0 : newProduct === 'Sal Tree Seeds' ? 28.0 : 180.0;
+    const batchNum = Math.floor(405 + Math.random() * 40);
+    const newMember: GroupMember = {
+      id: `gm-${Date.now()}`,
+      name: newName.trim(),
+      tribalId: newTribalId.trim() || `OD-MAY-${Math.floor(1000 + Math.random() * 9000)}`,
+      village: newVillage,
+      product: newProduct,
+      qtyKg: Number(newQty),
+      ratePerKg: rate,
+      totalAmount: Number((newQty * rate).toFixed(2)),
+      batchCode: `#BS-${batchNum}`,
+    };
+
+    setMembers((prev) => [...prev, newMember]);
+    setNewName('');
+    setNewTribalId('');
+    setShowAddForm(false);
+    setActiveToast({
+      id: `toast-${Date.now()}`,
+      variant: 'info',
+      title: `Collector added to consignment roster`,
+      description: `${newMember.name} (${newMember.qtyKg} kg · ${newMember.batchCode}) added.`,
+    });
+  };
+
+  const handleSubmitGroupConsignment = async () => {
+    setIsGroupSubmitted(true);
+    try {
+      const db = getDatabase();
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+      const timestampMs = Date.now();
+
+      for (const m of members) {
+        const cleanId = m.batchCode.replace('#', '');
+
+        // 1. Put/update batch in db.batches
+        await db.batches.put({
+          id: cleanId,
+          produceName: m.product,
+          produceOdia: m.product === 'Dried Mahua Flowers' ? 'ଶୁଖିଲା ମହୁଲ ଫୁଲ' : m.product === 'Sal Tree Seeds' ? 'ଶାଳ ମଞ୍ଜି' : 'ଜଙ୍ଗଲି ମହୁ',
+          scientificName: 'Similipal NTFP Reserve',
+          district: 'Mayurbhanj (ମୟୂରଭଞ୍ଜ)',
+          block: 'Karanjia (କରଞ୍ଜିଆ)',
+          gramPanchayat: 'Badampahar GP',
+          centerName: 'Badagaon Van Dhan Vikas Kendra',
+          shgName: 'Maa Tarini Tribal Self Help Group',
+          facilitatorName: 'Champa Majhi (ID: SHG-FAC-09)',
+          referenceRatePerKg: m.ratePerKg,
+          rateSource: 'LABHA Scheme Notified Floor MSP',
+          ratePublishedDate: '15-Apr-2024',
+          seasonalReadinessStatus: 'Group Consignment Dispatched',
+          pickupRequestId: `REQ-GRP-${cleanId}`,
+          collectors: [{
+            id: `COL-${cleanId}`,
+            tribalId: m.tribalId,
+            name: m.name,
+            nameOdia: m.name,
+            gender: 'F',
+            age: 32,
+            village: m.village,
+            villageOdia: m.village,
+            weightKg: m.qtyKg,
+            ratePerKg: m.ratePerKg,
+            grossPayout: m.totalAmount,
+            bankName: 'Odisha Gramya Bank',
+            accountEnding: '•••5521',
+            dbtRef: `DBT-OD-${Math.floor(1000 + Math.random() * 9000)}`,
+            paymentStatus: 'READY_FOR_DISBURSEMENT',
+            collectedDate: nowStr,
+            signedByFacilitator: 'Champa Majhi (SHG-FAC-09)',
+          }],
+          status: isOffline ? 'SAVED_OFFLINE_PENDING_SYNC' : 'PENDING_VERIFICATION',
+          step1: {
+            grossWeightKg: Number((m.qtyKg + 1.5).toFixed(2)),
+            tareWeightKg: 1.5,
+            netAcceptedKg: m.qtyKg,
+            grade: 'Grade A - Properly Dried',
+            sackCount: 1,
+            sealTagId: `OD-GRP-${cleanId}`,
+            vehicleNumber: 'OR-11-F-4412',
+            driverName: 'B. Soren',
+            tarpaulinConfirmed: true,
+            transitWaybillId: `WB-GRP-24-${cleanId}`,
+            observedMoisturePercent: 8.0,
+            verifiedBy: 'Champa Majhi (ID: SHG-FAC-09)',
+            verifiedByRole: 'Van Dhan SHG Facilitator',
+            verifiedAt: nowStr,
+            notes: `Aggregated under cluster route 04. Individual sovereign DBT entitlement ₹${m.totalAmount}.`,
+          },
+          step2: null,
+          createdAt: nowStr,
+          updatedAt: nowStr,
+        });
+
+        // 2. Queue in syncQueue
+        await db.syncQueue.put({
+          local_id: `ULID-GRP-${cleanId}-${timestampMs}`,
+          batch_code: m.batchCode,
+          entity: 'collection',
+          action: 'create',
+          actor: {
+            id: 'SHG-FAC-09',
+            name: 'Champa Majhi',
+            role: 'SHG Facilitator',
+          },
+          payload: {
+            collector: m.name,
+            tribalId: m.tribalId,
+            village: m.village,
+            product: m.product,
+            qtyKg: m.qtyKg,
+            totalAmount: m.totalAmount,
+            batchCode: m.batchCode,
+          },
+          state: isOffline ? 'queued' : 'synced',
+          createdAt: timestampMs,
+          updatedAt: timestampMs,
+          retryCount: 0,
+          approxSizeBytes: 850,
+        });
+      }
+
+      // 3. Log audit event
+      await db.auditEvents.put({
+        id: `AUD-FAC-${timestampMs}`,
+        timestamp: nowStr,
+        actorId: 'SHG-FAC-09',
+        actorName: 'Champa Majhi',
+        actorRole: 'Van Dhan SHG Facilitator',
+        actionType: 'AGGREGATION_INITIATED',
+        title: `Group Consignment Dispatched: ${members.length} Collectors (${totalQtyKg.toFixed(1)} kg)`,
+        description: `Consignment aggregated for transport under driver B. Soren. Sovereign receipts generated for ${members.map((m) => m.batchCode).join(', ')}.`,
+        details: {
+          collectorCount: members.length,
+          totalQtyKg,
+          totalEntitlement,
+          status: isOffline ? 'Saved Offline' : 'Pending Verification',
+        },
+      });
+
+      setActiveToast({
+        id: `toast-${Date.now()}`,
+        variant: isOffline ? 'warning' : 'success',
+        title: isOffline ? 'Group Consignment Queued Locally' : 'Group Consignment Dispatched & Synced',
+        description: isOffline
+          ? `All ${members.length} records (${totalQtyKg.toFixed(1)} kg) safely queued in device IndexedDB.`
+          : `Handshake verified. Sovereign A5 receipts ready for all ${members.length} collectors.`,
+      });
+    } catch (err) {
+      console.warn('Dexie save error in facilitator:', err);
+    }
   };
 
   return (
     <AppShell>
+      <ToastContainer>
+        {activeToast && (
+          <Toast
+            id={activeToast.id}
+            variant={activeToast.variant}
+            title={activeToast.title}
+            description={activeToast.description}
+            onClose={() => setActiveToast(null)}
+          />
+        )}
+      </ToastContainer>
+
       {/* Facilitator First-Run Onboarding Modal (Rule 6) */}
       {!isOnboarded && isLoaded && (
         <FacilitatorOnboarding
@@ -156,7 +341,7 @@ export default function FacilitatorPage() {
             </div>
           </div>
 
-          {/* Bottom Three Boxes: Individual Collector Receipts */}
+          {/* Bottom Boxes: Individual Collector Receipts */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {members.map((m, idx) => (
               <div
@@ -202,20 +387,103 @@ export default function FacilitatorPage() {
 
         {/* Group Intake Section */}
         <section id="group-intake-section" className="border border-rule rounded-[4px] p-5 bg-surface space-y-4">
-          <div className="flex items-center justify-between border-b border-rule pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-rule pb-2 gap-2">
             <div>
               <SectionLabel>Group Roster</SectionLabel>
               <h2 className="font-heading text-[18px] font-bold text-ink">
                 Record a pickup for a group
               </h2>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] font-mono uppercase text-ink-muted block">Total Roster Entitlement</span>
-              <span className="font-heading text-[20px] font-bold text-accent tabular-nums">
-                ₹{totalEntitlement.toLocaleString('en-IN')}
-              </span>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="h-[36px] text-[12px]"
+              >
+                <Plus size={14} className="mr-1" />
+                <span>{showAddForm ? 'Cancel' : 'Add Collector'}</span>
+              </Button>
+
+              <div className="text-right">
+                <span className="text-[11px] font-mono uppercase text-ink-muted block">Total Roster Entitlement</span>
+                <span className="font-heading text-[20px] font-bold text-accent tabular-nums">
+                  ₹{totalEntitlement.toLocaleString('en-IN')}
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Add Collector to Roster Form */}
+          {showAddForm && (
+            <form onSubmit={handleAddMember} className="p-3.5 border border-rule rounded-[4px] bg-bg-sunken space-y-3">
+              <span className="text-[12px] font-bold text-ink block uppercase tracking-wider font-mono">
+                Add Collector to Consignment
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label htmlFor="member-name-input" className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Collector Full Name
+                  </label>
+                  <input
+                    id="member-name-input"
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="e.g. Parvati Hansdah"
+                    className="w-full h-[36px] px-2.5 rounded-[2px] border border-rule bg-surface text-[13px] text-ink focus:outline-accent"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="member-village-input" className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Village
+                  </label>
+                  <input
+                    id="member-village-input"
+                    type="text"
+                    value={newVillage}
+                    onChange={(e) => setNewVillage(e.target.value)}
+                    className="w-full h-[36px] px-2.5 rounded-[2px] border border-rule bg-surface text-[13px] text-ink focus:outline-accent"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="member-product-select" className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Product
+                  </label>
+                  <select
+                    id="member-product-select"
+                    value={newProduct}
+                    onChange={(e) => setNewProduct(e.target.value)}
+                    className="w-full h-[36px] px-2 rounded-[2px] border border-rule bg-surface text-[13px] text-ink focus:outline-accent"
+                  >
+                    <option value="Dried Mahua Flowers">Dried Mahua Flowers (₹42/kg)</option>
+                    <option value="Sal Tree Seeds">Sal Tree Seeds (₹28/kg)</option>
+                    <option value="Wild Forest Honey">Wild Forest Honey (₹180/kg)</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="member-qty-input" className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Quantity (kg)
+                  </label>
+                  <input
+                    id="member-qty-input"
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={newQty}
+                    onChange={(e) => setNewQty(Number(e.target.value))}
+                    className="w-full h-[36px] px-2.5 rounded-[2px] border border-rule bg-surface text-[13px] text-ink focus:outline-accent font-mono"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button type="submit" variant="primary" size="sm" className="h-[36px] px-4">
+                  Add to Consignment Roster
+                </Button>
+              </div>
+            </form>
+          )}
 
           {/* Table */}
           <div className="border border-rule rounded-[2px] overflow-x-auto">
@@ -254,17 +522,17 @@ export default function FacilitatorPage() {
           </div>
 
           {/* Action Row */}
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <p className="text-[12px] text-ink-subtle font-mono">
               Each collector is credited directly via DBT to their linked bank account.
             </p>
 
             <Button
               variant="primary"
-              onClick={() => setIsGroupSubmitted(true)}
+              onClick={handleSubmitGroupConsignment}
               className="h-[44px] px-5"
             >
-              {isGroupSubmitted ? '✓ Group Consignment Dispatched' : 'Submit Group Consignment'}
+              {isGroupSubmitted ? '✓ Group Consignment Dispatched & Synced' : 'Submit Group Consignment'}
             </Button>
           </div>
         </section>

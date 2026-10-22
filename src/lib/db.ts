@@ -3,6 +3,9 @@ import { BatchRecord, AuditEvent, DiscrepancyCase } from './types';
 import {
   INITIAL_BATCH_BS400,
   INITIAL_BATCH_BS402,
+  INITIAL_BATCH_BS398,
+  INITIAL_BATCH_BS396,
+  INITIAL_BATCH_BS395,
   INITIAL_DISCREPANCY_CASE_BS395,
   INITIAL_DISCREPANCY_CASE,
   INITIAL_AUDIT_TRAIL,
@@ -110,9 +113,12 @@ export async function seedInitialData(forceReset: boolean = false): Promise<void
       await db.pendingSync.clear();
       await db.syncQueue.clear();
 
-      // Rule 1: Seed Batch #BS-400 (verified stock, 60kg, ₹42/kg) & #BS-402 (pending_verification, 100kg, arrival not yet entered)
+      // Seed Baseline Batches: BS-400, BS-402, BS-398, BS-396, BS-395
       await db.batches.put(INITIAL_BATCH_BS400);
       await db.batches.put(INITIAL_BATCH_BS402);
+      await db.batches.put(INITIAL_BATCH_BS398);
+      await db.batches.put(INITIAL_BATCH_BS396);
+      await db.batches.put(INITIAL_BATCH_BS395);
 
       await db.auditEvents.bulkPut(INITIAL_AUDIT_TRAIL);
 

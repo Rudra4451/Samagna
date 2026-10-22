@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { BanaSetuProvider } from '../context/BanaSetuContext';
 
 export const metadata: Metadata = {
   title: 'BanaSetu — Forest Produce Integrity Ledger',
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-bg text-ink antialiased">
       <body className="min-h-screen bg-bg text-ink font-body selection:bg-bg-sunken selection:text-ink">
-        {children}
+        <BanaSetuProvider>
+          {children}
+        </BanaSetuProvider>
       </body>
     </html>
   );

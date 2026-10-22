@@ -25,19 +25,26 @@ interface BanaSetuContextType {
   setIsOffline: (offline: boolean) => void;
   queuedSyncCount: number;
   batch: BatchRecord | null;
+  batches: BatchRecord[];
+  activeBatchId: string;
+  setActiveBatchId: (id: string) => void;
   auditEvents: AuditEvent[];
   discrepancyCase: DiscrepancyCase | null;
   counters: WarehouseLedgerCounters;
   toast: string | null;
   showToast: (msg: string) => void;
+  refreshFromDB: () => Promise<void>;
+  createBatch: (newBatch: BatchRecord) => Promise<void>;
   updateStep1: (
     updates: Partial<Step1FieldVerification>,
-    simulateOfflineSubmission?: boolean
+    simulateOfflineSubmission?: boolean,
+    targetBatchId?: string
   ) => Promise<void>;
   updateStep2: (
     arrivalNetKg: number,
     storageZone: string,
-    shrinkagePercent: number
+    shrinkagePercent: number,
+    targetBatchId?: string
   ) => Promise<void>;
   syncOfflineQueue: () => Promise<void>;
   resetDemoData: () => Promise<void>;
@@ -52,6 +59,8 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
   const [isOffline, setIsOfflineState] = useState<boolean>(false);
   const [queuedSyncCount, setQueuedSyncCount] = useState<number>(0);
   const [batch, setBatch] = useState<BatchRecord | null>(null);
+  const [batches, setBatches] = useState<BatchRecord[]>([]);
+  const [activeBatchId, setActiveBatchIdState] = useState<string>('BS-402');
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [discrepancyCase, setDiscrepancyCase] = useState<DiscrepancyCase | null>(null);
   const [counters, setCounters] = useState<WarehouseLedgerCounters>(INITIAL_LEDGER_COUNTERS);
@@ -69,11 +78,14 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     try {
       const db = getDatabase();
-      const b = await db.batches.get('BS-402');
+      const allBatches = await db.batches.toArray();
+      setBatches(allBatches);
+
+      const targetId = activeBatchId || 'BS-402';
+      const b = allBatches.find((item) => item.id === targetId) || allBatches.find((item) => item.id === 'BS-402') || allBatches[0] || null;
       if (b) setBatch(b);
 
       const auds = await db.auditEvents.toArray();
-      // sort chronologically descending for display or maintain ordered
       setAuditEvents(auds);
 
       const disc = await db.discrepancyCases.get('DISC-402');
@@ -94,7 +106,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Failed to load from Dexie:', err);
     }
-  }, []);
+  }, [activeBatchId]);
 
   // Initialize once on client mount
   useEffect(() => {
@@ -105,6 +117,28 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
     }
     init();
   }, [refreshFromDB]);
+
+  // Set active batch selector
+  const setActiveBatchId = (id: string) => {
+    const cleanId = id.replace('#', '');
+    setActiveBatchIdState(cleanId);
+    const found = batches.find((b) => b.id === cleanId);
+    if (found) setBatch(found);
+  };
+
+  // Create or register a new batch in Dexie and state
+  const createBatch = async (newBatch: BatchRecord) => {
+    try {
+      const db = getDatabase();
+      await db.batches.put(newBatch);
+      setBatches((prev) => [newBatch, ...prev.filter((b) => b.id !== newBatch.id)]);
+      if (newBatch.id === activeBatchId) {
+        setBatch(newBatch);
+      }
+    } catch (err) {
+      console.error('Failed to create batch in Dexie:', err);
+    }
+  };
 
   // Role switcher with Dexie sync
   const setActiveRole = async (role: RoleType) => {
@@ -136,25 +170,28 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
   // Update Step 1 (Field Manager verification)
   const updateStep1 = async (
     updates: Partial<Step1FieldVerification>,
-    simulateOfflineSubmission?: boolean
+    simulateOfflineSubmission?: boolean,
+    targetBatchId?: string
   ) => {
-    if (!batch) return;
+    const targetId = (targetBatchId || activeBatchId || 'BS-402').replace('#', '');
+    const currentTarget = batches.find((b) => b.id === targetId) || batch;
+    if (!currentTarget) return;
     const db = getDatabase();
     const effectiveOffline = simulateOfflineSubmission ?? isOffline;
 
     const net = Number(
       (
-        (updates.grossWeightKg ?? batch.step1.grossWeightKg) -
-        (updates.tareWeightKg ?? batch.step1.tareWeightKg)
+        (updates.grossWeightKg ?? currentTarget.step1.grossWeightKg) -
+        (updates.tareWeightKg ?? currentTarget.step1.tareWeightKg)
       ).toFixed(2)
     );
 
     const localRecId =
-      batch.step1.localRecordId ||
-      `LOC-REC-${Math.floor(1000 + Math.random() * 9000)}-BS402`;
+      currentTarget.step1.localRecordId ||
+      `LOC-REC-${Math.floor(1000 + Math.random() * 9000)}-${targetId.replace('-', '')}`;
 
     const newStep1: Step1FieldVerification = {
-      ...batch.step1,
+      ...currentTarget.step1,
       ...updates,
       netAcceptedKg: net,
       localRecordId: localRecId,
@@ -166,7 +203,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       : 'PENDING_VERIFICATION';
 
     const updatedBatch: BatchRecord = {
-      ...batch,
+      ...currentTarget,
       status: newStatus,
       step1: newStep1,
       updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -181,7 +218,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       actionType: effectiveOffline ? 'OFFLINE_SAVED' : 'FIELD_WEIGH_COMPLETED',
       title: effectiveOffline
         ? `Step 1 Saved Offline [Local ID: ${localRecId}]`
-        : `Step 1 Verified: ${net} kg Net Accepted (#BS-402)`,
+        : `Step 1 Verified: ${net} kg Net Accepted (#${targetId})`,
       description: effectiveOffline
         ? `Field record queued in local device storage. Awaiting network sync to Baripada central server.`
         : `Gross: ${newStep1.grossWeightKg} kg, Tare: ${newStep1.tareWeightKg} kg, Net: ${net} kg. Grade: ${newStep1.grade}. Vehicle: ${newStep1.vehicleNumber}.`,
@@ -196,7 +233,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
         localRecordId: localRecId,
       },
       evidencePhotoPlaceholder: '[Digital Photo Seal: Sack_Weigh_Scale.jpg]',
-      evidenceLabel: 'Electronic Scale & Stencil #BS-402 record',
+      evidenceLabel: `Electronic Scale & Stencil #${targetId} record`,
       syncId: effectiveOffline ? undefined : localRecId,
     };
 
@@ -213,7 +250,10 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
     await db.appSettings.put({ key: 'queuedSyncCount', value: newQueuedCount });
     await db.appSettings.put({ key: 'counters', value: newCounters });
 
-    setBatch(updatedBatch);
+    setBatches((prev) => [updatedBatch, ...prev.filter((b) => b.id !== targetId)]);
+    if (targetId === activeBatchId || !batch) {
+      setBatch(updatedBatch);
+    }
     setAuditEvents((prev) => [...prev, newEvent]);
     setQueuedSyncCount(newQueuedCount);
     setCounters(newCounters);
@@ -221,86 +261,92 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
     showToast(
       effectiveOffline
         ? `Saved offline to device ledger (ID: ${localRecId}). Queue count: ${newQueuedCount}`
-        : `Step 1 verified successfully! Dispatched 100.0 kg to Baripada Depôt.`
+        : `Step 1 verified successfully! Dispatched ${net} kg to Baripada Depôt.`
     );
   };
 
   // Sync Offline Queue
   const syncOfflineQueue = async () => {
-    if (!batch) return;
     const db = getDatabase();
+    const allOfflineBatches = await db.batches
+      .filter((b) => b.status === 'SAVED_OFFLINE_PENDING_SYNC')
+      .toArray();
 
-    const localRecId = batch.step1.localRecordId || 'LOC-REC-8921-BS402';
     const cloudSyncId = `CLOUD-TX-${Math.floor(5000 + Math.random() * 4000)}`;
+    const newEvents: AuditEvent[] = [];
 
-    const updatedBatch: BatchRecord = {
-      ...batch,
-      status: 'PENDING_VERIFICATION',
-      updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-    };
+    for (const b of allOfflineBatches) {
+      const localRecId = b.step1?.localRecordId || `LOC-REC-${b.id}`;
+      const updatedB: BatchRecord = {
+        ...b,
+        status: 'PENDING_VERIFICATION',
+        updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      };
+      await db.batches.put(updatedB);
 
-    const syncEvent: AuditEvent = {
-      id: `AUD-${Date.now()}`,
-      timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-      actorId: 'CM-12',
-      actorName: 'R. Mohanty',
-      actorRole: 'Field Collection Manager',
-      actionType: 'OFFLINE_SYNCED',
-      title: `Offline Record Synced to Central Cloud (${cloudSyncId})`,
-      description: `Handshake verified. Local batch ${localRecId} promoted to PENDING_VERIFICATION for Warehouse Depôt #02.`,
-      details: {
-        localId: localRecId,
-        cloudSyncId: cloudSyncId,
-        netWeightKg: batch.step1.netAcceptedKg,
-        checksum: 'SHA256:7a9f...e01d (Verified)',
-      },
-      syncId: `${localRecId} -> ${cloudSyncId}`,
-    };
+      newEvents.push({
+        id: `AUD-${Date.now()}-${b.id}`,
+        timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+        actorId: 'CM-12',
+        actorName: 'R. Mohanty',
+        actorRole: 'Field Collection Manager',
+        actionType: 'OFFLINE_SYNCED',
+        title: `Offline Record Synced to Central Cloud (${cloudSyncId})`,
+        description: `Handshake verified. Local batch #${b.id} promoted to PENDING_VERIFICATION for Warehouse Depôt #02.`,
+        details: {
+          localId: localRecId,
+          cloudSyncId: cloudSyncId,
+          netWeightKg: b.step1?.netAcceptedKg || 100.0,
+          checksum: 'SHA256:7a9f...e01d (Verified)',
+        },
+        syncId: `${localRecId} -> ${cloudSyncId}`,
+      });
+    }
 
-    const newCounters: WarehouseLedgerCounters = {
-      ...counters,
-      inTransitPendingVerificationKg: batch.step1.netAcceptedKg,
-    };
+    // Also mark queued syncQueue records as synced
+    const syncItems = await db.syncQueue.where('state').equals('queued').toArray();
+    for (const item of syncItems) {
+      await db.syncQueue.update(item.local_id, {
+        state: 'synced',
+        updatedAt: Date.now(),
+      });
+    }
 
-    await db.batches.put(updatedBatch);
-    await db.auditEvents.put(syncEvent);
+    if (newEvents.length > 0) {
+      await db.auditEvents.bulkPut(newEvents);
+    }
     await db.appSettings.put({ key: 'queuedSyncCount', value: 0 });
-    await db.appSettings.put({ key: 'counters', value: newCounters });
 
-    setBatch(updatedBatch);
-    setAuditEvents((prev) => [...prev, syncEvent]);
-    setQueuedSyncCount(0);
-    setCounters(newCounters);
-
-    showToast(`Synced ${localRecId} to Cloud Ledger (${cloudSyncId}) successfully.`);
+    await refreshFromDB();
+    showToast(`Synced offline queue to Cloud Ledger successfully (${cloudSyncId}).`);
   };
 
   // Update Step 2 (Warehouse Re-weigh & Discrepancy Engine)
   const updateStep2 = async (
     arrivalNetKg: number,
     storageZone: string,
-    shrinkagePercent: number
+    shrinkagePercent: number,
+    targetBatchId?: string
   ) => {
-    if (!batch) return;
+    const targetId = (targetBatchId || activeBatchId || 'BS-402').replace('#', '');
+    const currentTarget = batches.find((b) => b.id === targetId) || batch;
+    if (!currentTarget) return;
     const db = getDatabase();
 
-    // Step 1 stays intact
-    const villageDispatchedNet = batch.step1.netAcceptedKg; // e.g. 100.0 kg
+    const villageDispatchedNet = currentTarget.step1?.netAcceptedKg || 100.0;
     const allowedShrinkageKg = Number(
       ((villageDispatchedNet * shrinkagePercent) / 100).toFixed(2)
-    ); // e.g. 2.0 kg
+    );
     const expectedArrivalAfterShrinkage = Number(
       (villageDispatchedNet - allowedShrinkageKg).toFixed(2)
-    ); // 98.0 kg
+    );
 
-    // Unexplained variance: arrivalNet - expectedArrivalAfterShrinkage
-    // If arrivalNet = 95.0, 95.0 - 98.0 = -3.0 kg
     const unexplainedVariance = Number(
       (arrivalNetKg - expectedArrivalAfterShrinkage).toFixed(2)
     );
 
     const isDiscrepancy = unexplainedVariance < 0;
-    const caseId = isDiscrepancy ? 'DISC-402' : undefined;
+    const caseId = isDiscrepancy ? `DISC-${targetId}` : undefined;
 
     const newStep2 = {
       arrivalGrossWeightKg: arrivalNetKg + 1.5,
@@ -320,12 +366,12 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
         : `Arrival net ${arrivalNetKg} kg conforms within allowable tolerance. Approved for saleable stock in ${storageZone}.`,
     };
 
-    const newStatus: typeof batch.status = isDiscrepancy
+    const newStatus: typeof currentTarget.status = isDiscrepancy
       ? 'QUARANTINED_DISCREPANCY'
       : 'VERIFIED_SALEABLE';
 
     const updatedBatch: BatchRecord = {
-      ...batch,
+      ...currentTarget,
       status: newStatus,
       step2: newStep2,
       updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -341,9 +387,10 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       actorName: 'S. Das',
       actorRole: 'Warehouse Inventory Manager',
       actionType: 'WAREHOUSE_REWEIGH_COMPLETED',
-      title: `Arrival Re-Weigh Completed: ${arrivalNetKg} kg Net`,
+      title: `Arrival Re-Weigh Completed: ${arrivalNetKg} kg Net (#${targetId})`,
       description: `Arrival re-weigh conducted at Baripada Depôt. Dispatched: ${villageDispatchedNet} kg | Arrived: ${arrivalNetKg} kg. Storage: ${storageZone}.`,
       details: {
+        batchId: targetId,
         villageDispatchedNet: `${villageDispatchedNet} kg`,
         arrivalNet: `${arrivalNetKg} kg`,
         grossWeight: `${newStep2.arrivalGrossWeightKg} kg`,
@@ -378,8 +425,8 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
 
     if (isDiscrepancy) {
       newCase = {
-        id: 'DISC-402',
-        batchId: 'BS-402',
+        id: caseId || `DISC-${targetId}`,
+        batchId: targetId,
         dispatchedNetKg: villageDispatchedNet,
         arrivalNetKg: arrivalNetKg,
         shrinkageAllowedKg: allowedShrinkageKg,
@@ -390,7 +437,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
         )} kg withheld from saleable ledger. Non-accusatory supervisor case opened.`,
         assignedSupervisor: 'A. K. Patnaik, District Procurement Officer (Mayurbhanj TDCCOL)',
         createdAt: timestampStr,
-        notes: `Mahua flowers in transit from Karanjia to Baripada. Unexplained deficit of ${Math.abs(
+        notes: `Produce in transit from Karanjia to Baripada. Unexplained deficit of ${Math.abs(
           unexplainedVariance
         )} kg exceeds ${shrinkagePercent}% moisture tolerance threshold.`,
       };
@@ -402,10 +449,10 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
         actorName: 'BanaSetu Quarantine Controller',
         actorRole: 'Automated Integrity Guard',
         actionType: 'DISCREPANCY_QUARANTINED',
-        title: `Supervisor Review Case #DISC-402 Opened (Quarantined)`,
+        title: `Supervisor Review Case #${newCase.id} Opened (Quarantined)`,
         description: `Unexplained variance of ${unexplainedVariance} kg logged. Stock segregated in Quarantine Bay. Tribal facilitator payout remains 100% shielded under LABHA safeguard rules.`,
         details: {
-          caseId: 'DISC-402',
+          caseId: newCase.id,
           quarantinedNetKg: arrivalNetKg,
           unexplainedKg: unexplainedVariance,
           protectionRule: 'LABHA Section 4(b): No unilateral deductions from primary collectors.',
@@ -416,8 +463,8 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       newCounters = {
         expectedSeasonalForecastKg: 500,
         inTransitPendingVerificationKg: 0,
-        verifiedSaleableStockKg: 1200,
-        quarantinedDiscrepancyKg: arrivalNetKg,
+        quarantinedDiscrepancyKg: (counters.quarantinedDiscrepancyKg || 0) + arrivalNetKg,
+        verifiedSaleableStockKg: counters.verifiedSaleableStockKg || 0,
       };
 
       await db.discrepancyCases.put(newCase);
@@ -425,31 +472,36 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       newCounters = {
         expectedSeasonalForecastKg: 500,
         inTransitPendingVerificationKg: 0,
-        verifiedSaleableStockKg: 1200 + arrivalNetKg,
-        quarantinedDiscrepancyKg: 0,
+        verifiedSaleableStockKg: (counters.verifiedSaleableStockKg || 0) + arrivalNetKg,
+        quarantinedDiscrepancyKg: counters.quarantinedDiscrepancyKg || 0,
       };
-      await db.discrepancyCases.delete('DISC-402');
+      if (caseId) {
+        await db.discrepancyCases.delete(caseId);
+      }
     }
 
     await db.batches.put(updatedBatch);
     await db.auditEvents.bulkPut(newAuditList);
     await db.appSettings.put({ key: 'counters', value: newCounters });
 
-    setBatch(updatedBatch);
+    setBatches((prev) => [updatedBatch, ...prev.filter((b) => b.id !== targetId)]);
+    if (targetId === activeBatchId || !batch) {
+      setBatch(updatedBatch);
+    }
     setAuditEvents((prev) => [...prev, ...newAuditList]);
-    setDiscrepancyCase(newCase);
+    if (newCase) setDiscrepancyCase(newCase);
     setCounters(newCounters);
 
     showToast(
       isDiscrepancy
-        ? `Variance of ${unexplainedVariance} kg logged. Case #DISC-402 opened in quarantine.`
-        : `Batch #BS-402 verified into saleable stock (${arrivalNetKg} kg).`
+        ? `Variance of ${unexplainedVariance} kg logged. Case #${newCase?.id} opened in quarantine.`
+        : `Batch #${targetId} verified into saleable stock (${arrivalNetKg} kg).`
     );
   };
 
   // Resolve Discrepancy Case
   const resolveDiscrepancyCase = async (resolutionNote: string) => {
-    if (!discrepancyCase || !batch) return;
+    if (!discrepancyCase) return;
     const db = getDatabase();
 
     const updatedCase: DiscrepancyCase = {
@@ -465,10 +517,10 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
       actorName: 'A. K. Patnaik',
       actorRole: 'District Procurement Officer',
       actionType: 'STOCK_SEPARATION_UPDATED',
-      title: `Supervisor Review Case #DISC-402 Reconciled`,
+      title: `Supervisor Review Case #${discrepancyCase.id} Reconciled`,
       description: resolutionNote,
       details: {
-        caseId: 'DISC-402',
+        caseId: discrepancyCase.id,
         reconciledBy: 'A. K. Patnaik (DPO Mayurbhanj)',
       },
     };
@@ -478,7 +530,7 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
 
     setDiscrepancyCase(updatedCase);
     setAuditEvents((prev) => [...prev, resolveEvent]);
-    showToast('Discrepancy Case #DISC-402 updated with joint review notes.');
+    showToast(`Discrepancy Case #${discrepancyCase.id} updated with joint review notes.`);
   };
 
   // Reset to initial demo state
@@ -498,11 +550,16 @@ export function BanaSetuProvider({ children }: { children: React.ReactNode }) {
         setIsOffline,
         queuedSyncCount,
         batch,
+        batches,
+        activeBatchId,
+        setActiveBatchId,
         auditEvents,
         discrepancyCase,
         counters,
         toast,
         showToast,
+        refreshFromDB,
+        createBatch,
         updateStep1,
         updateStep2,
         syncOfflineQueue,

@@ -43,7 +43,7 @@ import {
 import { useAction } from '../../lib/useAction';
 import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
-import { SyncState } from '../../lib/db';
+import { SyncState, getDatabase } from '../../lib/db';
 import { cn } from '../../lib/utils';
 import {
   Warehouse,
@@ -348,12 +348,76 @@ export default function InventoryManagerPage() {
   const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
 
-  // Shrinkage computations: Configured tolerance 1.5%
-  const collectionKg = 100.0;
+  // Synchronize batches with Dexie on client mount
+  useEffect(() => {
+    async function loadBatchesFromDexie() {
+      if (typeof window === 'undefined') return;
+      try {
+        const db = getDatabase();
+        const dexieBatches = await db.batches.toArray();
+        if (dexieBatches.length > 0) {
+          setBatches((prev) => {
+            const codeMap = new Map(prev.map((b) => [b.code, b]));
+            for (const dbBatch of dexieBatches) {
+              const formattedCode = `#${dbBatch.id.replace('#', '')}`;
+              const net1 = dbBatch.step1?.netAcceptedKg || 100.0;
+              const net2 = dbBatch.step2?.arrivalNetWeightKg ?? null;
+              const status: 'Pending Verification' | 'Available' | 'Quarantined' =
+                dbBatch.status === 'VERIFIED_SALEABLE'
+                  ? 'Available'
+                  : dbBatch.status === 'QUARANTINED_DISCREPANCY'
+                  ? 'Quarantined'
+                  : 'Pending Verification';
+              const statusVariant: StatusVariant =
+                status === 'Available' ? 'success' : status === 'Quarantined' ? 'danger' : 'warning';
+
+              codeMap.set(formattedCode, {
+                code: formattedCode,
+                product: dbBatch.produceName,
+                collector: dbBatch.collectors?.[0]?.name || 'Primary Collector',
+                village: dbBatch.collectors?.[0]?.village || 'Badagaon, Karanjia',
+                collectionKg: net1,
+                receivedKg: net2,
+                deltaKg: net2 !== null ? Number((net2 - net1).toFixed(2)) : null,
+                qualityGrade: (dbBatch.step1?.grade?.includes('A') ? 'A' : dbBatch.step1?.grade?.includes('B') ? 'B' : 'C') as any,
+                storageLocation: dbBatch.step2?.storageZone || 'Rack B (Dry Stack)',
+                status,
+                statusVariant,
+                syncState: dbBatch.status === 'SAVED_OFFLINE_PENDING_SYNC' ? 'queued' : 'synced',
+                updatedAt: 'Today · Synchronized',
+                updatedDateIso: new Date().toISOString().split('T')[0],
+              });
+            }
+            return Array.from(codeMap.values());
+          });
+        }
+      } catch (e) {
+        console.warn('Could not read Dexie batches:', e);
+      }
+    }
+    loadBatchesFromDexie();
+  }, []);
+
+  // Helper to open drawer for any batch with its exact weights and parameters
+  const openBatchDrawer = (code: string) => {
+    const target = batches.find((b) => b.code === code);
+    setSelectedBatchCode(code);
+    if (target) {
+      setArrivalWeight(target.receivedKg ?? target.collectionKg);
+      setStorageLocation(target.storageLocation || 'Rack B (Dry Stack)');
+      setQualityGrade(target.qualityGrade || 'A');
+    }
+    setShowDiscardPrompt(false);
+    setIsDrawerOpen(true);
+  };
+
+  // Dynamic shrinkage computations: Configured tolerance 1.5%
+  const currentBatch = batches.find((b) => b.code === selectedBatchCode) || batches[0];
+  const collectionKg = currentBatch ? currentBatch.collectionKg : 100.0;
   const tolerancePercent = 1.5;
-  const acceptableLossKg = Number(((collectionKg * tolerancePercent) / 100).toFixed(2)); // 1.5 kg
-  const actualLossKg = Number((collectionKg - arrivalWeight).toFixed(2)); // 5.0 kg
-  const excessLossKg = Number((actualLossKg - acceptableLossKg).toFixed(2)); // 3.5 kg
+  const acceptableLossKg = Number(((collectionKg * tolerancePercent) / 100).toFixed(2));
+  const actualLossKg = Number((collectionKg - arrivalWeight).toFixed(2));
+  const excessLossKg = Number((actualLossKg - acceptableLossKg).toFixed(2));
   const isWithinTolerance = excessLossKg <= 0;
 
   // Can approve if within tolerance OR supervisor note is added
@@ -361,10 +425,11 @@ export default function InventoryManagerPage() {
 
   // Safe Drawer close check
   const handleAttemptCloseDrawer = () => {
+    const defaultWeight = currentBatch?.receivedKg ?? currentBatch?.collectionKg ?? 95.0;
     const hasUnsavedChanges =
-      arrivalWeight !== 95.0 ||
-      storageLocation !== 'Rack B (Dry Stack)' ||
-      qualityGrade !== 'A';
+      arrivalWeight !== defaultWeight ||
+      storageLocation !== (currentBatch?.storageLocation || 'Rack B (Dry Stack)') ||
+      qualityGrade !== (currentBatch?.qualityGrade || 'A');
     if (hasUnsavedChanges) {
       setShowDiscardPrompt(true);
     } else {
@@ -664,7 +729,7 @@ export default function InventoryManagerPage() {
     }),
     receipt: {
       variant: 'warning',
-      title: 'Batch #BS-402 Quarantined with Reject Reason',
+      title: `Batch ${selectedBatchCode} Quarantined with Reject Reason`,
       description: 'Stock held in segregation bay. Click Undo within 6s to restore Pending Verification.',
     },
     onExecute: async () => {
@@ -680,9 +745,12 @@ export default function InventoryManagerPage() {
       }
       setArrivalWeightError(null);
 
+      const cleanCode = selectedBatchCode.replace('#', '');
+      const batchLoss = Number((collectionKg - arrivalWeight).toFixed(1));
+
       setBatches((prev) =>
         prev.map((b) =>
-          b.code === '#BS-402'
+          b.code === selectedBatchCode
             ? {
                 ...b,
                 receivedKg: arrivalWeight,
@@ -695,16 +763,74 @@ export default function InventoryManagerPage() {
         )
       );
 
-      setPendingStock(0.0);
+      setPendingStock((prev) => Math.max(0, prev - collectionKg));
       setQuarantinedStock((prev) => prev + arrivalWeight);
+
+      // Persist to Dexie
+      try {
+        const db = getDatabase();
+        await db.batches.update(cleanCode, {
+          status: 'QUARANTINED_DISCREPANCY',
+          step2: {
+            arrivalGrossWeightKg: arrivalWeight + 1.5,
+            arrivalTareWeightKg: 1.5,
+            arrivalNetWeightKg: arrivalWeight,
+            storageZone: storageLocation,
+            shrinkagePercentAllowed: tolerancePercent,
+            shrinkageKgAllowed: acceptableLossKg,
+            unexplainedVarianceKg: -excessLossKg,
+            discrepancyTriggered: true,
+            supervisorCaseId: `DISC-${cleanCode}`,
+            verifiedBy: 'S. Das (ID: IM-04)',
+            verifiedByRole: 'Warehouse Inventory Manager',
+            verifiedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+            notes: `Excess shrinkage: ${excessLossKg} kg over ${tolerancePercent}% tolerance. Stock quarantined.`,
+          },
+          updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        });
+
+        await db.discrepancyCases.put({
+          id: `DISC-${cleanCode}`,
+          batchId: cleanCode,
+          dispatchedNetKg: collectionKg,
+          arrivalNetKg: arrivalWeight,
+          shrinkageAllowedKg: acceptableLossKg,
+          unexplainedVarianceKg: -excessLossKg,
+          status: 'OPEN_QUARANTINED',
+          currentActionTaken: `Quarantine tag placed on lot; ${excessLossKg} kg held under supervisor review.`,
+          assignedSupervisor: 'A. K. Patnaik, District Procurement Officer (Mayurbhanj TDCCOL)',
+          createdAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+          notes: `Produce in transit to Baripada. Unexplained deficit of ${excessLossKg} kg exceeds ${tolerancePercent}% tolerance.`,
+        });
+
+        await db.auditEvents.put({
+          id: `AUD-${Date.now()}`,
+          timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+          actorId: 'IM-04',
+          actorName: 'S. Das',
+          actorRole: 'Warehouse Inventory Manager',
+          actionType: 'DISCREPANCY_QUARANTINED',
+          title: `Batch ${selectedBatchCode} Quarantined: ${excessLossKg} kg Excess Shrinkage`,
+          description: `Held in ${storageLocation} pending supervisor review. Arrival: ${arrivalWeight} kg vs Expected: ${collectionKg} kg.`,
+          details: {
+            batchCode: selectedBatchCode,
+            collectionKg,
+            arrivalWeight,
+            excessLossKg,
+            storageLocation,
+          },
+        });
+      } catch (err) {
+        console.warn('Dexie update error in quarantineAction:', err);
+      }
 
       const quarantineAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
         dayHeader: '14 March 2025',
         time: 'Just now',
         actor: 'S. Das (Warehouse IM-04)',
-        action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-3.5 kg excess)`,
-        delta: `-${(collectionKg - arrivalWeight).toFixed(1)} kg`,
+        action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-${batchLoss} kg excess)`,
+        delta: `-${batchLoss} kg`,
         deltaVariant: 'danger',
         isLive: true,
       };
@@ -728,8 +854,8 @@ export default function InventoryManagerPage() {
     showToast: (t) => setActiveToast(t),
     receipt: {
       variant: 'success',
-      title: 'Batch #BS-402 Approved to Saleable',
-      description: 'Expected unchanged · Available +95.0 kg. Discrepancy logged as non-punitive audit flag.',
+      title: `Batch ${selectedBatchCode} Approved to Saleable`,
+      description: `Expected unchanged · Available +${arrivalWeight} kg. Discrepancy logged as non-punitive audit flag.`,
     },
     onExecute: async () => {
       if (arrivalWeight <= 0 || arrivalWeight > 1000 || isNaN(arrivalWeight)) {
@@ -744,9 +870,11 @@ export default function InventoryManagerPage() {
       }
       setArrivalWeightError(null);
 
+      const cleanCode = selectedBatchCode.replace('#', '');
+
       setBatches((prev) =>
         prev.map((b) =>
-          b.code === '#BS-402'
+          b.code === selectedBatchCode
             ? {
                 ...b,
                 receivedKg: arrivalWeight,
@@ -759,8 +887,51 @@ export default function InventoryManagerPage() {
         )
       );
 
-      setPendingStock(0.0);
+      setPendingStock((prev) => Math.max(0, prev - collectionKg));
       setAvailableStock((prev) => prev + arrivalWeight);
+
+      // Persist to Dexie
+      try {
+        const db = getDatabase();
+        await db.batches.update(cleanCode, {
+          status: 'VERIFIED_SALEABLE',
+          step2: {
+            arrivalGrossWeightKg: arrivalWeight + 1.5,
+            arrivalTareWeightKg: 1.5,
+            arrivalNetWeightKg: arrivalWeight,
+            storageZone: storageLocation,
+            shrinkagePercentAllowed: tolerancePercent,
+            shrinkageKgAllowed: acceptableLossKg,
+            unexplainedVarianceKg: -excessLossKg,
+            discrepancyTriggered: !isWithinTolerance,
+            verifiedBy: 'S. Das (ID: IM-04)',
+            verifiedByRole: 'Warehouse Inventory Manager',
+            verifiedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+            notes: supervisorNote || `Conforms to acceptable tolerance. Released to saleable stock in ${storageLocation}.`,
+          },
+          updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        });
+
+        await db.auditEvents.put({
+          id: `AUD-${Date.now()}`,
+          timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
+          actorId: 'IM-04',
+          actorName: 'S. Das',
+          actorRole: 'Warehouse Inventory Manager',
+          actionType: 'WAREHOUSE_REWEIGH_COMPLETED',
+          title: `Batch ${selectedBatchCode} Approved: ${arrivalWeight} kg Net Released`,
+          description: `Approved to saleable stock in ${storageLocation}. Supervisor note: ${supervisorNote || 'Standard intake verified'}.`,
+          details: {
+            batchCode: selectedBatchCode,
+            collectionKg,
+            arrivalWeight,
+            storageLocation,
+            supervisorNote,
+          },
+        });
+      } catch (err) {
+        console.warn('Dexie update error in approveAction:', err);
+      }
 
       const approvalAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
@@ -1287,7 +1458,7 @@ export default function InventoryManagerPage() {
             <div className="flex items-center justify-between w-full pr-6">
               <div>
                 <SectionLabel>Depôt Intake Terminal</SectionLabel>
-                <DrawerTitle>Storage verification · #BS-402</DrawerTitle>
+                <DrawerTitle>Storage verification · {selectedBatchCode}</DrawerTitle>
               </div>
               <div className="flex items-center gap-1.5">
                 {batches.find((b) => b.code === selectedBatchCode)?.status === 'Available' ? (
@@ -1295,7 +1466,7 @@ export default function InventoryManagerPage() {
                 ) : (
                   <StatusBadge variant="warning">In Review</StatusBadge>
                 )}
-                <SyncStatusBadge state="queued" />
+                <SyncStatusBadge state={currentBatch?.syncState || 'queued'} />
               </div>
             </div>
           </DrawerHeader>
@@ -1350,7 +1521,9 @@ export default function InventoryManagerPage() {
                     </div>
                     <div className="border border-rule rounded-[2px] p-2 bg-surface">
                       <span className="text-[11px] text-ink-muted block">Collector</span>
-                      <span className="font-medium text-ink truncate block">Raimati Soren</span>
+                      <span className="font-medium text-ink truncate block">
+                        {currentBatch?.collector || 'Raimati Soren'}
+                      </span>
                     </div>
                   </div>
 
@@ -1369,13 +1542,13 @@ export default function InventoryManagerPage() {
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <PhotoPlate
                       label="Product (field stencil)"
-                      metadata="Stencil #BS-402 · Sack 1"
+                      metadata={`Stencil ${selectedBatchCode} · Sack 1`}
                       caption="Original field gunny bag markings."
                     />
                     <PhotoPlate
                       label="Field scale readout"
-                      metadata="Bench Scale #04 · 104.20 kg"
-                      caption="Net certified 100.00 kg."
+                      metadata={`Bench Scale #04 · ${(collectionKg + 4.2).toFixed(2)} kg`}
+                      caption={`Net certified ${collectionKg.toFixed(2)} kg.`}
                     />
                   </div>
 
@@ -1383,7 +1556,7 @@ export default function InventoryManagerPage() {
                     <span className="text-ink-muted">Printable Field Docs:</span>
                     <div className="flex items-center gap-2">
                       <Link
-                        href="/collection/tag/BS-402"
+                        href={`/collection/tag/${selectedBatchCode.replace('#', '')}`}
                         target="_blank"
                         className="text-accent hover:underline font-medium"
                       >
@@ -1391,7 +1564,7 @@ export default function InventoryManagerPage() {
                       </Link>
                       <span>·</span>
                       <Link
-                        href="/collection/receipt/BS-402"
+                        href={`/collection/receipt/${selectedBatchCode.replace('#', '')}`}
                         target="_blank"
                         className="text-accent hover:underline font-medium"
                       >

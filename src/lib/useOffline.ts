@@ -377,12 +377,33 @@ export function useOffline(): UseOfflineReturn {
     async (local_id: string) => {
       try {
         const db = getDatabase();
+        const rec = await db.syncQueue.get(local_id);
+        const batchCode = rec?.batch_code || '#BS-402';
+        const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
         await db.syncQueue.update(local_id, {
           state: 'synced',
           server_payload: undefined,
           updatedAt: Date.now(),
           error: undefined,
         });
+
+        await db.auditEvents.put({
+          id: `AUD-RES-${Date.now()}`,
+          timestamp: nowStr,
+          actorId: 'SUP-01',
+          actorName: 'A. K. Patnaik',
+          actorRole: 'District Procurement Officer',
+          actionType: 'STOCK_SEPARATION_UPDATED',
+          title: `Conflict Resolved for ${batchCode} (Keep Local)`,
+          description: `Supervisor verified and retained local field record for ${batchCode}.`,
+          details: {
+            localId: local_id,
+            batchCode,
+            resolution: 'KEEP_LOCAL',
+          },
+        });
+
         setActiveConflict(null);
         await refreshQueueFromDB();
       } catch (err) {
@@ -398,6 +419,9 @@ export function useOffline(): UseOfflineReturn {
       try {
         const db = getDatabase();
         const rec = await db.syncQueue.get(local_id);
+        const batchCode = rec?.batch_code || '#BS-402';
+        const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
         if (rec && rec.server_payload) {
           await db.syncQueue.update(local_id, {
             payload: rec.server_payload,
@@ -405,6 +429,22 @@ export function useOffline(): UseOfflineReturn {
             state: 'synced',
             updatedAt: Date.now(),
             error: undefined,
+          });
+
+          await db.auditEvents.put({
+            id: `AUD-RES-${Date.now()}`,
+            timestamp: nowStr,
+            actorId: 'SUP-01',
+            actorName: 'A. K. Patnaik',
+            actorRole: 'District Procurement Officer',
+            actionType: 'STOCK_SEPARATION_UPDATED',
+            title: `Conflict Resolved for ${batchCode} (Keep Server)`,
+            description: `Supervisor reconciled by accepting central server authority record for ${batchCode}.`,
+            details: {
+              localId: local_id,
+              batchCode,
+              resolution: 'KEEP_SERVER',
+            },
           });
         }
         setActiveConflict(null);
@@ -421,6 +461,10 @@ export function useOffline(): UseOfflineReturn {
     async (local_id: string, mergedPayload: any, supervisorNote: string) => {
       try {
         const db = getDatabase();
+        const rec = await db.syncQueue.get(local_id);
+        const batchCode = rec?.batch_code || '#BS-402';
+        const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
         await db.syncQueue.update(local_id, {
           payload: {
             ...mergedPayload,
@@ -432,6 +476,24 @@ export function useOffline(): UseOfflineReturn {
           updatedAt: Date.now(),
           error: undefined,
         });
+
+        await db.auditEvents.put({
+          id: `AUD-RES-${Date.now()}`,
+          timestamp: nowStr,
+          actorId: 'SUP-01',
+          actorName: 'A. K. Patnaik',
+          actorRole: 'District Procurement Officer',
+          actionType: 'STOCK_SEPARATION_UPDATED',
+          title: `Conflict Resolved for ${batchCode} (Merged)`,
+          description: supervisorNote || `Reconciliation note recorded: joint review between field manager and supervisor.`,
+          details: {
+            localId: local_id,
+            batchCode,
+            resolution: 'MERGE',
+            note: supervisorNote,
+          },
+        });
+
         setActiveConflict(null);
         await refreshQueueFromDB();
       } catch (err) {

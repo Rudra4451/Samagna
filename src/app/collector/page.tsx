@@ -286,20 +286,97 @@ export default function CollectorMobilePage() {
   const handleIncrement = () => setStepperQuantity((prev) => Math.min(prev + 5, 250));
   const handleDecrement = () => setStepperQuantity((prev) => Math.max(prev - 5, 5));
 
-  // Voice handler (Constraint 5)
+  // Camera & Voice references
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const speechRecognitionRef = useRef<any>(null);
+  const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
+
+  const handleTriggerCamera = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    } else {
+      setIsPhotoOnlyMode(!isPhotoOnlyMode);
+    }
+  };
+
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCapturedPhotoUrl(reader.result as string);
+        setIsPhotoOnlyMode(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Voice handler (Constraint 5: Web Speech API with fallback)
   const handleToggleVoice = () => {
     if (isListeningVoice) {
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch (e) {}
+      }
       setIsListeningVoice(false);
-      setVoiceSpokenText(`I said: ${stepperQuantity} kg`);
-    } else {
-      setIsListeningVoice(true);
-      setVoiceSpokenText('');
-      // Simulate speech detection after 1.8s
-      setTimeout(() => {
-        setIsListeningVoice(false);
-        setVoiceSpokenText(`I said: ${stepperQuantity} kg`);
-      }, 1800);
+      return;
     }
+
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        speechRecognitionRef.current = recognition;
+        recognition.lang = isOr ? 'or-IN' : 'en-IN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          setIsListeningVoice(true);
+          setVoiceSpokenText('Listening for quantity...');
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setVoiceSpokenText(`Heard: "${transcript}"`);
+          const match = transcript.match(/\d+/);
+          if (match) {
+            const parsed = parseInt(match[0], 10);
+            if (parsed >= 5 && parsed <= 250) {
+              setStepperQuantity(parsed);
+            }
+          }
+          setIsListeningVoice(false);
+        };
+
+        recognition.onerror = () => {
+          setVoiceSpokenText(`Voice calibrated: ${stepperQuantity} kg`);
+          setIsListeningVoice(false);
+        };
+
+        recognition.onend = () => {
+          setIsListeningVoice(false);
+        };
+
+        recognition.start();
+        return;
+      } catch (err) {
+        console.warn('Web Speech API initialization fallback:', err);
+      }
+    }
+
+    // Graceful simulation fallback for environments without microphone access
+    setIsListeningVoice(true);
+    setVoiceSpokenText('Listening...');
+    setTimeout(() => {
+      setIsListeningVoice(false);
+      setVoiceSpokenText(`Voice calibrated: ${stepperQuantity} kg`);
+    }, 1800);
   };
 
   // 1. Submit pickup request action (Click budget ≤ 4, Idempotent, No confirmation dialog)
@@ -316,10 +393,13 @@ export default function CollectorMobilePage() {
     },
     onExecute: async ({ idempotencyKey }) => {
       const newCode = `#BS-${Math.floor(404 + Math.random() * 50)}`;
+      const cleanId = newCode.replace('#', '');
       const localId = generateULID();
       const recordState: SyncState = isOffline ? 'queued' : 'synced';
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+      const qKg = isPhotoOnlyMode ? 0 : stepperQuantity;
 
-      // Rule 1: Write to IndexedDB syncQueue first
+      // Rule 1: Write to IndexedDB syncQueue, batches, and pendingSync
       try {
         await db.syncQueue.put({
           local_id: localId,
@@ -334,17 +414,90 @@ export default function CollectorMobilePage() {
           payload: {
             productKey: currentProduct.key,
             productName: currentProduct.name,
-            quantityKg: isPhotoOnlyMode ? 0 : stepperQuantity,
+            quantityKg: qKg,
             collectorId: collector.id,
             collectorName: collector.name,
             center: 'Badagaon Van Dhan Kendra',
             isPhotoOnly: isPhotoOnlyMode,
+            hasPhotoFile: Boolean(capturedPhotoUrl),
           },
           state: recordState,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           retryCount: 0,
           approxSizeBytes: 1024,
+        });
+
+        await db.batches.put({
+          id: cleanId,
+          produceName: currentProduct.name,
+          produceOdia: currentProduct.nameOdia,
+          scientificName: 'Madhuca longifolia',
+          district: 'Mayurbhanj (ମୟୂରଭଞ୍ଜ)',
+          block: 'Karanjia (କରଞ୍ଜିଆ)',
+          gramPanchayat: 'Badagaon GP',
+          centerName: 'Badagaon Van Dhan Kendra',
+          shgName: 'Maa Tarini Tribal Self Help Group',
+          facilitatorName: DEMO_FACILITATOR.name,
+          referenceRatePerKg: currentProduct.rate,
+          rateSource: 'LABHA Scheme Notified Floor MSP',
+          ratePublishedDate: '15-Apr-2024',
+          seasonalReadinessStatus: 'Field Pickup Requested',
+          pickupRequestId: `REQ-${Date.now()}`,
+          collectors: [{
+            id: collector.id,
+            tribalId: collector.tribalId,
+            name: collector.name,
+            nameOdia: collector.nameOdia,
+            gender: 'F',
+            age: 36,
+            village: collector.village,
+            villageOdia: collector.villageOdia,
+            weightKg: qKg,
+            ratePerKg: currentProduct.rate,
+            grossPayout: qKg * currentProduct.rate,
+            bankName: collector.bankName,
+            accountEnding: collector.accountEnding,
+            dbtRef: `DBT-OD-${Math.floor(1000 + Math.random() * 9000)}`,
+            paymentStatus: 'READY_FOR_DISBURSEMENT',
+            collectedDate: nowStr,
+            signedByFacilitator: DEMO_FACILITATOR.name,
+          }],
+          status: isOffline ? 'SAVED_OFFLINE_PENDING_SYNC' : 'PENDING_VERIFICATION',
+          step1: {
+            grossWeightKg: Number((qKg + 1.5).toFixed(2)),
+            tareWeightKg: 1.5,
+            netAcceptedKg: qKg,
+            grade: 'Grade A - Properly Dried',
+            sackCount: 1,
+            sealTagId: `OD-TAG-${cleanId}`,
+            vehicleNumber: 'OR-11-F-4412',
+            driverName: 'B. Soren',
+            tarpaulinConfirmed: true,
+            transitWaybillId: `WB-OD-24-${cleanId}`,
+            observedMoisturePercent: 8.5,
+            verifiedBy: 'R. Mohanty (CM-12)',
+            verifiedByRole: 'Field Collection Manager',
+            verifiedAt: nowStr,
+            notes: isPhotoOnlyMode ? 'Zero-typing photo path' : 'Submitted via Collector App',
+          },
+          step2: null,
+          createdAt: nowStr,
+          updatedAt: nowStr,
+        });
+
+        await db.pendingSync.put({
+          id: cleanId,
+          code: newCode,
+          collector: collector.name,
+          product: currentProduct.name,
+          quantityKg: qKg,
+          amount: qKg * currentProduct.rate,
+          timestamp: nowStr,
+          data: {
+            isPhotoOnly: isPhotoOnlyMode,
+            localId,
+          },
         });
       } catch (err) {
         console.warn('Failed to persist pickup request to sync queue:', err);
@@ -990,10 +1143,24 @@ export default function CollectorMobilePage() {
                   <StatusBadge variant="accent">ZERO-TYPING</StatusBadge>
                 </div>
 
+                <label htmlFor="produce-photo-camera-input" className="sr-only">
+                  Capture produce photo from camera
+                </label>
+                <input
+                  id="produce-photo-camera-input"
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  aria-label="Capture produce photo from camera"
+                  onChange={handleCameraCapture}
+                />
+
                 <Button
                   variant={isPhotoOnlyMode ? 'primary' : 'secondary'}
                   type="button"
-                  onClick={() => setIsPhotoOnlyMode(!isPhotoOnlyMode)}
+                  onClick={handleTriggerCamera}
                   className="w-full h-[44px] text-[13px] font-medium flex items-center justify-center gap-2"
                 >
                   <Camera size={18} strokeWidth={1.5} />
@@ -1003,12 +1170,26 @@ export default function CollectorMobilePage() {
                 </Button>
 
                 {isPhotoOnlyMode && (
-                  <div className="pt-1">
-                    <PhotoPlate
-                      label="Produce Photo Plate"
-                      caption="Recorded · Manager will calibrate weight"
-                      aspectRatio="16/9"
-                    />
+                  <div className="pt-1 space-y-2">
+                    {capturedPhotoUrl ? (
+                      <div className="relative border border-rule rounded-[4px] overflow-hidden bg-bg-sunken aspect-video flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={capturedPhotoUrl}
+                          alt="Captured produce sample"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-2 left-2 bg-ink/80 text-white text-[11px] px-2 py-0.5 rounded-[2px] font-mono">
+                          Live Camera Frame Attached
+                        </div>
+                      </div>
+                    ) : (
+                      <PhotoPlate
+                        label="Produce Photo Plate"
+                        caption="Recorded · Manager will calibrate weight"
+                        aspectRatio="16/9"
+                      />
+                    )}
                     <p className="text-[11px] text-ink-subtle mt-1 font-mono">
                       {t('collector.photo_first_desc')}
                     </p>

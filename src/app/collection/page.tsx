@@ -663,6 +663,9 @@ export default function CollectionManagerPage() {
         },
       };
 
+      const cleanId = selectedQueueCode.replace('#', '');
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
       if (shouldSaveOffline) {
         try {
           const db = getDatabase();
@@ -680,6 +683,25 @@ export default function CollectionManagerPage() {
             retryCount: 0,
             approxSizeBytes: 3500,
           });
+
+          // Also persist/update in batches table with offline status
+          const existing = await db.batches.get(cleanId);
+          if (existing) {
+            await db.batches.update(cleanId, {
+              status: 'SAVED_OFFLINE_PENDING_SYNC',
+              step1: {
+                ...existing.step1,
+                grossWeightKg: grossWeight,
+                tareWeightKg: tareWeight,
+                netAcceptedKg: computedNet,
+                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
+                verifiedBy: 'R. Mohanty (ID: CM-12)',
+                verifiedByRole: 'Field Collection Manager',
+                verifiedAt: nowStr,
+              },
+              updatedAt: nowStr,
+            });
+          }
         } catch (err) {
           console.warn('Dexie save offline error:', err);
         }
@@ -702,6 +724,105 @@ export default function CollectionManagerPage() {
           description: 'Network offline. Record queued in device IndexedDB pending sync.',
         });
       } else {
+        try {
+          const db = getDatabase();
+          const existing = await db.batches.get(cleanId);
+          if (existing) {
+            await db.batches.update(cleanId, {
+              status: 'PENDING_VERIFICATION',
+              step1: {
+                ...existing.step1,
+                grossWeightKg: grossWeight,
+                tareWeightKg: tareWeight,
+                netAcceptedKg: computedNet,
+                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
+                verifiedBy: 'R. Mohanty (ID: CM-12)',
+                verifiedByRole: 'Field Collection Manager',
+                verifiedAt: nowStr,
+              },
+              updatedAt: nowStr,
+            });
+          } else {
+            await db.batches.put({
+              id: cleanId,
+              produceName: DEMO_PRODUCT.name,
+              produceOdia: DEMO_PRODUCT.nameOdia,
+              scientificName: 'Madhuca longifolia',
+              district: 'Mayurbhanj (ମୟୂରଭଞ୍ଜ)',
+              block: 'Karanjia (କରଞ୍ଜିଆ)',
+              gramPanchayat: 'Badagaon GP',
+              centerName: 'Karanjia Block Collection Point #01',
+              shgName: 'Maa Tarini SHG',
+              facilitatorName: 'Champa Majhi (SHG-FAC-09)',
+              referenceRatePerKg: ratePerKg,
+              rateSource: 'LABHA Scheme Notified Floor MSP',
+              ratePublishedDate: '15-Apr-2024',
+              seasonalReadinessStatus: 'Dispatched to Baripada Depôt',
+              pickupRequestId: `REQ-${cleanId}`,
+              collectors: [{
+                id: 'COL-001',
+                tribalId: 'OR-MAY-KRN-0842',
+                name: 'Raimati Soren',
+                nameOdia: 'ରାଇମତୀ ସୋରେନ',
+                gender: 'F',
+                age: 34,
+                village: 'Badagaon, Karanjia',
+                villageOdia: 'ବଡ଼ଗାଁ, କରଞ୍ଜିଆ',
+                weightKg: computedNet,
+                ratePerKg,
+                grossPayout: computedNet * ratePerKg,
+                bankName: 'Canara Bank (Karanjia Branch)',
+                accountEnding: '•••4812',
+                dbtRef: `DBT-OD-${Math.floor(1000 + Math.random() * 9000)}`,
+                paymentStatus: 'READY_FOR_DISBURSEMENT',
+                collectedDate: nowStr,
+                signedByFacilitator: 'Champa Majhi',
+              }],
+              status: 'PENDING_VERIFICATION',
+              step1: {
+                grossWeightKg: grossWeight,
+                tareWeightKg: tareWeight,
+                netAcceptedKg: computedNet,
+                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
+                sackCount: 1,
+                sealTagId: `OD-TAG-${cleanId}`,
+                vehicleNumber: 'OR-11-F-4412',
+                driverName: 'B. Soren',
+                tarpaulinConfirmed: true,
+                transitWaybillId: `WB-OD-24-${cleanId}`,
+                observedMoisturePercent: 8.5,
+                verifiedBy: 'R. Mohanty (ID: CM-12)',
+                verifiedByRole: 'Field Collection Manager',
+                verifiedAt: nowStr,
+                notes: 'Field intake verified and dispatched.',
+              },
+              step2: null,
+              createdAt: nowStr,
+              updatedAt: nowStr,
+            });
+          }
+
+          await db.auditEvents.put({
+            id: `AUD-${Date.now()}`,
+            timestamp: nowStr,
+            actorId: 'CM-12',
+            actorName: 'R. Mohanty',
+            actorRole: 'Field Collection Manager',
+            actionType: 'FIELD_WEIGH_COMPLETED',
+            title: `Field Weighment Completed: ${computedNet} kg Net (${selectedQueueCode})`,
+            description: `Gross: ${grossWeight} kg, Tare: ${tareWeight} kg, Net: ${computedNet} kg. Grade: ${qualityGrade}.`,
+            details: {
+              batchCode: selectedQueueCode,
+              grossWeightKg: grossWeight,
+              tareWeightKg: tareWeight,
+              netWeightKg: computedNet,
+              qualityGrade,
+            },
+          });
+        } catch (err) {
+          console.warn('Dexie save online error:', err);
+        }
+
         setQueueItems((prev) =>
           prev.map((item) =>
             item.code === selectedQueueCode

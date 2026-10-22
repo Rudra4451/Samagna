@@ -138,14 +138,36 @@ for (const file of tsxFiles) {
     const hasRawInput = line.match(/<(input|select|textarea)(\s|>)/);
     if (hasRawInput) {
       const lineNum = index + 1;
-      const contextStart = Math.max(0, index - 8);
-      const contextEnd = Math.min(lines.length, index + 8);
+      const contextStart = Math.max(0, index - 30);
+      const contextEnd = Math.min(lines.length, index + 30);
       const surrounding = lines.slice(contextStart, contextEnd).join('\n');
 
-      // Check if wrapped in <label> or has a corresponding <label htmlFor="...">
-      const isInsideLabel = surrounding.includes('<label') && surrounding.includes('</label>');
-      const idMatch = line.match(/id=["']([^"']+)["']/);
-      const hasMatchingLabel = idMatch && surrounding.includes(`htmlFor="${idMatch[1]}"`);
+      // Extract opening tag block across lines to capture multiline attributes
+      const tagBlock = lines.slice(index, Math.min(lines.length, index + 15)).join('\n');
+      const idMatch = tagBlock.match(/id=(?:["']([^"']+)["']|\{([^}]+)\})/);
+      
+      let hasMatchingLabel = false;
+      if (idMatch) {
+        if (idMatch[1]) {
+          hasMatchingLabel =
+            surrounding.includes(`htmlFor="${idMatch[1]}"`) ||
+            surrounding.includes(`htmlFor='${idMatch[1]}'`);
+        } else if (idMatch[2]) {
+          hasMatchingLabel = surrounding.includes(`htmlFor={${idMatch[2]}}`);
+        }
+      }
+
+      // Check if enclosed inside an enclosing <label>...</label>
+      const beforeText = lines.slice(Math.max(0, index - 30), index).join('\n');
+      const afterText = lines.slice(index + 1, Math.min(lines.length, index + 30)).join('\n');
+      const lastOpenBefore = beforeText.lastIndexOf('<label');
+      const lastCloseBefore = beforeText.lastIndexOf('</label>');
+      const firstCloseAfter = afterText.indexOf('</label>');
+      const firstOpenAfter = afterText.indexOf('<label');
+      const isInsideLabel =
+        lastOpenBefore > lastCloseBefore &&
+        firstCloseAfter !== -1 &&
+        (firstOpenAfter === -1 || firstCloseAfter < firstOpenAfter);
 
       if (!isInsideLabel && !hasMatchingLabel) {
         console.error(`  [FAIL] Missing real <label> for input in ${path.relative(process.cwd(), file)}:${lineNum}`);

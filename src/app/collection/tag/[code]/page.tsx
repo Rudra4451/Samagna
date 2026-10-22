@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toPng } from 'html-to-image';
 import {
   DEMO_PRODUCT,
   DEMO_COLLECTORS,
 } from '../../../../demo/seed';
+import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { SackTagArtifact, SackTagData } from '../../../../components/artifacts/SackTagArtifact';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
@@ -23,6 +24,24 @@ export default function CollectionTagPage({ params }: TagPageProps) {
 
   const tagRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [dbBatch, setDbBatch] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadBatch() {
+      if (typeof window === 'undefined') return;
+      try {
+        const cleanCode = code.replace('#', '');
+        const db = getDatabase();
+        const found = await db.batches.get(cleanCode);
+        if (found) {
+          setDbBatch(found);
+        }
+      } catch (err) {
+        console.warn('Could not load batch from Dexie:', err);
+      }
+    }
+    loadBatch();
+  }, [code]);
 
   // Handle Download PNG via html-to-image
   const handleDownloadPng = async () => {
@@ -44,16 +63,25 @@ export default function CollectionTagPage({ params }: TagPageProps) {
     }
   };
 
-  const collector = DEMO_COLLECTORS[0]; // Raimati Soren
-  const collectorFirstName = collector.name.split(' ')[0]; // Raimati
+  const cleanCode = code.replace('#', '');
+  const collector =
+    dbBatch?.collectors?.[0] ||
+    (cleanCode === 'BS-400'
+      ? DEMO_COLLECTORS[1]
+      : cleanCode === 'BS-398'
+      ? DEMO_COLLECTORS[2]
+      : DEMO_COLLECTORS[0]);
+
+  const collectorFirstName = (collector.name || 'Primary Collector').split(' ')[0];
+  const netWeightKg = dbBatch?.step1?.netAcceptedKg ?? dbBatch?.step2?.arrivalNetWeightKg ?? (cleanCode === 'BS-400' ? 60.0 : cleanCode === 'BS-398' ? 25.0 : 100.0);
 
   const tagData: SackTagData = {
     code,
-    productName: DEMO_PRODUCT.name,
-    collectorFirstName, // First name + village only (no full identity)
+    productName: dbBatch?.produceName || DEMO_PRODUCT.name,
+    collectorFirstName, // First name + village only (no full identity per spec)
     village: collector.village,
-    dateStr: '14 Mar 2025 · 09:15 AM',
-    netWeightKg: 100.0,
+    dateStr: dbBatch?.step1?.verifiedAt || '14 Mar 2025 · 09:15 AM',
+    netWeightKg,
     helplinePhone: '1800-XXX-XXXX',
   };
 

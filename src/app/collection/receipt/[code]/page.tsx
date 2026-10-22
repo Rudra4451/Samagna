@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toPng } from 'html-to-image';
 import {
@@ -8,6 +8,7 @@ import {
   DEMO_COLLECTORS,
   DEMO_FACILITATOR,
 } from '../../../../demo/seed';
+import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { CollectionReceiptArtifact, CollectionReceiptData } from '../../../../components/artifacts/CollectionReceiptArtifact';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
@@ -24,6 +25,24 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
 
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [dbBatch, setDbBatch] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadBatch() {
+      if (typeof window === 'undefined') return;
+      try {
+        const cleanCode = code.replace('#', '');
+        const db = getDatabase();
+        const found = await db.batches.get(cleanCode);
+        if (found) {
+          setDbBatch(found);
+        }
+      } catch (err) {
+        console.warn('Could not load batch from Dexie:', err);
+      }
+    }
+    loadBatch();
+  }, [code]);
 
   // Handle Download PNG via html-to-image
   const handleDownloadPng = async () => {
@@ -45,7 +64,20 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
     }
   };
 
-  const collector = DEMO_COLLECTORS[0]; // Raimati Soren
+  const cleanCode = code.replace('#', '');
+  const collector =
+    dbBatch?.collectors?.[0] ||
+    (cleanCode === 'BS-400'
+      ? DEMO_COLLECTORS[1]
+      : cleanCode === 'BS-398'
+      ? DEMO_COLLECTORS[2]
+      : DEMO_COLLECTORS[0]);
+
+  const grossWeightKg = dbBatch?.step1?.grossWeightKg ?? (cleanCode === 'BS-400' ? 61.2 : cleanCode === 'BS-398' ? 26.2 : 104.2);
+  const tareWeightKg = dbBatch?.step1?.tareWeightKg ?? (cleanCode === 'BS-400' ? 1.2 : cleanCode === 'BS-398' ? 1.2 : 4.2);
+  const netWeightKg = dbBatch?.step1?.netAcceptedKg ?? dbBatch?.step2?.arrivalNetWeightKg ?? (cleanCode === 'BS-400' ? 60.0 : cleanCode === 'BS-398' ? 25.0 : 100.0);
+  const ratePerKg = dbBatch?.referenceRatePerKg ?? DEMO_PRODUCT.ratePerKg;
+  const totalAmount = Number((netWeightKg * ratePerKg).toFixed(2));
 
   const receiptData: CollectionReceiptData = {
     code,
@@ -54,22 +86,22 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
     tribalId: collector.tribalId,
     village: collector.village,
     villageOdia: collector.villageOdia,
-    center: DEMO_FACILITATOR.center,
-    productName: DEMO_PRODUCT.name,
-    productNameOdia: DEMO_PRODUCT.nameOdia,
-    grossWeightKg: 104.2,
-    tareWeightKg: 4.2,
-    netWeightKg: 100.0,
-    ratePerKg: DEMO_PRODUCT.ratePerKg,
-    rateSource: `${DEMO_PRODUCT.rateSource} · LABHA Scheme Notified Floor`,
-    totalAmount: 100.0 * DEMO_PRODUCT.ratePerKg,
-    dateStr: '14 Mar 2025 · 09:15 AM IST',
+    center: dbBatch?.centerName || DEMO_FACILITATOR.center,
+    productName: dbBatch?.produceName || DEMO_PRODUCT.name,
+    productNameOdia: dbBatch?.produceOdia || DEMO_PRODUCT.nameOdia,
+    grossWeightKg,
+    tareWeightKg,
+    netWeightKg,
+    ratePerKg,
+    rateSource: dbBatch?.rateSource || `${DEMO_PRODUCT.rateSource} · LABHA Scheme Notified Floor`,
+    totalAmount,
+    dateStr: dbBatch?.step1?.verifiedAt || '14 Mar 2025 · 09:15 AM IST',
     dateOdia: '୧୪ ମାର୍ଚ୍ଚ ୨୦୨୫ · ସକାଳ ୦୯:୧୫',
-    paymentStatus: 'Direct Benefit Transfer (DBT)',
-    paymentRef: 'TXN-998-SIMULATED',
-    managerName: DEMO_FACILITATOR.name,
+    paymentStatus: dbBatch?.status === 'VERIFIED_SALEABLE' ? 'Direct Benefit Transfer (DBT) Credited' : 'Direct Benefit Transfer (DBT) Pending Depôt Sync',
+    paymentRef: collector.dbtRef || 'TXN-998-SIMULATED',
+    managerName: dbBatch?.facilitatorName || DEMO_FACILITATOR.name,
     managerId: DEMO_FACILITATOR.id,
-    syncState: code === '#BS-402' ? 'queued' : 'synced',
+    syncState: dbBatch?.status === 'SAVED_OFFLINE_PENDING_SYNC' ? 'queued' : 'synced',
   };
 
   return (
