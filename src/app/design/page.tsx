@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { AppShell } from '../../components/shell/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Input, NumberInput, Textarea, Select } from '../../components/ui/Input';
@@ -214,7 +215,21 @@ export default function DesignSystemPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[12px] tabular-nums font-mono text-ink-muted">
+          <div className="flex items-center gap-3 text-[12px] tabular-nums font-mono text-ink-muted flex-wrap">
+            <Link
+              href="/collection"
+              className="text-accent hover:underline font-semibold flex items-center gap-1 focus:outline-2 focus:outline-accent"
+            >
+              ← Return to Collection Dashboard
+            </Link>
+            <span>•</span>
+            <Link
+              href="/inventory"
+              className="text-accent hover:underline font-semibold flex items-center gap-1 focus:outline-2 focus:outline-accent"
+            >
+              ← Return to Inventory Dashboard
+            </Link>
+            <span>•</span>
             <span>VERSION 1.0.0</span>
             <span>•</span>
             <span>SPEC: STRICT PRINT LEDGER</span>

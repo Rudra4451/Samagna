@@ -54,6 +54,59 @@ export interface SyncRecord {
   dependsOn?: string; // local_id of prerequisite record
   approxSizeBytes: number;
   hasPhotos?: boolean;
+  attachmentId?: string; // Stable ID of offline photo in offlineAttachments table
+}
+
+export interface OfflineAttachment {
+  id: string; // ULID
+  recordId: string; // local_id of associated SyncRecord or draft ID
+  batchCode: string; // e.g. "#BS-404"
+  blob: Blob; // Raw image binary
+  mimeType: string; // e.g. "image/jpeg"
+  fileSizeBytes: number;
+  createdAt: number;
+  uploadState: 'pending' | 'uploading' | 'uploaded' | 'failed';
+  serverUrl?: string;
+  serverAttachmentId?: string;
+  sha256Hash?: string;
+  error?: string;
+}
+
+export interface LocalGrievanceRecord {
+  id: string;
+  ticketNumber: string;
+  category: string;
+  description: string;
+  collectorId: string;
+  collectorName: string;
+  village: string;
+  district: string;
+  createdAt: number;
+  status: 'SAVED_LOCALLY';
+  notes?: string;
+}
+
+export interface InventorySaleRecord {
+  id: string; // ULID
+  saleReference: string; // e.g. "SALE-BRP-2025-001"
+  produceName: string;
+  quantityKg: number;
+  buyerName: string;
+  destination?: string;
+  salePricePerKg?: number;
+  totalAmount?: number;
+  depotId: string;
+  actor: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  notes?: string;
+  idempotencyKey?: string;
+  createdAt: number;
+  syncState: 'queued' | 'synced' | 'failed';
+  serverSaleId?: string;
+  error?: string;
 }
 
 export class BanaSetuDatabase extends Dexie {
@@ -63,6 +116,9 @@ export class BanaSetuDatabase extends Dexie {
   appSettings!: Table<AppSetting, string>;
   pendingSync!: Table<PendingSyncItem, string>;
   syncQueue!: Table<SyncRecord, string>;
+  offlineAttachments!: Table<OfflineAttachment, string>;
+  grievances!: Table<LocalGrievanceRecord, string>;
+  inventorySales!: Table<InventorySaleRecord, string>;
 
   constructor() {
     super('BanaSetuLedgerDB');
@@ -73,6 +129,13 @@ export class BanaSetuDatabase extends Dexie {
       appSettings: 'key',
       pendingSync: 'id, code, timestamp',
       syncQueue: 'local_id, batch_code, entity, state, createdAt, dependsOn',
+    });
+    this.version(4).stores({
+      offlineAttachments: 'id, recordId, batchCode, uploadState, createdAt',
+      grievances: 'id, status, createdAt',
+    });
+    this.version(5).stores({
+      inventorySales: 'id, saleReference, produceName, depotId, syncState, createdAt, idempotencyKey',
     });
   }
 }
@@ -97,6 +160,9 @@ export const db = {
   get appSettings() { return getDatabase().appSettings; },
   get pendingSync() { return getDatabase().pendingSync; },
   get syncQueue() { return getDatabase().syncQueue; },
+  get offlineAttachments() { return getDatabase().offlineAttachments; },
+  get grievances() { return getDatabase().grievances; },
+  get inventorySales() { return getDatabase().inventorySales; },
 };
 
 export async function seedInitialData(forceReset: boolean = false): Promise<void> {
@@ -105,13 +171,15 @@ export async function seedInitialData(forceReset: boolean = false): Promise<void
 
   const count = await db.batches.count();
   if (count === 0 || forceReset) {
-    await db.transaction('rw', [db.batches, db.auditEvents, db.discrepancyCases, db.appSettings, db.pendingSync, db.syncQueue], async () => {
+    await db.transaction('rw', [db.batches, db.auditEvents, db.discrepancyCases, db.appSettings, db.pendingSync, db.syncQueue, db.offlineAttachments, db.grievances, db.inventorySales], async () => {
       await db.batches.clear();
       await db.auditEvents.clear();
       await db.discrepancyCases.clear();
       await db.appSettings.clear();
       await db.pendingSync.clear();
       await db.syncQueue.clear();
+      await db.offlineAttachments.clear();
+      await db.grievances.clear();
 
       // Seed Baseline Batches: BS-400, BS-402, BS-398, BS-396, BS-395
       await db.batches.put(INITIAL_BATCH_BS400);

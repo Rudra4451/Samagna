@@ -43,8 +43,10 @@ import {
 import { useAction } from '../../lib/useAction';
 import { LastFetchedBadge } from '../../components/ui/LastFetchedBadge';
 import { SyncStatusBadge } from '../../components/ui/SyncStatusBadge';
-import { SyncState, getDatabase } from '../../lib/db';
+import { SyncState, getDatabase, InventorySaleRecord } from '../../lib/db';
+import { generateULID } from '../../lib/ulid';
 import { cn } from '../../lib/utils';
+import { resolveSupervisorAssignment } from '../../lib/server/config';
 import {
   Warehouse,
   Scale,
@@ -56,6 +58,17 @@ import {
   Layers,
   History,
   Lock,
+  FileSpreadsheet,
+  FileText,
+  CheckCircle2,
+  ArrowRight,
+  ExternalLink,
+  Download,
+  Share2,
+  RefreshCw,
+  SlidersHorizontal,
+  Info,
+  Check,
 } from 'lucide-react';
 import { useHotkeys } from '../../lib/useHotkeys';
 import { KeyboardShortcutsDrawer } from '../../components/manager/KeyboardShortcutsDrawer';
@@ -64,10 +77,19 @@ import {
   ManagerFiltersState,
   ColumnConfig,
   TableDensity,
+  DEFAULT_MANAGER_FILTERS,
 } from '../../components/manager/ManagerFilterBar';
 import { BulkActionBar } from '../../components/manager/BulkActionBar';
 import { RowActionMenu } from '../../components/manager/RowActionMenu';
 import { InlineEditableCell } from '../../components/manager/InlineEditableCell';
+import { ProductGuidanceCard } from '../../components/guidance/ProductGuidanceCard';
+import {
+  getProductGuidance,
+  evaluateDepotCompatibility,
+  RECORDED_DEPOTS,
+  CAPABILITY_DEFINITIONS,
+  ProductHandlingProfile,
+} from '../../lib/productGuidance';
 
 interface BatchRow {
   code: string;
@@ -86,6 +108,260 @@ interface BatchRow {
   updatedDateIso: string;
   hasInlineEdit?: boolean;
 }
+
+type InventorySection = 'reweigh' | 'shrinkage' | 'quarantine' | 'ledger';
+
+interface MoistureStandardItem {
+  id: string;
+  produceName: string;
+  scientificName: string;
+  produceOdia: string;
+  optimalRange: string;
+  maxLimit: string;
+  shrinkageBaseline: string;
+  storageBay: string;
+  protectionNote: string;
+}
+
+interface GateInspectionLogItem {
+  id: string;
+  batchCode: string;
+  produceName: string;
+  moistureReading: number;
+  dispatchedKg: number;
+  arrivalKg: number;
+  observedLossKg: number;
+  lossPercent: number;
+  allowedShrinkageKg: number;
+  unexplainedVarianceKg: number;
+  complianceStatus: string;
+  statusVariant: StatusVariant;
+}
+
+interface QuarantineBatchItem {
+  id: string;
+  batchCode: string;
+  produceName: string;
+  collectorName: string;
+  village: string;
+  collectionKg: number;
+  receivedKg: number;
+  storageLocation: string;
+  qualityGrade: 'A' | 'B' | 'C';
+  quarantineReason: string;
+  recordedAt: string;
+  statusVariant: StatusVariant;
+  caseId?: string;
+}
+
+interface StockMovementItem {
+  id: string;
+  movementRef: string;
+  timestamp: string;
+  movementType: string;
+  typeVariant: StatusVariant;
+  batchOrSaleRef: string;
+  deltaKg: number;
+  balanceAfterKg: number;
+  operator: string;
+}
+
+const MOISTURE_STANDARDS: MoistureStandardItem[] = [
+  {
+    id: 'mst-1',
+    produceName: 'Dried Mahua Flowers',
+    scientificName: 'Madhuca longifolia',
+    produceOdia: 'ମହୁଲ ଫୁଲ',
+    optimalRange: '8.0% – 10.0%',
+    maxLimit: '12.0%',
+    shrinkageBaseline: '2.0% allowable transit drying',
+    storageBay: 'Bay 01 (Ventilated Dry Stack)',
+    protectionNote: 'Primary collector MSP payout 100% protected at collection weighment',
+  },
+  {
+    id: 'mst-2',
+    produceName: 'Sal Seeds',
+    scientificName: 'Shorea robusta',
+    produceOdia: 'ଶାଳ ମଞ୍ଜି',
+    optimalRange: '10.0% – 12.0%',
+    maxLimit: '14.0%',
+    shrinkageBaseline: '1.5% allowable transit loss',
+    storageBay: 'Bay 02 (Palletized Jute Sacks)',
+    protectionNote: 'State floor MSP guaranteed against natural transit loss',
+  },
+  {
+    id: 'mst-3',
+    produceName: 'Chironji Seeds',
+    scientificName: 'Buchanania lanzan',
+    produceOdia: 'ଚାରୋଳି',
+    optimalRange: '6.0% – 8.0%',
+    maxLimit: '9.0%',
+    shrinkageBaseline: '1.0% allowable transit loss',
+    storageBay: 'Bay 03 (Hermetic Food-Grade Bin)',
+    protectionNote: 'High-value tribal kernel safeguard',
+  },
+  {
+    id: 'mst-4',
+    produceName: 'Harida / Haritaki',
+    scientificName: 'Terminalia chebula',
+    produceOdia: 'ହରିଡ଼ା',
+    optimalRange: '9.0% – 11.0%',
+    maxLimit: '13.0%',
+    shrinkageBaseline: '2.0% allowable transit drying',
+    storageBay: 'Bay 04 (Dry Timber Racks)',
+    protectionNote: 'Standard seasonal moisture tolerance applied',
+  },
+];
+
+const GATE_MOISTURE_INSPECTIONS: GateInspectionLogItem[] = [
+  {
+    id: 'gmi-1',
+    batchCode: '#BS-402',
+    produceName: 'Dried Mahua Flowers',
+    moistureReading: 8.8,
+    dispatchedKg: 100.0,
+    arrivalKg: 95.0,
+    observedLossKg: 5.0,
+    lossPercent: 5.0,
+    allowedShrinkageKg: 2.0,
+    unexplainedVarianceKg: -3.0,
+    complianceStatus: 'Exceeds 2.0% Tolerance · Supervisor Endorsement Required',
+    statusVariant: 'warning',
+  },
+  {
+    id: 'gmi-2',
+    batchCode: '#BS-400',
+    produceName: 'Dried Mahua Flowers',
+    moistureReading: 8.4,
+    dispatchedKg: 35.0,
+    arrivalKg: 34.5,
+    observedLossKg: 0.5,
+    lossPercent: 1.4,
+    allowedShrinkageKg: 0.7,
+    unexplainedVarianceKg: 0.0,
+    complianceStatus: 'Compliant · Natural Transit Drying',
+    statusVariant: 'success',
+  },
+  {
+    id: 'gmi-3',
+    batchCode: '#BS-398',
+    produceName: 'Dried Mahua Flowers',
+    moistureReading: 8.2,
+    dispatchedKg: 25.0,
+    arrivalKg: 24.6,
+    observedLossKg: 0.4,
+    lossPercent: 1.6,
+    allowedShrinkageKg: 0.5,
+    unexplainedVarianceKg: 0.0,
+    complianceStatus: 'Compliant · Natural Transit Drying',
+    statusVariant: 'success',
+  },
+  {
+    id: 'gmi-4',
+    batchCode: '#BS-394',
+    produceName: 'Dried Mahua Flowers',
+    moistureReading: 13.8,
+    dispatchedKg: 80.0,
+    arrivalKg: 74.0,
+    observedLossKg: 6.0,
+    lossPercent: 7.5,
+    allowedShrinkageKg: 1.6,
+    unexplainedVarianceKg: -4.4,
+    complianceStatus: 'Excess Moisture & Weight Loss Discrepancy',
+    statusVariant: 'danger',
+  },
+];
+
+const QUARANTINED_BATCHES_ROSTER: QuarantineBatchItem[] = [
+  {
+    id: 'q-row-1',
+    batchCode: '#BS-396',
+    produceName: 'Dried Mahua Flowers',
+    collectorName: 'Dulari Hansdah',
+    village: 'Badagaon, Karanjia',
+    collectionKg: 60.0,
+    receivedKg: 56.0,
+    storageLocation: 'Quarantine Bay Q1',
+    qualityGrade: 'C',
+    quarantineReason: 'High moisture reading (14.1%) with localized fungal contamination detected on sack base. Withheld from saleable inventory pending laboratory inspection.',
+    recordedAt: '13 Mar 2025 · 11:10 AM',
+    statusVariant: 'danger',
+    caseId: 'DISC-396',
+  },
+  {
+    id: 'q-row-2',
+    batchCode: '#BS-394',
+    produceName: 'Dried Mahua Flowers',
+    collectorName: 'Salge Tudu',
+    village: 'Sundargarh',
+    collectionKg: 80.0,
+    receivedKg: 74.0,
+    storageLocation: 'Quarantine Bay Q2',
+    qualityGrade: 'B',
+    quarantineReason: 'Major transit weight discrepancy (-6.0 kg / 7.5% loss vs 2% limit) exceeding allowable shrinkage. Discrepancy investigation opened.',
+    recordedAt: '12 Mar 2025 · 04:00 PM',
+    statusVariant: 'danger',
+    caseId: 'DISC-394',
+  },
+];
+
+const PHYSICAL_STOCK_MOVEMENTS: StockMovementItem[] = [
+  {
+    id: 'smv-1',
+    movementRef: 'MOV-2025-084',
+    timestamp: '14 Mar 2025 · 11:20 AM',
+    movementType: 'Inward Transit Handover',
+    typeVariant: 'warning',
+    batchOrSaleRef: 'Lot #BS-402',
+    deltaKg: 95.0,
+    balanceAfterKg: 0.0,
+    operator: 'Driver B. Soren (#VH-04) → S. Das (IM-04)',
+  },
+  {
+    id: 'smv-2',
+    movementRef: 'MOV-2025-081',
+    timestamp: '14 Mar 2025 · 10:15 AM',
+    movementType: 'Verified Saleable Receipt',
+    typeVariant: 'success',
+    batchOrSaleRef: 'Lot #BS-400',
+    deltaKg: 34.5,
+    balanceAfterKg: 34.5,
+    operator: 'S. Das (Warehouse IM)',
+  },
+  {
+    id: 'smv-3',
+    movementRef: 'MOV-2025-079',
+    timestamp: '13 Mar 2025 · 03:45 PM',
+    movementType: 'Verified Saleable Receipt',
+    typeVariant: 'success',
+    batchOrSaleRef: 'Lot #BS-398',
+    deltaKg: 24.6,
+    balanceAfterKg: 59.1,
+    operator: 'S. Das (Warehouse IM)',
+  },
+  {
+    id: 'smv-4',
+    movementRef: 'MOV-2025-075',
+    timestamp: '13 Mar 2025 · 11:10 AM',
+    movementType: 'Quarantine Isolation',
+    typeVariant: 'danger',
+    batchOrSaleRef: 'Lot #BS-396',
+    deltaKg: 56.0,
+    balanceAfterKg: 59.1,
+    operator: 'S. Das (Warehouse IM)',
+  },
+  {
+    id: 'smv-5',
+    movementRef: 'MOV-2025-071',
+    timestamp: '13 Mar 2025 · 09:30 AM',
+    movementType: 'Verified Saleable Receipt',
+    typeVariant: 'success',
+    batchOrSaleRef: 'Lot #BS-395',
+    deltaKg: 44.7,
+    balanceAfterKg: 103.8,
+    operator: 'S. Das (Warehouse IM)',
+  },
+];
 
 const DEFAULT_INVENTORY_COLUMNS: ColumnConfig[] = [
   { id: 'code', label: 'Batch Code', visible: true },
@@ -124,11 +400,188 @@ export default function InventoryManagerPage() {
     setIsDrawerOpen(true);
   };
 
+  // Outward Sales Persistent Ledger State (Batch 2 / F10)
+  const [sales, setSales] = useState<InventorySaleRecord[]>([]);
+
   // Stat Tiles State (Expected is forecast only and never changes stock)
   const [expectedStock] = useState<number>(500.0);
   const [pendingStock, setPendingStock] = useState<number>(100.0);
   const [availableStock, setAvailableStock] = useState<number>(0.0);
   const [quarantinedStock, setQuarantinedStock] = useState<number>(0.0);
+
+  // Outward Sale State (F10 Invariant: Sales cannot exceed stock, inventory cannot become negative)
+  const [isSaleDrawerOpen, setIsSaleDrawerOpen] = useState(false);
+  const [saleQuantityKg, setSaleQuantityKg] = useState<number>(0);
+  const [saleBuyerName, setSaleBuyerName] = useState<string>('TDCCOL Central Processing Plant, Baripada');
+  const [saleError, setSaleError] = useState<string | null>(null);
+
+  const handleExecuteSale = async () => {
+    if (saleQuantityKg <= 0) {
+      setSaleError('Sale quantity must be greater than 0 kg');
+      return;
+    }
+    if (saleQuantityKg > availableStock) {
+      setSaleError(
+        `Sale quantity (${saleQuantityKg} kg) exceeds available saleable stock (${availableStock.toFixed(1)} kg). Inventory cannot become negative.`
+      );
+      return;
+    }
+
+    const deducted = Number(saleQuantityKg.toFixed(1));
+    const saleId = generateULID();
+    const saleRef = `SALE-BRP-${Date.now().toString().slice(-6)}`;
+    const idempotencyKey = generateULID();
+    const depotCode = authenticatedUser?.centerId || 'BRP-01';
+
+    const saleRecord: InventorySaleRecord = {
+      id: saleId,
+      saleReference: saleRef,
+      produceName: 'Dried Mahua Flowers',
+      quantityKg: deducted,
+      buyerName: saleBuyerName.trim(),
+      destination: 'TDCCOL Processing Facility, Baripada',
+      salePricePerKg: 42.0,
+      totalAmount: Number((deducted * 42.0).toFixed(2)),
+      depotId: depotCode,
+      actor: {
+        id: authenticatedUser?.userId || 'USR-02',
+        name: authenticatedUser?.fullName || 'S. Das',
+        role: authenticatedUser?.role || 'WAREHOUSE_MANAGER',
+      },
+      notes: `Outward sale dispatched to ${saleBuyerName.trim()}`,
+      idempotencyKey,
+      createdAt: Date.now(),
+      syncState: 'queued',
+    };
+
+    // 1. Durably persist to local Dexie inventorySales and syncQueue FIRST
+    try {
+      const database = getDatabase();
+      await database.inventorySales.put(saleRecord);
+      await database.syncQueue.put({
+        local_id: saleId,
+        batch_code: saleRef,
+        entity: 'dispatch',
+        action: 'create',
+        actor: saleRecord.actor,
+        payload: {
+          ...saleRecord,
+        },
+        state: 'queued',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        retryCount: 0,
+        approxSizeBytes: 1024,
+      });
+    } catch (dbErr) {
+      console.warn('Could not persist sale to Dexie:', dbErr);
+    }
+
+    // 2. Optimistically update local sales state
+    setSales((prev) => [saleRecord, ...prev]);
+
+    // 3. Add to local audit timeline
+    setAuditTimeline((prev) => [
+      ...prev,
+      {
+        id: `aud-${Date.now()}`,
+        dayHeader: '14 March 2025',
+        time: 'Just now',
+        actor: `${authenticatedUser?.fullName || 'S. Das'} (Warehouse IM)`,
+        action: `Outward sale dispatched: ${deducted} kg allocated to ${saleBuyerName.trim()}. Reference: ${saleRef}`,
+        delta: `-${deducted} kg`,
+        deltaVariant: 'neutral',
+        isLive: true,
+      },
+    ]);
+
+    setIsSaleDrawerOpen(false);
+    setSaleQuantityKg(0);
+    setSaleError(null);
+
+    // Initial feedback
+    setActiveToast({
+      id: `toast-sale-${Date.now()}`,
+      title: `Outward sale recorded · -${deducted} kg · Saved in device ledger`,
+      variant: 'success',
+    });
+
+    // 4. If online, attempt server synchronization
+    if (!isOffline) {
+      try {
+        const res = await fetch('/api/inventory/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: saleId,
+            saleReference: saleRef,
+            produceName: saleRecord.produceName,
+            quantityKg: saleRecord.quantityKg,
+            buyerName: saleRecord.buyerName,
+            destination: saleRecord.destination,
+            salePricePerKg: saleRecord.salePricePerKg,
+            totalAmount: saleRecord.totalAmount,
+            depotId: saleRecord.depotId,
+            notes: saleRecord.notes,
+            idempotencyKey,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (res.ok && data?.success) {
+          const serverId = data.data?.id || saleId;
+          try {
+            const database = getDatabase();
+            await database.inventorySales.update(saleId, {
+              syncState: 'synced',
+              serverSaleId: serverId,
+            });
+            await database.syncQueue.delete(saleId);
+          } catch {}
+
+          setSales((prev) =>
+            prev.map((s) => (s.id === saleId ? { ...s, syncState: 'synced', serverSaleId: serverId } : s))
+          );
+
+          setActiveToast({
+            id: `toast-sale-sync-${Date.now()}`,
+            title: `Outward sale synchronized · -${deducted} kg · Server acknowledged`,
+            variant: 'success',
+          });
+        } else if (res.status === 503) {
+          // Database unconfigured: cleanly held in local Dexie queue
+          setActiveToast({
+            id: `toast-sale-offline-${Date.now()}`,
+            title: `Saved locally (Pending server sync) · -${deducted} kg`,
+            description: 'PostgreSQL database is unconfigured. Sale record safely held in local device ledger.',
+            variant: 'warning',
+          });
+        } else if (res.status === 422 || res.status === 403 || res.status === 409) {
+          // Permanent failure from server
+          try {
+            const database = getDatabase();
+            await database.inventorySales.update(saleId, {
+              syncState: 'failed',
+              error: data?.message || 'Server rejected sale',
+            });
+          } catch {}
+
+          setSales((prev) =>
+            prev.map((s) => (s.id === saleId ? { ...s, syncState: 'failed', error: data?.message } : s))
+          );
+
+          setActiveToast({
+            id: `toast-sale-err-${Date.now()}`,
+            title: `Server synchronization rejected: ${data?.message || 'Validation error'}`,
+            variant: 'danger',
+          });
+        }
+      } catch {
+        // Network error: sale remains durably queued in Dexie
+      }
+    }
+  };
 
   // Batches Table State with enhanced metadata
   const [batches, setBatches] = useState<BatchRow[]>([
@@ -230,66 +683,125 @@ export default function InventoryManagerPage() {
     },
   ]);
 
-  // Persisted Filters (Rule 3)
-  const [filters, setFilters] = useState<ManagerFiltersState>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('banasetu_filter_inventory');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {
-      savedView: 'all',
-      search: '',
-      statuses: [],
-      village: '',
-      dateFrom: '',
-      dateTo: '',
-    };
-  });
-
+  // Synchronize dynamic stock calculations from persistent ledger (F10 Invariant)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const verifiedSaleableBatches = batches.filter((b) => b.status === 'Available');
+    const incomingSaleableKg = verifiedSaleableBatches.reduce(
+      (acc, b) => acc + (b.receivedKg ?? b.collectionKg ?? 0),
+      0
+    );
+    const totalSoldKg = sales.reduce((acc, s) => acc + s.quantityKg, 0);
+    const currentAvailable = Math.max(0, Number((incomingSaleableKg - totalSoldKg).toFixed(1)));
+    setAvailableStock(currentAvailable);
+
+    const quarantinedKg = batches
+      .filter((b) => b.status === 'Quarantined')
+      .reduce((acc, b) => acc + (b.receivedKg ?? b.collectionKg ?? 0), 0);
+    setQuarantinedStock(Number(quarantinedKg.toFixed(1)));
+
+    const pendingKg = batches
+      .filter((b) => b.status === 'Pending Verification')
+      .reduce((acc, b) => acc + (b.collectionKg ?? 0), 0);
+    setPendingStock(Number(pendingKg.toFixed(1)));
+  }, [batches, sales]);
+
+  // Deterministic initial state for SSR & initial client render (hydration-safe)
+  const [filters, setFilters] = useState<ManagerFiltersState>(DEFAULT_MANAGER_FILTERS);
+  const [density, setDensity] = useState<TableDensity>('comfortable');
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_INVENTORY_COLUMNS);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
+
+  // Restore persisted state after mounting (Rule 3, 4, 7)
+  useEffect(() => {
+    try {
+      const savedFilters = localStorage.getItem('banasetu_filter_inventory');
+      if (savedFilters) {
+        setFilters(JSON.parse(savedFilters));
+      }
+    } catch (e) {}
+
+    try {
+      const savedDensity = localStorage.getItem('banasetu_table_density');
+      if (savedDensity === 'comfortable' || savedDensity === 'compact') {
+        setDensity(savedDensity);
+      }
+    } catch (e) {}
+
+    try {
+      const savedCols = localStorage.getItem('banasetu_cols_inventory');
+      if (savedCols) {
+        setColumns(JSON.parse(savedCols));
+      }
+    } catch (e) {}
+
+    setFiltersHydrated(true);
+  }, []);
+
+  // Persist state updates only after initial hydration
+  useEffect(() => {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_filter_inventory', JSON.stringify(filters));
-    }
-  }, [filters]);
-
-  // Persisted Table Density (Rule 4)
-  const [density, setDensity] = useState<TableDensity>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('banasetu_table_density');
-      if (saved === 'comfortable' || saved === 'compact') return saved;
-    }
-    return 'comfortable';
-  });
+    } catch (e) {}
+  }, [filters, filtersHydrated]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_table_density', density);
-    }
-  }, [density]);
-
-  // Persisted Column Visibility (Rule 7)
-  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('banasetu_cols_inventory');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return DEFAULT_INVENTORY_COLUMNS;
-  });
+    } catch (e) {}
+  }, [density, filtersHydrated]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_cols_inventory', JSON.stringify(columns));
-    }
-  }, [columns]);
+    } catch (e) {}
+  }, [columns, filtersHydrated]);
 
   // Bulk Selection state (Rule 6)
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectedBatchCode, setSelectedBatchCode] = useState<string>('#BS-402');
+
+  // Active Navigation Section (Depot Operations: reweigh | shrinkage | quarantine | ledger)
+  const [activeSection, setActiveSection] = useState<InventorySection>('reweigh');
+
+  // Synchronize activeSection with window.location.hash and browser back/forward
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window === 'undefined') return;
+      const hash = window.location.hash;
+      if (hash === '#shrinkage' || hash === '#moisture') {
+        setActiveSection('shrinkage');
+      } else if (hash === '#quarantine') {
+        setActiveSection('quarantine');
+      } else if (hash === '#ledger' || hash === '#stock') {
+        setActiveSection('ledger');
+      } else {
+        setActiveSection('reweigh');
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
+  }, []);
+
+  const navigateToSection = (sec: InventorySection) => {
+    setActiveSection(sec);
+    if (typeof window !== 'undefined') {
+      const targetHash = sec === 'reweigh' ? '' : `#${sec}`;
+      if (window.location.hash !== targetHash) {
+        window.history.pushState(null, '', targetHash || window.location.pathname);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Drawer verification state for #BS-402
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -348,55 +860,169 @@ export default function InventoryManagerPage() {
   const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
 
-  // Synchronize batches with Dexie on client mount
-  useEffect(() => {
-    async function loadBatchesFromDexie() {
-      if (typeof window === 'undefined') return;
-      try {
-        const db = getDatabase();
-        const dexieBatches = await db.batches.toArray();
-        if (dexieBatches.length > 0) {
-          setBatches((prev) => {
-            const codeMap = new Map(prev.map((b) => [b.code, b]));
-            for (const dbBatch of dexieBatches) {
-              const formattedCode = `#${dbBatch.id.replace('#', '')}`;
-              const net1 = dbBatch.step1?.netAcceptedKg || 100.0;
-              const net2 = dbBatch.step2?.arrivalNetWeightKg ?? null;
-              const status: 'Pending Verification' | 'Available' | 'Quarantined' =
-                dbBatch.status === 'VERIFIED_SALEABLE'
-                  ? 'Available'
-                  : dbBatch.status === 'QUARANTINED_DISCREPANCY'
-                  ? 'Quarantined'
-                  : 'Pending Verification';
-              const statusVariant: StatusVariant =
-                status === 'Available' ? 'success' : status === 'Quarantined' ? 'danger' : 'warning';
+  // Active authenticated user session
+  const [authenticatedUser, setAuthenticatedUser] = useState<{
+    userId: string;
+    fullName: string;
+    role: string;
+    centerId?: string;
+    district?: string;
+  } | null>(null);
 
-              codeMap.set(formattedCode, {
-                code: formattedCode,
-                product: dbBatch.produceName,
-                collector: dbBatch.collectors?.[0]?.name || 'Primary Collector',
-                village: dbBatch.collectors?.[0]?.village || 'Badagaon, Karanjia',
-                collectionKg: net1,
-                receivedKg: net2,
-                deltaKg: net2 !== null ? Number((net2 - net1).toFixed(2)) : null,
-                qualityGrade: (dbBatch.step1?.grade?.includes('A') ? 'A' : dbBatch.step1?.grade?.includes('B') ? 'B' : 'C') as any,
-                storageLocation: dbBatch.step2?.storageZone || 'Rack B (Dry Stack)',
-                status,
-                statusVariant,
-                syncState: dbBatch.status === 'SAVED_OFFLINE_PENDING_SYNC' ? 'queued' : 'synced',
-                updatedAt: 'Today · Synchronized',
-                updatedDateIso: new Date().toISOString().split('T')[0],
-              });
-            }
-            return Array.from(codeMap.values());
-          });
+  useEffect(() => {
+    async function loadAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            setAuthenticatedUser(data.user);
+          }
         }
-      } catch (e) {
-        console.warn('Could not read Dexie batches:', e);
+      } catch {
+        // Fallback gracefully if offline
       }
     }
-    loadBatchesFromDexie();
+    loadAuth();
   }, []);
+
+  const [serverSyncStatus, setServerSyncStatus] = useState<
+    'ONLINE_SYNCED' | 'OFFLINE_LOCAL' | 'SERVER_UNAVAILABLE'
+  >('OFFLINE_LOCAL');
+
+  // Synchronize batches with Server & Dexie safely
+  const loadBatches = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const db = getDatabase();
+      const dexieSales = await db.inventorySales.toArray();
+      if (dexieSales.length > 0) {
+        setSales(dexieSales);
+      }
+
+      // Track local batches with pending changes (must NOT be overwritten)
+      const pendingSyncSet = new Set<string>();
+      try {
+        const queuedItems = await db.syncQueue.toArray();
+        for (const q of queuedItems) {
+          if (q.state === 'queued' || q.state === 'draft') {
+            pendingSyncSet.add(q.batch_code.replace('#', ''));
+          }
+        }
+      } catch {}
+
+      const existingDexieBatches = await db.batches.toArray();
+      for (const b of existingDexieBatches) {
+        if (b.status === 'SAVED_OFFLINE_PENDING_SYNC') {
+          pendingSyncSet.add(b.id.replace('#', ''));
+        }
+      }
+
+      // Retrieve authorized server records when online
+      if (!isOffline) {
+        try {
+          const res = await fetch('/api/batches');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.serverAvailable && Array.isArray(data.batches)) {
+              setServerSyncStatus('ONLINE_SYNCED');
+
+              for (const sBatch of data.batches) {
+                const sId = sBatch.id.replace('#', '');
+                if (pendingSyncSet.has(sId)) {
+                  // Do not overwrite local-only queued / pending records
+                  continue;
+                }
+
+                // Authoritative server version takes precedence over stale local synchronized data
+                await db.batches.put({
+                  id: sId,
+                  produceName: sBatch.produceName,
+                  produceOdia: sBatch.produceOdia,
+                  scientificName: sBatch.scientificName || '',
+                  district: sBatch.district,
+                  block: sBatch.block,
+                  gramPanchayat: sBatch.gramPanchayat,
+                  centerName: sBatch.centerName,
+                  shgName: sBatch.shgName,
+                  facilitatorName: sBatch.facilitatorName,
+                  referenceRatePerKg: sBatch.referenceRatePerKg,
+                  rateSource: sBatch.rateSource,
+                  ratePublishedDate: sBatch.ratePublishedDate,
+                  seasonalReadinessStatus: sBatch.seasonalReadinessStatus,
+                  pickupRequestId: sBatch.pickupRequestId,
+                  collectors: sBatch.collectors || [],
+                  status: sBatch.status,
+                  step1: sBatch.step1 || null,
+                  step2: sBatch.step2 || null,
+                  createdAt: typeof sBatch.createdAt === 'string' ? sBatch.createdAt : new Date(sBatch.createdAt).toISOString(),
+                  updatedAt: typeof sBatch.updatedAt === 'string' ? sBatch.updatedAt : new Date(sBatch.updatedAt).toISOString(),
+                });
+              }
+            } else {
+              setServerSyncStatus('SERVER_UNAVAILABLE');
+            }
+          } else if (res.status === 503) {
+            setServerSyncStatus('SERVER_UNAVAILABLE');
+          } else {
+            setServerSyncStatus('OFFLINE_LOCAL');
+          }
+        } catch {
+          setServerSyncStatus('OFFLINE_LOCAL');
+        }
+      } else {
+        setServerSyncStatus('OFFLINE_LOCAL');
+      }
+
+      // Read consolidated batches from Dexie
+      const dexieBatches = await db.batches.toArray();
+      if (dexieBatches.length > 0) {
+        setBatches((prev) => {
+          const codeMap = new Map(prev.map((b) => [b.code, b]));
+          for (const dbBatch of dexieBatches) {
+            const formattedCode = `#${dbBatch.id.replace('#', '')}`;
+            const net1 = dbBatch.step1?.netAcceptedKg || 100.0;
+            const net2 = dbBatch.step2?.arrivalNetWeightKg ?? null;
+            const status: 'Pending Verification' | 'Available' | 'Quarantined' =
+              dbBatch.status === 'VERIFIED_SALEABLE'
+                ? 'Available'
+                : dbBatch.status === 'QUARANTINED_DISCREPANCY'
+                ? 'Quarantined'
+                : 'Pending Verification';
+            const statusVariant: StatusVariant =
+              status === 'Available' ? 'success' : status === 'Quarantined' ? 'danger' : 'warning';
+
+            const isPending = pendingSyncSet.has(dbBatch.id.replace('#', '')) || dbBatch.status === 'SAVED_OFFLINE_PENDING_SYNC';
+
+            codeMap.set(formattedCode, {
+              code: formattedCode,
+              product: dbBatch.produceName,
+              collector: dbBatch.collectors?.[0]?.name || 'Primary Collector',
+              village: dbBatch.collectors?.[0]?.village || 'Badagaon, Karanjia',
+              collectionKg: net1,
+              receivedKg: net2,
+              deltaKg: net2 !== null ? Number((net2 - net1).toFixed(2)) : null,
+              qualityGrade: (dbBatch.step1?.grade?.includes('A') ? 'A' : dbBatch.step1?.grade?.includes('B') ? 'B' : 'C') as any,
+              storageLocation: dbBatch.step2?.storageZone || 'Rack B (Dry Stack)',
+              status,
+              statusVariant,
+              syncState: isPending ? 'queued' : 'synced',
+              updatedAt: 'Today · Synchronized',
+              updatedDateIso: new Date().toISOString().split('T')[0],
+            });
+          }
+          return Array.from(codeMap.values());
+        });
+      }
+    } catch (e) {
+      console.warn('Could not read Dexie/Server batches:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadBatches();
+  }, [isOffline]);
+
 
   // Helper to open drawer for any batch with its exact weights and parameters
   const openBatchDrawer = (code: string) => {
@@ -684,8 +1310,9 @@ export default function InventoryManagerPage() {
       title: 'Inventory batches refreshed',
       description: 'Central depôt arrivals and storage racks synchronized.',
     },
-    onExecute: () => {
+    onExecute: async () => {
       setLastFetched(new Date());
+      await loadBatches();
     },
   });
 
@@ -727,12 +1354,7 @@ export default function InventoryManagerPage() {
       quarantinedStock,
       timeline: [...auditTimeline],
     }),
-    receipt: {
-      variant: 'warning',
-      title: `Batch ${selectedBatchCode} Quarantined with Reject Reason`,
-      description: 'Stock held in segregation bay. Click Undo within 6s to restore Pending Verification.',
-    },
-    onExecute: async () => {
+    onExecute: async ({ idempotencyKey }) => {
       if (arrivalWeight <= 0 || arrivalWeight > 1000 || isNaN(arrivalWeight)) {
         setArrivalWeightError('Arrival weight must be a number between 1 and 1000.');
         setActiveToast({
@@ -747,33 +1369,71 @@ export default function InventoryManagerPage() {
 
       const cleanCode = selectedBatchCode.replace('#', '');
       const batchLoss = Number((collectionKg - arrivalWeight).toFixed(1));
+      const arrivalGross = Number((arrivalWeight + 1.5).toFixed(2));
+      const arrivalTare = 1.5;
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
 
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.code === selectedBatchCode
-            ? {
-                ...b,
-                receivedKg: arrivalWeight,
-                deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
-                status: 'Quarantined',
-                statusVariant: 'danger',
-                updatedAt: '14 Mar · Just now',
-              }
-            : b
-        )
-      );
+      let serverVerified = false;
+      let responseJson: any = null;
 
-      setPendingStock((prev) => Math.max(0, prev - collectionKg));
-      setQuarantinedStock((prev) => prev + arrivalWeight);
+      if (!isOffline) {
+        try {
+          const res = await fetch('/api/inventory/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batchId: cleanCode,
+              arrivalGrossWeightKg: arrivalGross,
+              arrivalTareWeightKg: arrivalTare,
+              arrivalNetWeightKg: arrivalWeight,
+              storageZone: storageLocation,
+              notes: supervisorNote || undefined,
+              idempotencyKey,
+            }),
+          });
+          responseJson = await res.json().catch(() => null);
+          if (res.ok && responseJson?.success && responseJson?.serverVerified) {
+            serverVerified = true;
+          } else if (res.status === 401 || res.status === 403) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: `Authorization Denied (${res.status})`,
+              description: responseJson?.message || 'Authenticated warehouse manager session required.',
+            });
+            return;
+          } else if (res.status === 422) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: 'Validation Failed (422)',
+              description: responseJson?.message || 'Reweighment inputs failed schema validation.',
+            });
+            return;
+          } else if (res.status === 409) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: 'Step 1 Incomplete (409)',
+              description: responseJson?.message || 'Batch must complete Step 1 Field Verification before warehouse arrival.',
+            });
+            return;
+          }
+        } catch {
+          // Network failure -> fallback to local safe persistence
+        }
+      }
 
       // Persist to Dexie
       try {
         const db = getDatabase();
+        const batchStatus = serverVerified ? 'QUARANTINED_DISCREPANCY' : 'SAVED_OFFLINE_PENDING_SYNC';
+
         await db.batches.update(cleanCode, {
-          status: 'QUARANTINED_DISCREPANCY',
+          status: batchStatus,
           step2: {
-            arrivalGrossWeightKg: arrivalWeight + 1.5,
-            arrivalTareWeightKg: 1.5,
+            arrivalGrossWeightKg: arrivalGross,
+            arrivalTareWeightKg: arrivalTare,
             arrivalNetWeightKg: arrivalWeight,
             storageZone: storageLocation,
             shrinkagePercentAllowed: tolerancePercent,
@@ -781,12 +1441,14 @@ export default function InventoryManagerPage() {
             unexplainedVarianceKg: -excessLossKg,
             discrepancyTriggered: true,
             supervisorCaseId: `DISC-${cleanCode}`,
-            verifiedBy: 'S. Das (ID: IM-04)',
-            verifiedByRole: 'Warehouse Inventory Manager',
-            verifiedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-            notes: `Excess shrinkage: ${excessLossKg} kg over ${tolerancePercent}% tolerance. Stock quarantined.`,
+            verifiedBy: serverVerified
+              ? (responseJson?.verifiedBy || authenticatedUser?.fullName || 'S. Das')
+              : `${authenticatedUser?.fullName || 'S. Das'} (Local)`,
+            verifiedByRole: authenticatedUser?.role || 'Warehouse Inventory Manager',
+            verifiedAt: responseJson?.verifiedAt || nowStr,
+            notes: supervisorNote || `Excess shrinkage: ${excessLossKg} kg over ${tolerancePercent}% tolerance. Stock quarantined.`,
           },
-          updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          updatedAt: nowStr,
         });
 
         await db.discrepancyCases.put({
@@ -798,38 +1460,88 @@ export default function InventoryManagerPage() {
           unexplainedVarianceKg: -excessLossKg,
           status: 'OPEN_QUARANTINED',
           currentActionTaken: `Quarantine tag placed on lot; ${excessLossKg} kg held under supervisor review.`,
-          assignedSupervisor: 'A. K. Patnaik, District Procurement Officer (Mayurbhanj TDCCOL)',
-          createdAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-          notes: `Produce in transit to Baripada. Unexplained deficit of ${excessLossKg} kg exceeds ${tolerancePercent}% tolerance.`,
+          assignedSupervisor:
+            responseJson?.assignedSupervisor ||
+            resolveSupervisorAssignment(currentBatch?.village?.split(',')?.[1]?.trim() || 'Mayurbhanj'),
+          createdAt: nowStr,
+          notes: supervisorNote || `Produce in transit to Baripada. Unexplained deficit of ${excessLossKg} kg exceeds ${tolerancePercent}% tolerance.`,
         });
 
+        if (!serverVerified) {
+          await db.syncQueue.put({
+            local_id: idempotencyKey || `SYNC-WH-${cleanCode}`,
+            batch_code: selectedBatchCode,
+            entity: 'storage_receipt',
+            action: 'quarantine',
+            actor: {
+              id: authenticatedUser?.userId || 'IM-04',
+              name: authenticatedUser?.fullName || 'S. Das',
+              role: authenticatedUser?.role || 'Warehouse Inventory Manager',
+            },
+            payload: {
+              batchId: cleanCode,
+              arrivalGrossWeightKg: arrivalGross,
+              arrivalTareWeightKg: arrivalTare,
+              arrivalNetWeightKg: arrivalWeight,
+              storageZone: storageLocation,
+              notes: supervisorNote,
+              idempotencyKey,
+            },
+            state: 'queued',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            retryCount: 0,
+            approxSizeBytes: 2048,
+          });
+        }
+
         await db.auditEvents.put({
-          id: `AUD-${Date.now()}`,
-          timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-          actorId: 'IM-04',
-          actorName: 'S. Das',
-          actorRole: 'Warehouse Inventory Manager',
+          id: `AUD-${serverVerified ? 'WH' : 'LOCAL'}-${Date.now()}`,
+          timestamp: nowStr,
+          actorId: authenticatedUser?.userId || 'IM-04',
+          actorName: authenticatedUser?.fullName || 'S. Das',
+          actorRole: authenticatedUser?.role || 'Warehouse Inventory Manager',
           actionType: 'DISCREPANCY_QUARANTINED',
-          title: `Batch ${selectedBatchCode} Quarantined: ${excessLossKg} kg Excess Shrinkage`,
-          description: `Held in ${storageLocation} pending supervisor review. Arrival: ${arrivalWeight} kg vs Expected: ${collectionKg} kg.`,
+          title: `Batch ${selectedBatchCode} Quarantined: ${excessLossKg} kg Excess Shrinkage ${serverVerified ? '' : '(Local)'}`,
+          description: `Held in ${storageLocation} pending supervisor review. Arrival: ${arrivalWeight} kg vs Expected: ${collectionKg} kg. ${serverVerified ? 'Authoritative server verification.' : 'Saved locally; pending server sync.'}`,
           details: {
             batchCode: selectedBatchCode,
             collectionKg,
             arrivalWeight,
             excessLossKg,
             storageLocation,
+            serverVerified,
           },
         });
       } catch (err) {
         console.warn('Dexie update error in quarantineAction:', err);
       }
 
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.code === selectedBatchCode
+            ? {
+                ...b,
+                receivedKg: arrivalWeight,
+                deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
+                status: 'Quarantined',
+                statusVariant: 'danger',
+                syncState: serverVerified ? 'synced' : 'queued',
+                updatedAt: 'Just now',
+              }
+            : b
+        )
+      );
+
+      setPendingStock((prev) => Math.max(0, prev - collectionKg));
+      setQuarantinedStock((prev) => prev + arrivalWeight);
+
       const quarantineAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
         dayHeader: '14 March 2025',
         time: 'Just now',
-        actor: 'S. Das (Warehouse IM-04)',
-        action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-${batchLoss} kg excess)`,
+        actor: `${authenticatedUser?.fullName || 'S. Das'} (Warehouse IM)`,
+        action: `Held in ${storageLocation} pending drying review. Reason: Excess shrinkage (-${batchLoss} kg excess). ${serverVerified ? 'Server verified' : 'Saved locally (pending sync)'}`,
         delta: `-${batchLoss} kg`,
         deltaVariant: 'danger',
         isLive: true,
@@ -837,6 +1549,22 @@ export default function InventoryManagerPage() {
       setAuditTimeline((prev) => [...prev, quarantineAudit]);
       setIsDrawerOpen(false);
       setShowDiscardPrompt(false);
+
+      if (!serverVerified) {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: `Saved locally (Pending server sync) · ${selectedBatchCode}`,
+          description: 'PostgreSQL database is unconfigured. Quarantine status stored safely in local IndexedDB.',
+        });
+      } else {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: `Batch ${selectedBatchCode} Quarantined with Reject Reason`,
+          description: 'Stock held in segregation bay. Authoritative server verification confirmed.',
+        });
+      }
     },
     onUndo: async ({ previousState }) => {
       if (previousState) {
@@ -852,12 +1580,7 @@ export default function InventoryManagerPage() {
   const approveAction = useAction({
     name: 'approve-to-saleable',
     showToast: (t) => setActiveToast(t),
-    receipt: {
-      variant: 'success',
-      title: `Batch ${selectedBatchCode} Approved to Saleable`,
-      description: `Expected unchanged · Available +${arrivalWeight} kg. Discrepancy logged as non-punitive audit flag.`,
-    },
-    onExecute: async () => {
+    onExecute: async ({ idempotencyKey }) => {
       if (arrivalWeight <= 0 || arrivalWeight > 1000 || isNaN(arrivalWeight)) {
         setArrivalWeightError('Arrival weight must be a number between 1 and 1000.');
         setActiveToast({
@@ -871,6 +1594,136 @@ export default function InventoryManagerPage() {
       setArrivalWeightError(null);
 
       const cleanCode = selectedBatchCode.replace('#', '');
+      const arrivalGross = Number((arrivalWeight + 1.5).toFixed(2));
+      const arrivalTare = 1.5;
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+
+      let serverVerified = false;
+      let responseJson: any = null;
+
+      if (!isOffline) {
+        try {
+          const res = await fetch('/api/inventory/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batchId: cleanCode,
+              arrivalGrossWeightKg: arrivalGross,
+              arrivalTareWeightKg: arrivalTare,
+              arrivalNetWeightKg: arrivalWeight,
+              storageZone: storageLocation,
+              notes: supervisorNote || undefined,
+              idempotencyKey,
+            }),
+          });
+          responseJson = await res.json().catch(() => null);
+          if (res.ok && responseJson?.success && responseJson?.serverVerified) {
+            serverVerified = true;
+          } else if (res.status === 401 || res.status === 403) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: `Authorization Denied (${res.status})`,
+              description: responseJson?.message || 'Authenticated warehouse manager session required.',
+            });
+            return;
+          } else if (res.status === 422) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: 'Validation Failed (422)',
+              description: responseJson?.message || 'Reweighment inputs failed schema validation.',
+            });
+            return;
+          } else if (res.status === 409) {
+            setActiveToast({
+              id: `toast-${Date.now()}`,
+              variant: 'danger',
+              title: 'Step 1 Incomplete (409)',
+              description: responseJson?.message || 'Batch must complete Step 1 Field Verification before warehouse arrival.',
+            });
+            return;
+          }
+        } catch {
+          // Network failure -> fallback to local safe persistence
+        }
+      }
+
+      // Persist to Dexie
+      try {
+        const db = getDatabase();
+        const batchStatus = serverVerified ? 'VERIFIED_SALEABLE' : 'SAVED_OFFLINE_PENDING_SYNC';
+
+        await db.batches.update(cleanCode, {
+          status: batchStatus,
+          step2: {
+            arrivalGrossWeightKg: arrivalGross,
+            arrivalTareWeightKg: arrivalTare,
+            arrivalNetWeightKg: arrivalWeight,
+            storageZone: storageLocation,
+            shrinkagePercentAllowed: tolerancePercent,
+            shrinkageKgAllowed: acceptableLossKg,
+            unexplainedVarianceKg: -excessLossKg,
+            discrepancyTriggered: !isWithinTolerance,
+            verifiedBy: serverVerified
+              ? (responseJson?.verifiedBy || authenticatedUser?.fullName || 'S. Das')
+              : `${authenticatedUser?.fullName || 'S. Das'} (Local)`,
+            verifiedByRole: authenticatedUser?.role || 'Warehouse Inventory Manager',
+            verifiedAt: responseJson?.verifiedAt || nowStr,
+            notes: supervisorNote || `Conforms to acceptable tolerance. Released to saleable stock in ${storageLocation}.`,
+          },
+          updatedAt: nowStr,
+        });
+
+        if (!serverVerified) {
+          await db.syncQueue.put({
+            local_id: idempotencyKey || `SYNC-WH-${cleanCode}`,
+            batch_code: selectedBatchCode,
+            entity: 'storage_receipt',
+            action: 'verify',
+            actor: {
+              id: authenticatedUser?.userId || 'IM-04',
+              name: authenticatedUser?.fullName || 'S. Das',
+              role: authenticatedUser?.role || 'Warehouse Inventory Manager',
+            },
+            payload: {
+              batchId: cleanCode,
+              arrivalGrossWeightKg: arrivalGross,
+              arrivalTareWeightKg: arrivalTare,
+              arrivalNetWeightKg: arrivalWeight,
+              storageZone: storageLocation,
+              notes: supervisorNote,
+              idempotencyKey,
+            },
+            state: 'queued',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            retryCount: 0,
+            approxSizeBytes: 2048,
+          });
+        }
+
+        await db.auditEvents.put({
+          id: `AUD-${serverVerified ? 'WH' : 'LOCAL'}-${Date.now()}`,
+          timestamp: nowStr,
+          actorId: authenticatedUser?.userId || 'IM-04',
+          actorName: authenticatedUser?.fullName || 'S. Das',
+          actorRole: authenticatedUser?.role || 'Warehouse Inventory Manager',
+          actionType: 'WAREHOUSE_REWEIGH_COMPLETED',
+          title: `Batch ${selectedBatchCode} Approved: ${arrivalWeight} kg Net Released ${serverVerified ? '' : '(Local)'}`,
+          description: `Approved to saleable stock in ${storageLocation}. ${serverVerified ? 'Authoritative server verification.' : 'Saved locally; pending server sync.'}`,
+          details: {
+            batchCode: selectedBatchCode,
+            collectionKg,
+            arrivalWeight,
+            storageLocation,
+            supervisorNote,
+            serverVerified,
+          },
+        });
+      } catch (err) {
+        console.warn('Dexie update error in approveAction:', err);
+      }
 
       setBatches((prev) =>
         prev.map((b) =>
@@ -881,7 +1734,8 @@ export default function InventoryManagerPage() {
                 deltaKg: Number((arrivalWeight - collectionKg).toFixed(1)),
                 status: 'Available',
                 statusVariant: 'success',
-                updatedAt: '14 Mar · Just now',
+                syncState: serverVerified ? 'synced' : 'queued',
+                updatedAt: 'Just now',
               }
             : b
         )
@@ -890,55 +1744,12 @@ export default function InventoryManagerPage() {
       setPendingStock((prev) => Math.max(0, prev - collectionKg));
       setAvailableStock((prev) => prev + arrivalWeight);
 
-      // Persist to Dexie
-      try {
-        const db = getDatabase();
-        await db.batches.update(cleanCode, {
-          status: 'VERIFIED_SALEABLE',
-          step2: {
-            arrivalGrossWeightKg: arrivalWeight + 1.5,
-            arrivalTareWeightKg: 1.5,
-            arrivalNetWeightKg: arrivalWeight,
-            storageZone: storageLocation,
-            shrinkagePercentAllowed: tolerancePercent,
-            shrinkageKgAllowed: acceptableLossKg,
-            unexplainedVarianceKg: -excessLossKg,
-            discrepancyTriggered: !isWithinTolerance,
-            verifiedBy: 'S. Das (ID: IM-04)',
-            verifiedByRole: 'Warehouse Inventory Manager',
-            verifiedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-            notes: supervisorNote || `Conforms to acceptable tolerance. Released to saleable stock in ${storageLocation}.`,
-          },
-          updatedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        });
-
-        await db.auditEvents.put({
-          id: `AUD-${Date.now()}`,
-          timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST',
-          actorId: 'IM-04',
-          actorName: 'S. Das',
-          actorRole: 'Warehouse Inventory Manager',
-          actionType: 'WAREHOUSE_REWEIGH_COMPLETED',
-          title: `Batch ${selectedBatchCode} Approved: ${arrivalWeight} kg Net Released`,
-          description: `Approved to saleable stock in ${storageLocation}. Supervisor note: ${supervisorNote || 'Standard intake verified'}.`,
-          details: {
-            batchCode: selectedBatchCode,
-            collectionKg,
-            arrivalWeight,
-            storageLocation,
-            supervisorNote,
-          },
-        });
-      } catch (err) {
-        console.warn('Dexie update error in approveAction:', err);
-      }
-
       const approvalAudit: AuditTimelineEvent = {
         id: `aud-${Date.now()}`,
         dayHeader: '14 March 2025',
         time: 'Just now',
-        actor: 'S. Das (IM-04) & Supervisor Endorsement',
-        action: `Approved to saleable stock in ${storageLocation} with flag note`,
+        actor: `${authenticatedUser?.fullName || 'S. Das'} (IM) & Supervisor Endorsement`,
+        action: `Approved to saleable stock in ${storageLocation}. ${serverVerified ? 'Server verified' : 'Saved locally (pending sync)'}`,
         delta: `+${arrivalWeight.toFixed(1)} kg`,
         deltaVariant: 'success',
         isLive: true,
@@ -947,6 +1758,112 @@ export default function InventoryManagerPage() {
       setIsDrawerOpen(false);
       setShowDiscardPrompt(false);
       setConfirmingApproval(false);
+
+      if (!serverVerified) {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: `Saved locally (Pending server sync) · ${selectedBatchCode}`,
+          description: 'PostgreSQL database is unconfigured. Approved status stored safely in local IndexedDB.',
+        });
+      } else {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'success',
+          title: `Batch ${selectedBatchCode} Approved to Saleable`,
+          description: `Expected unchanged · Available +${arrivalWeight} kg. Authoritative server verification confirmed.`,
+        });
+      }
+    },
+  });
+
+  // 5. Sync Offline Warehouse Queue Action
+  const syncNowAction = useAction({
+    name: 'sync-warehouse-queue',
+    showToast: (t) => setActiveToast(t),
+    onExecute: async () => {
+      if (isOffline) {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: 'Offline mode active',
+          description: 'Network disconnected. Warehouse records remain safely stored in local IndexedDB.',
+        });
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/health');
+        const health = await res.json().catch(() => null);
+
+        if (!health?.database?.connected) {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'warning',
+            title: 'Server database unconfigured · Sync postponed',
+            description: 'PostgreSQL database is unconfigured. All offline warehouse records remain safely retained in local device ledger.',
+          });
+          return;
+        }
+
+        const db = getDatabase();
+        const pending = await db.syncQueue
+          .where('entity')
+          .equals('storage_receipt')
+          .toArray();
+
+        let syncedCount = 0;
+        for (const item of pending) {
+          try {
+            const verifyRes = await fetch('/api/inventory/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item.payload),
+            });
+            const vData = await verifyRes.json().catch(() => null);
+            if (verifyRes.ok && vData?.success && vData?.serverVerified) {
+              await db.syncQueue.delete(item.local_id);
+              await db.batches.update(item.payload.batchId, {
+                status: vData.status,
+              });
+              syncedCount++;
+            }
+          } catch {
+            // Strictly retain pending records on failure
+          }
+        }
+
+        const remaining = await db.syncQueue
+          .where('entity')
+          .equals('storage_receipt')
+          .toArray();
+
+        if (syncedCount > 0) {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'success',
+            title: `${syncedCount} warehouse record(s) synchronized with server`,
+            description:
+              remaining.length === 0
+                ? 'Warehouse sync buffer is now clear.'
+                : `${remaining.length} record(s) remain safely pending.`,
+          });
+        } else {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'warning',
+            title: 'Sync incomplete · Records retained',
+            description: `${remaining.length} record(s) retained locally in device ledger.`,
+          });
+        }
+      } catch (e) {
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: 'Sync attempt failed · Records retained',
+          description: 'Could not connect to server. Pending records safely preserved.',
+        });
+      }
     },
   });
 
@@ -967,23 +1884,171 @@ export default function InventoryManagerPage() {
             <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
               Inventory
             </h1>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
-              Today · 14 Mar 2025 · Baripada Central Depôt #02
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none flex items-center gap-2 flex-wrap">
+              <span>Today · 14 Mar 2025 · Baripada Central Depôt #02</span>
+              {authenticatedUser && (
+                <span className="border border-rule rounded px-1.5 py-0.5 bg-bg-sunken text-ink font-mono text-[10px]">
+                  Session: {authenticatedUser.role} ({authenticatedUser.fullName})
+                </span>
+              )}
+              {serverSyncStatus === 'ONLINE_SYNCED' ? (
+                <StatusBadge variant="success" className="text-[10px]">
+                  ✓ Cloud Registry: Synchronized
+                </StatusBadge>
+              ) : serverSyncStatus === 'SERVER_UNAVAILABLE' ? (
+                <StatusBadge variant="neutral" className="text-[10px]">
+                  ⚡ Offline / Local Ledger Mode (Server Unconfigured)
+                </StatusBadge>
+              ) : (
+                <StatusBadge variant="warning" className="text-[10px]">
+                  ⚡ Offline Device Mode
+                </StatusBadge>
+              )}
             </div>
           </div>
           {/* Primary Action Placement: Top-right aligned with page title row */}
-          <Button
-            variant="primary"
-            onClick={() => {
-              setShowDiscardPrompt(false);
-              setIsDrawerOpen(true);
-            }}
-            className="self-start sm:self-auto shadow-none"
-          >
-            Verify batch
-          </Button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <Button
+              variant="secondary"
+              onClick={() => syncNowAction.execute()}
+              disabled={syncNowAction.isDisabled}
+              className="shadow-none"
+            >
+              Sync offline queue
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (activeSection !== 'reweigh') {
+                  navigateToSection('reweigh');
+                }
+                setShowDiscardPrompt(false);
+                setIsDrawerOpen(true);
+              }}
+              className="shadow-none"
+            >
+              Verify batch
+            </Button>
+          </div>
         </div>
 
+        {/* Depot Operations Section Navigation Tabs */}
+        <div
+          role="tablist"
+          aria-label="Depot Operations Navigation"
+          className="flex items-center gap-2 border-b border-rule pb-2 overflow-x-auto"
+        >
+          <button
+            type="button"
+            role="tab"
+            id="tab-reweigh"
+            aria-selected={activeSection === 'reweigh'}
+            aria-controls="reweigh"
+            onClick={() => navigateToSection('reweigh')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'reweigh'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <Warehouse size={15} strokeWidth={1.5} />
+            <span>Depôt Re-Weigh</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'reweigh' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              Lot #BS-402
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-shrinkage"
+            aria-selected={activeSection === 'shrinkage'}
+            aria-controls="shrinkage"
+            onClick={() => navigateToSection('shrinkage')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'shrinkage'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <FileSpreadsheet size={15} strokeWidth={1.5} />
+            <span>Moisture Protocols</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'shrinkage' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              2% limit
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-quarantine"
+            aria-selected={activeSection === 'quarantine'}
+            aria-controls="quarantine"
+            onClick={() => navigateToSection('quarantine')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'quarantine'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <ShieldAlert size={15} strokeWidth={1.5} />
+            <span>Quarantine Review</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0" />
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'quarantine' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              2 batches
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-ledger"
+            aria-selected={activeSection === 'ledger'}
+            aria-controls="ledger"
+            onClick={() => navigateToSection('ledger')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'ledger'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <FileText size={15} strokeWidth={1.5} />
+            <span>Stock Ledgers</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'ledger' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              {availableStock.toFixed(0)} kg
+            </span>
+          </button>
+        </div>
+
+        {/* ========================================================
+            SECTION 1: Depôt Re-Weigh Workflow & Batches Table
+           ======================================================== */}
+        {activeSection === 'reweigh' && (
+        <div id="reweigh" className="space-y-6">
         {/* ========================================================
             TOP STRIP: 4 Stat Tiles in a Single Row
            ======================================================== */}
@@ -1011,17 +2076,37 @@ export default function InventoryManagerPage() {
           </div>
 
           {/* Tile 3: Available (saleable) */}
-          <div className="border border-rule rounded-[4px] bg-surface p-4 shadow-none">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted block select-none">
-                Available (saleable)
-              </span>
-              {availableStock > 0 && <VerifiedBadge />}
+          <div className="border border-rule rounded-[4px] bg-surface p-4 shadow-none flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted block select-none">
+                  Available (saleable)
+                </span>
+                {availableStock > 0 && <VerifiedBadge />}
+              </div>
+              <div className="font-heading text-[26px] font-bold tabular-nums text-success mt-1 leading-tight">
+                {availableStock.toFixed(1)}
+              </div>
+              <span className="text-[12px] font-mono text-ink-subtle block mt-0.5">kg</span>
+              {sales.length > 0 && (
+                <span className="text-[10px] font-mono text-ink-muted mt-1 block select-none">
+                  {sales.reduce((acc, s) => acc + s.quantityKg, 0).toFixed(1)} kg dispatched ({sales.length} sale{sales.length > 1 ? 's' : ''})
+                </span>
+              )}
             </div>
-            <div className="font-heading text-[26px] font-bold tabular-nums text-success mt-1 leading-tight">
-              {availableStock.toFixed(1)}
-            </div>
-            <span className="text-[12px] font-mono text-ink-subtle block mt-0.5">kg</span>
+            {availableStock > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSaleQuantityKg(Math.min(availableStock, 50));
+                  setSaleError(null);
+                  setIsSaleDrawerOpen(true);
+                }}
+                className="mt-2 text-[11px] font-mono text-accent hover:underline text-left select-none"
+              >
+                Dispatch Outward Sale →
+              </button>
+            )}
           </div>
 
           {/* Tile 4: Quarantined */}
@@ -1410,8 +2495,8 @@ export default function InventoryManagerPage() {
             STATE INVARIANTS FOOTER CARD
            ======================================================== */}
         <div className="border border-rule rounded-[4px] bg-surface p-4 shadow-none">
-          <SectionLabel className="mb-2">Invariants</SectionLabel>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[13px]">
+          <SectionLabel className="mb-2">Invariants & Safeguards</SectionLabel>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[13px]">
             <div className="border border-rule rounded-[2px] p-2.5 bg-bg-sunken/30">
               <span className="font-mono text-[11px] uppercase tracking-wider text-ink-muted block mb-0.5">
                 Invariant I
@@ -1436,8 +2521,713 @@ export default function InventoryManagerPage() {
                 Second verification never overwrites the first
               </span>
             </div>
+            <div className="border border-rule rounded-[2px] p-2.5 bg-bg-sunken/30">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-ink-muted block mb-0.5">
+                Invariant IV (Tribal Safeguard)
+              </span>
+              <span className="font-medium text-ink">
+                Gatherer payout 100% protected against transit loss
+              </span>
+            </div>
           </div>
         </div>
+      </div>
+      )}
+
+        {/* ========================================================
+            SECTION 2: Moisture Protocols (Shrinkage Benchmarks)
+           ======================================================== */}
+        {activeSection === 'shrinkage' && (
+          <div id="shrinkage" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Moisture Protocols &amp; Transit Shrinkage Benchmarks
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ଆର୍ଦ୍ରତା ନିୟମାବଳୀ ଓ ପ୍ରାମାଣିକ ଯାଞ୍ଚ</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Standardized moisture specifications, transit drying tolerances, and calibrated electronic sensor guidelines for MFP intake at Baripada Central Depôt.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                  <StatusBadge variant="info" className="text-[11px] font-mono">
+                    TDCCOL / TRIFED Standard
+                  </StatusBadge>
+                  <StatusBadge variant="success" className="text-[11px] font-mono">
+                    Tribal Payout 100% Protected
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Allowable Transit Shrinkage
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums">
+                    2.0%
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Mahua standard hot-weather transit limit
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Calibrated Safe Moisture
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-success tabular-nums font-mono">
+                    &lt; 10.0%
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Grade A standard (&gt;12% triggers quarantine)
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Gate Inspected Batches
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-accent tabular-nums font-mono">
+                    {GATE_MOISTURE_INSPECTIONS.length} Batches
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Electronic moisture meter verified
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Table 1: Product Moisture Standards & Storage Guidelines */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none space-y-3 p-4">
+              <div className="flex items-center justify-between border-b border-rule pb-2">
+                <div>
+                  <SectionLabel>Product Moisture Guidance</SectionLabel>
+                  <h3 className="font-heading text-[16px] font-semibold text-ink">
+                    Approved MFP Moisture Tolerances &amp; Storage Zones
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Official Odia Tribal Welfare Baseline
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Produce &amp; Botanical</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Optimal Moisture Range</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Max Limit (Quarantine)</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Shrinkage Baseline</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Storage Bay</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Tribal Safeguard</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {MOISTURE_STANDARDS.map((s) => (
+                      <TableRow key={s.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="text-[13px] font-medium text-ink whitespace-nowrap">
+                          <div>{s.produceName}</div>
+                          <div className="text-[11px] font-mono text-ink-muted italic">{s.scientificName} · {s.produceOdia}</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-ink whitespace-nowrap">
+                          {s.optimalRange}
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-danger whitespace-nowrap">
+                          {s.maxLimit}
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-muted whitespace-nowrap">
+                          {s.shrinkageBaseline}
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink whitespace-nowrap">
+                          <span className="bg-bg-sunken px-2 py-0.5 border border-rule rounded-[2px]">{s.storageBay}</span>
+                        </TableCell>
+                        <TableCell className="text-[11px] text-ink-muted max-w-[260px]">
+                          {s.protectionNote}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Table 2: Gate Arrival Moisture & Shrinkage Inspection Log */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none space-y-3 p-4">
+              <div className="flex items-center justify-between border-b border-rule pb-2">
+                <div>
+                  <SectionLabel>Gate Arrival Testing</SectionLabel>
+                  <h3 className="font-heading text-[16px] font-semibold text-ink">
+                    Calibrated Moisture Sensor &amp; Transit Shrinkage Log
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Baripada Central Gate #02
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Batch Code</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Sensor Moisture</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Dispatched kg</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Arrival kg</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Observed Loss</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Allowed (2%)</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Variance</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Compliance Status</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-center">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {GATE_MOISTURE_INSPECTIONS.map((g) => (
+                      <TableRow key={g.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="font-mono text-[13px] font-bold text-accent whitespace-nowrap">
+                          {g.batchCode}
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-ink whitespace-nowrap">
+                          {g.moistureReading.toFixed(1)}%
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-muted text-right whitespace-nowrap">
+                          {g.dispatchedKg.toFixed(1)} kg
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-medium text-ink text-right whitespace-nowrap">
+                          {g.arrivalKg.toFixed(1)} kg
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-danger text-right whitespace-nowrap">
+                          -{g.observedLossKg.toFixed(1)} kg ({g.lossPercent.toFixed(1)}%)
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-subtle text-right whitespace-nowrap">
+                          {g.allowedShrinkageKg.toFixed(1)} kg
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-right whitespace-nowrap">
+                          <span className={g.unexplainedVarianceKg < 0 ? 'text-danger' : 'text-success'}>
+                            {g.unexplainedVarianceKg < 0 ? `${g.unexplainedVarianceKg.toFixed(1)} kg` : '0.0 kg'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge variant={g.statusVariant} className="text-[10px] font-mono">
+                            {g.complianceStatus}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedBatchCode(g.batchCode);
+                              setIsDrawerOpen(true);
+                            }}
+                            className="text-[11px] font-mono text-accent hover:underline font-semibold focus:outline-2 focus:outline-accent"
+                          >
+                            Re-Weigh →
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Tribal Protection & Safeguard Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-4 shadow-none">
+              <div className="flex items-center gap-2 mb-2">
+                <SectionLabel>Statutory Safeguard</SectionLabel>
+                <StatusBadge variant="success">LABHA &amp; TRIFED Mandate</StatusBadge>
+              </div>
+              <p className="text-[13px] text-ink leading-relaxed">
+                <strong>Gatherer Payout Invariant:</strong> Transit weight loss and moisture evaporation during hot-weather transit between village collection centers and Baripada Central Depôt shall strictly never reduce the direct benefit transfer (DBT) disbursed to primary tribal gatherers. Gatherer payments are 100% determined at primary center weighment.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            SECTION 3: Quarantine Review & Discrepancy Clearance
+           ======================================================== */}
+        {activeSection === 'quarantine' && (
+          <div id="quarantine" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Quarantine Review &amp; Discrepancy Clearance
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ପୃଥକୀକରଣ ଓ ତ୍ରୁଟି ସମାଧାନ</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Isolated non-saleable stock awaiting supervisor discrepancy resolution, laboratory quality verification, or disposal authorization. Quarantined stock cannot be dispatched for sale.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                  <StatusBadge variant="danger" className="text-[11px] font-mono">
+                    Non-Saleable Stock Isolated
+                  </StatusBadge>
+                  <StatusBadge variant="warning" className="text-[11px] font-mono">
+                    Supervisor Clearance Required
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Quarantined Physical Stock
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-danger tabular-nums font-mono">
+                    {quarantinedStock.toFixed(1)} kg
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Segregated in Quarantine Bays Q1 &amp; Q2
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Quarantined Batches
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums font-mono">
+                    {QUARANTINED_BATCHES_ROSTER.length} Batches
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    #BS-396 (Grade C) &amp; #BS-394 (Variance)
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Open Discrepancy Investigation
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-accent tabular-nums font-mono">
+                    Case DISC-402
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Transit shrinkage audit under review
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quarantined Batches Roster Table */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none space-y-3 p-4">
+              <div className="flex items-center justify-between border-b border-rule pb-2">
+                <div>
+                  <SectionLabel>Isolated Quarantine Inventory</SectionLabel>
+                  <h3 className="font-heading text-[16px] font-semibold text-ink">
+                    Batches Withheld From Saleable Stock
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Requires SUPERVISOR_ADMIN Role To Endorse
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Batch Code</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Produce</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Collector &amp; Village</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Weight (Arrival)</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Storage Bay</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Grade</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Quarantine Reason</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-center">Documentation</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {QUARANTINED_BATCHES_ROSTER.map((q) => (
+                      <TableRow key={q.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="font-mono text-[13px] font-bold text-danger whitespace-nowrap">
+                          {q.batchCode}
+                        </TableCell>
+                        <TableCell className="text-[13px] font-medium text-ink whitespace-nowrap">
+                          {q.produceName}
+                        </TableCell>
+                        <TableCell className="text-[12px] text-ink whitespace-nowrap">
+                          <div className="font-medium">{q.collectorName}</div>
+                          <div className="text-[11px] text-ink-muted font-mono">{q.village}</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-ink text-right whitespace-nowrap">
+                          {q.receivedKg.toFixed(1)} kg
+                          <span className="text-[10px] font-mono text-ink-muted block font-normal">Col: {q.collectionKg.toFixed(1)} kg</span>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] whitespace-nowrap">
+                          <span className="bg-danger/10 text-danger border border-danger/30 px-1.5 py-0.5 rounded-[2px] font-semibold">
+                            {q.storageLocation}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge variant="danger" className="text-[10px] font-mono">
+                            Grade {q.qualityGrade}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-[12px] text-ink-muted max-w-[340px]">
+                          {q.quarantineReason}
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={`/collection/tag/${q.batchCode.replace('#', '')}`}
+                              className="text-[11px] font-mono text-accent hover:underline font-semibold focus:outline-2 focus:outline-accent"
+                            >
+                              Tag PDF
+                            </Link>
+                            <span>·</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedBatchCode(q.batchCode);
+                                setIsDrawerOpen(true);
+                              }}
+                              className="text-[11px] font-mono text-ink-muted hover:text-ink hover:underline focus:outline-2 focus:outline-accent"
+                            >
+                              Review
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Active Discrepancy Case Investigation Panel */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-rule pb-3">
+                <div className="flex items-center gap-2">
+                  <SectionLabel>Active Discrepancy Case</SectionLabel>
+                  <StatusBadge variant="warning">Case #DISC-402</StatusBadge>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Assigned Supervisor: S. Mohapatra (Baripada Zone)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Subject Batch
+                  </span>
+                  <div className="font-heading text-[18px] font-bold text-accent font-mono">
+                    #BS-402 (Dried Mahua Flowers)
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Karanjia Collection Point #01
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Transit Discrepancy
+                  </span>
+                  <div className="font-heading text-[18px] font-bold text-danger font-mono">
+                    -5.0 kg Observed (5.0%)
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    2.0 kg allowed · 3.0 kg unexplained variance
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Investigation Action
+                  </span>
+                  <div className="text-[13px] font-medium text-ink mt-1">
+                    Supervisor Endorsement Required
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Reason: High ambient transit drying
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-bg-sunken/60 border border-rule rounded-[2px] text-[12px] text-ink leading-relaxed">
+                <strong>Mandatory Invariant:</strong> Quarantined batches remain physically and digitally locked. They are strictly excluded from saleable stock tallies and cannot be allocated to outward dispatch until formally approved with an authoritative supervisor signature.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            SECTION 4: Stock Ledgers & Outward Sales
+           ======================================================== */}
+        {activeSection === 'ledger' && (
+          <div id="ledger" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Stock Movement &amp; Outward Sales Ledger
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ମହଜୁଦ ଓ ବିକ୍ରୟ ଖାତା</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Authoritative, double-entry inventory ledger of physical received stock, inward transfers, outward sales dispatches, and available saleable balances at Baripada Central Depôt #02.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                  <StatusBadge variant="success" className="text-[11px] font-mono">
+                    Real-Time Ledger Balance
+                  </StatusBadge>
+                  <StatusBadge variant="info" className="text-[11px] font-mono">
+                    Double-Entry Audited
+                  </StatusBadge>
+                  {availableStock > 0 && (
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setSaleQuantityKg(Math.min(availableStock, 50));
+                        setSaleError(null);
+                        setIsSaleDrawerOpen(true);
+                      }}
+                      className="shadow-none"
+                    >
+                      Dispatch Outward Sale
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Available Saleable Stock
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-success tabular-nums font-mono">
+                    {availableStock.toFixed(1)} kg
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Verified physical inventory
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Total Outward Dispatched
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums font-mono">
+                    {sales.reduce((acc, s) => acc + s.quantityKg, 0).toFixed(1)} kg
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    {sales.length} outward sale transaction{sales.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Quarantined Restricted
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-danger tabular-nums font-mono">
+                    {quarantinedStock.toFixed(1)} kg
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Withheld non-saleable stock
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Forecast Incoming
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink-muted tabular-nums font-mono">
+                    {expectedStock.toFixed(1)} kg
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Forecast only · not physical stock
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Table 1: Outward Sales Dispatches */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none space-y-3 p-4">
+              <div className="flex items-center justify-between border-b border-rule pb-2">
+                <div>
+                  <SectionLabel>Outward Sales &amp; Procurement Dispatches</SectionLabel>
+                  <h3 className="font-heading text-[16px] font-semibold text-ink">
+                    Processed Dispatches to State &amp; Institutional Buyers
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  TDCCOL State Depôt Network
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Sale Reference</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Produce</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Buyer / Processing Plant</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Quantity Dispatched</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">MSP Rate</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Total Realized</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Sync State</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sales.length > 0 ? (
+                      sales.map((s) => (
+                        <TableRow key={s.id} className="hover:bg-bg-sunken/30">
+                          <TableCell className="font-mono text-[13px] font-bold text-accent whitespace-nowrap">
+                            {s.saleReference}
+                          </TableCell>
+                          <TableCell className="text-[13px] font-medium text-ink whitespace-nowrap">
+                            {s.produceName}
+                          </TableCell>
+                          <TableCell className="text-[12px] text-ink whitespace-nowrap">
+                            {s.buyerName}
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-ink text-right whitespace-nowrap">
+                            {s.quantityKg.toFixed(1)} kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[12px] text-ink-muted text-right whitespace-nowrap">
+                            ₹{(s.salePricePerKg ?? 42.0).toFixed(2)}/kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-success text-right whitespace-nowrap">
+                            ₹{(s.totalAmount ?? s.quantityKg * 42.0).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <StatusBadge variant={s.syncState === 'synced' ? 'success' : 'warning'} className="text-[10px] font-mono">
+                              {s.syncState === 'synced' ? '✓ Synced' : '⚡ Local Queued'}
+                            </StatusBadge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <>
+                        <TableRow className="hover:bg-bg-sunken/30">
+                          <TableCell className="font-mono text-[13px] font-bold text-accent whitespace-nowrap">
+                            SALE-BRP-0012
+                          </TableCell>
+                          <TableCell className="text-[13px] font-medium text-ink whitespace-nowrap">
+                            Dried Mahua Flowers
+                          </TableCell>
+                          <TableCell className="text-[12px] text-ink whitespace-nowrap">
+                            TDCCOL Central Processing Plant, Baripada
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-ink text-right whitespace-nowrap">
+                            100.0 kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[12px] text-ink-muted text-right whitespace-nowrap">
+                            ₹42.00/kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-success text-right whitespace-nowrap">
+                            ₹4,200.00
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <StatusBadge variant="success" className="text-[10px] font-mono">
+                              ✓ Dispatched · Verified
+                            </StatusBadge>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow className="hover:bg-bg-sunken/30">
+                          <TableCell className="font-mono text-[13px] font-bold text-accent whitespace-nowrap">
+                            SALE-BRP-0009
+                          </TableCell>
+                          <TableCell className="text-[13px] font-medium text-ink whitespace-nowrap">
+                            Dried Mahua Flowers
+                          </TableCell>
+                          <TableCell className="text-[12px] text-ink whitespace-nowrap">
+                            Mayurbhanj Tribal MFP Federation
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-ink text-right whitespace-nowrap">
+                            45.0 kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[12px] text-ink-muted text-right whitespace-nowrap">
+                            ₹42.00/kg
+                          </TableCell>
+                          <TableCell className="font-mono text-[13px] font-bold text-success text-right whitespace-nowrap">
+                            ₹1,890.00
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <StatusBadge variant="success" className="text-[10px] font-mono">
+                              ✓ Dispatched · Verified
+                            </StatusBadge>
+                          </TableCell>
+                        </TableRow>
+                      </>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Table 2: Physical Stock Movements Journal */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none space-y-3 p-4">
+              <div className="flex items-center justify-between border-b border-rule pb-2">
+                <div>
+                  <SectionLabel>Depôt Stock Movements Journal</SectionLabel>
+                  <h3 className="font-heading text-[16px] font-semibold text-ink">
+                    Chronological Double-Entry Stock Movement History
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-ink-muted">
+                  Baripada Central Depôt #02
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Movement ID</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Date &amp; Time</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Transaction Type</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Lot / Batch Ref</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Quantity (Δ)</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Saleable Balance</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Operator</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {PHYSICAL_STOCK_MOVEMENTS.map((m) => (
+                      <TableRow key={m.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="font-mono text-[12px] font-medium text-ink whitespace-nowrap">
+                          {m.movementRef}
+                        </TableCell>
+                        <TableCell className="font-mono text-[11px] text-ink-muted whitespace-nowrap">
+                          {m.timestamp}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge variant={m.typeVariant} className="text-[10px] font-mono">
+                            {m.movementType}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-accent whitespace-nowrap">
+                          {m.batchOrSaleRef}
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-right whitespace-nowrap">
+                          <span className={m.deltaKg > 0 ? 'text-success' : 'text-danger'}>
+                            +{m.deltaKg.toFixed(1)} kg
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-ink text-right whitespace-nowrap">
+                          {m.balanceAfterKg > 0 ? `${m.balanceAfterKg.toFixed(1)} kg` : '— (Pending)'}
+                        </TableCell>
+                        <TableCell className="text-[12px] text-ink-muted whitespace-nowrap">
+                          {m.operator}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Embedded Stock Audit Timeline */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5">
+              <AuditTimelineArtifact
+                batchCode="#BS-402"
+                events={auditTimeline}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================
@@ -1578,6 +3368,28 @@ export default function InventoryManagerPage() {
                   </p>
                 </div>
 
+                {/* Product-Specific Storage & Environment Profile (Phase G3 / Product Guidance) */}
+                <div className="space-y-1.5" data-testid="inventory-product-guidance">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-[0.06em] font-bold text-ink-muted">
+                      Product-Specific Storage Profile & Handling Standards
+                    </span>
+                    <span className="text-[10px] font-mono text-accent bg-accent/10 px-1.5 py-0.2 rounded font-semibold">
+                      PRE-RECEIPT INSPECTION
+                    </span>
+                  </div>
+                  <ProductGuidanceCard
+                    productIdentifier={currentBatch?.product || 'Dried Mahua Flowers'}
+                    stage="STORAGE"
+                    showChecklist={true}
+                    interactiveChecklist={true}
+                    compact={false}
+                    measuredMoisturePercent={qualityGrade === 'A' ? 8.8 : qualityGrade === 'B' ? 12.4 : 16.0}
+                    measuredTareKg={1.5}
+                    observedStorageLocation={storageLocation}
+                  />
+                </div>
+
                 {/* 2. Input Block: Arrival weight & Quality */}
                 <div className="border border-rule rounded-[4px] p-3.5 bg-surface space-y-3">
                   <SectionLabel>Arrival Re-Weigh Calibration</SectionLabel>
@@ -1602,9 +3414,14 @@ export default function InventoryManagerPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase text-ink-muted block">
-                        Storage Location
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-semibold uppercase text-ink-muted block">
+                          Storage Location
+                        </label>
+                        <span className="text-[10px] font-mono text-accent">
+                          Rec: Rack B (Dry Stack)
+                        </span>
+                      </div>
                       <Select
                         id="storage-location-select"
                         value={storageLocation}
@@ -1612,9 +3429,18 @@ export default function InventoryManagerPage() {
                         disabled={changeStorageLocationAction.isDisabled}
                       >
                         <option value="Rack A (Central Bay)">Rack A (Central Bay)</option>
-                        <option value="Rack B (Dry Stack)">Rack B (Dry Stack)</option>
+                        <option value="Rack B (Dry Stack)">Rack B (Dry Stack) — Recommended</option>
                         <option value="Rack C (Quarantine Segregation)">Rack C (Quarantine Segregation)</option>
                       </Select>
+                      <div className="text-[10.5px] font-mono text-ink-subtle pt-0.5">
+                        {storageLocation.includes('Rack B') ? (
+                          <span className="text-success font-medium">✓ Optimal: Aerated bay with raised dunnage pallets.</span>
+                        ) : storageLocation.includes('Rack C') ? (
+                          <span className="text-danger font-medium">⚠ Quarantine segregation: Restricted non-saleable bay.</span>
+                        ) : (
+                          <span className="text-ink-muted">Transit bay: Ensure wooden pallets are deployed.</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1748,6 +3574,89 @@ export default function InventoryManagerPage() {
                 Supervisor note required to clear excess shrinkage flag
               </span>
             )}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Outward Sale Allocation Drawer (F10 Invariant: Sales cannot exceed stock) */}
+      <Drawer open={isSaleDrawerOpen} onOpenChange={setIsSaleDrawerOpen}>
+        <DrawerContent className="max-w-[480px]">
+          <DrawerHeader>
+            <DrawerTitle>Dispatch Outward Sale</DrawerTitle>
+            <DrawerDescription>
+              Allocate and deduct verified saleable inventory for authorized state procurement or TDCCOL processing.
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerBody className="space-y-4">
+            <div className="border border-rule rounded-[4px] p-3 bg-bg-sunken">
+              <span className="text-[11px] uppercase tracking-wider text-ink-muted block font-mono">
+                Current Saleable Stock
+              </span>
+              <div className="text-[20px] font-bold tabular-nums text-success font-heading">
+                {availableStock.toFixed(1)} kg
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="sale-quantity-input" className="text-[12px] font-semibold text-ink block mb-1">
+                Dispatch Quantity (kg)
+              </label>
+              <NumberInput
+                id="sale-quantity-input"
+                unit="kg"
+                value={saleQuantityKg}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setSaleQuantityKg(val);
+                  if (val > availableStock) {
+                    setSaleError(
+                      `Cannot exceed available stock of ${availableStock.toFixed(1)} kg. Negative inventory is prohibited.`
+                    );
+                  } else {
+                    setSaleError(null);
+                  }
+                }}
+                min={0}
+                max={availableStock}
+                step={0.5}
+                className="w-full"
+              />
+              {saleError && (
+                <p className="text-[11px] font-mono text-danger mt-1">{saleError}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="sale-buyer-input" className="text-[12px] font-semibold text-ink block mb-1">
+                Buyer / Destination Entity
+              </label>
+              <input
+                id="sale-buyer-input"
+                type="text"
+                value={saleBuyerName}
+                onChange={(e) => setSaleBuyerName(e.target.value)}
+                className="w-full h-9 px-3 text-[13px] border border-rule rounded-[4px] bg-surface"
+              />
+            </div>
+          </DrawerBody>
+          <DrawerFooter>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="secondary"
+                onClick={() => setIsSaleDrawerOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleExecuteSale}
+                disabled={saleQuantityKg <= 0 || saleQuantityKg > availableStock}
+                className="flex-1"
+              >
+                Confirm Dispatch
+              </Button>
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

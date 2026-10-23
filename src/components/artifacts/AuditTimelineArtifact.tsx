@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { FileText, Download, Share2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { downloadPdfBlob, sharePdf } from '../../lib/pdfClient';
 
 export interface AuditTimelineEvent {
   id: string;
@@ -32,6 +34,45 @@ export const AuditTimelineArtifact: React.FC<AuditTimelineArtifactProps> = ({
     acc[day].push(event);
     return acc;
   }, {});
+
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isSharingPdf, setIsSharingPdf] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const cleanCode = (batchCode || 'BS-402').replace('#', '');
+  const pdfUrl = `/api/audit/${encodeURIComponent(cleanCode)}/pdf`;
+
+  // Dedicated Download Audit PDF Handler
+  const handleDownloadPdf = async () => {
+    try {
+      await downloadPdfBlob({
+        url: pdfUrl,
+        filename: `BanaSetu-AuditDossier-${cleanCode}.pdf`,
+        onLoadingChange: setIsDownloadingPdf,
+        onSuccess: (fn) => setStatusMessage(`Audit dossier downloaded: ${fn}`),
+        onError: (err) => setStatusMessage(err),
+      });
+    } catch {
+      // Handled in onError
+    }
+  };
+
+  // Dedicated Share Audit PDF Handler
+  const handleSharePdf = async () => {
+    try {
+      await sharePdf({
+        url: pdfUrl,
+        filename: `BanaSetu-AuditDossier-${cleanCode}.pdf`,
+        title: `BanaSetu Audit Dossier ${batchCode}`,
+        text: `Official Chain-of-Custody Audit Dossier for Batch ${batchCode}`,
+        onLoadingChange: setIsSharingPdf,
+        onSuccess: () => setStatusMessage('Audit dossier shared successfully'),
+        onError: (err) => setStatusMessage(err),
+      });
+    } catch {
+      // Handled in onError
+    }
+  };
 
   // Download audit as JSON for judges
   const handleDownloadJson = () => {
@@ -70,14 +111,64 @@ export const AuditTimelineArtifact: React.FC<AuditTimelineArtifactProps> = ({
           </span>
         </div>
 
-        {/* Rectangular Link for Judges */}
-        <button
-          onClick={handleDownloadJson}
-          className="px-2.5 py-1 rounded-[2px] border border-rule bg-surface text-ink text-[12px] font-mono hover:bg-bg-sunken hover:border-ink-subtle transition-colors focus:outline-2 focus:outline-accent"
-        >
-          Download audit (JSON)
-        </button>
+        {/* Audit Download Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Direct Download Action */}
+          <button
+            id="btn-download-audit-pdf"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            className="px-2.5 py-1 rounded-[2px] border border-rule bg-surface text-ink text-[12px] font-mono hover:bg-bg-sunken hover:border-ink-subtle transition-colors focus:outline-2 focus:outline-accent inline-flex items-center gap-1.5"
+            title="Download official A4 Chain-of-Custody Audit Dossier PDF directly"
+          >
+            <Download size={13} strokeWidth={1.5} />
+            <span>{isDownloadingPdf ? 'Downloading...' : 'Download PDF'}</span>
+          </button>
+
+          {/* Dedicated Share Action */}
+          <button
+            id="btn-share-audit-pdf"
+            onClick={handleSharePdf}
+            disabled={isSharingPdf}
+            className="px-2.5 py-1 rounded-[2px] border border-rule bg-surface text-ink text-[12px] font-mono hover:bg-bg-sunken hover:border-ink-subtle transition-colors focus:outline-2 focus:outline-accent inline-flex items-center gap-1.5"
+            title="Share official A4 Audit Dossier PDF via system share sheet"
+          >
+            <Share2 size={13} strokeWidth={1.5} />
+            <span>{isSharingPdf ? 'Sharing...' : 'Share'}</span>
+          </button>
+
+          {/* Direct link preserving existing test inspection */}
+          <a
+            href={`/api/audit/${encodeURIComponent((batchCode || '').replace('#', ''))}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1 rounded-[2px] border border-rule bg-surface text-ink text-[12px] font-mono hover:bg-bg-sunken hover:border-ink-subtle transition-colors focus:outline-2 focus:outline-accent inline-flex items-center gap-1.5"
+            title="Open official A4 Chain-of-Custody Audit Dossier PDF in browser"
+          >
+            <FileText size={13} strokeWidth={1.5} />
+            <span>Audit PDF</span>
+          </a>
+
+          <button
+            onClick={handleDownloadJson}
+            className="px-2.5 py-1 rounded-[2px] border border-rule bg-surface text-ink text-[12px] font-mono hover:bg-bg-sunken hover:border-ink-subtle transition-colors focus:outline-2 focus:outline-accent"
+          >
+            Download audit (JSON)
+          </button>
+        </div>
       </div>
+
+      {statusMessage && (
+        <div className="p-2 rounded-[2px] border border-rule bg-bg-sunken text-[12px] font-mono text-ink flex items-center justify-between">
+          <span>{statusMessage}</span>
+          <button
+            onClick={() => setStatusMessage(null)}
+            className="text-[10px] text-ink-muted hover:text-ink underline ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Timeline grouped by day */}
       <div className="space-y-6">

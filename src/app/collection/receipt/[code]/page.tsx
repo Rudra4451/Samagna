@@ -11,7 +11,8 @@ import {
 import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { CollectionReceiptArtifact, CollectionReceiptData } from '../../../../components/artifacts/CollectionReceiptArtifact';
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Printer, Download, FileText, Share2 } from 'lucide-react';
+import { downloadPdfBlob, sharePdf } from '../../../../lib/pdfClient';
 
 interface ReceiptPageProps {
   params: {
@@ -25,6 +26,9 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
 
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isSharingPdf, setIsSharingPdf] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [dbBatch, setDbBatch] = useState<any>(null);
 
   useEffect(() => {
@@ -61,6 +65,38 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
       console.error('Failed to download PNG:', err);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  // Dedicated Download PDF Handler
+  const handleDownloadPdf = async () => {
+    try {
+      await downloadPdfBlob({
+        url: `/api/receipts/${cleanCode}/pdf`,
+        filename: `BanaSetu-Receipt-${cleanCode}.pdf`,
+        onLoadingChange: setIsDownloadingPdf,
+        onSuccess: (fn) => setToastMessage(`Receipt PDF downloaded: ${fn}`),
+        onError: (err) => setToastMessage(err),
+      });
+    } catch {
+      // Handled in onError
+    }
+  };
+
+  // Dedicated Share PDF Handler
+  const handleSharePdf = async () => {
+    try {
+      await sharePdf({
+        url: `/api/receipts/${cleanCode}/pdf`,
+        filename: `BanaSetu-Receipt-${cleanCode}.pdf`,
+        title: `BanaSetu Receipt ${cleanCode}`,
+        text: `Official BanaSetu A5 Collection Receipt for Batch #${cleanCode} (${receiptData.productName}, ${receiptData.netWeightKg} kg)`,
+        onLoadingChange: setIsSharingPdf,
+        onSuccess: () => setToastMessage('Receipt shared successfully'),
+        onError: (err) => setToastMessage(err),
+      });
+    } catch {
+      // Handled in onError
     }
   };
 
@@ -150,15 +186,53 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
           <span>Back to Collection</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Direct Download Action */}
+          <Button
+            id="btn-download-receipt-pdf"
+            variant="secondary"
+            size="sm"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            title="Download official server-signed A5 Receipt PDF directly"
+          >
+            <Download size={14} strokeWidth={1.5} />
+            <span>{isDownloadingPdf ? 'Downloading PDF...' : 'Download PDF'}</span>
+          </Button>
+
+          {/* Dedicated Share Action */}
+          <Button
+            id="btn-share-receipt-pdf"
+            variant="secondary"
+            size="sm"
+            onClick={handleSharePdf}
+            disabled={isSharingPdf}
+            title="Share official A5 Receipt PDF via system share sheet"
+          >
+            <Share2 size={14} strokeWidth={1.5} />
+            <span>{isSharingPdf ? 'Sharing...' : 'Share'}</span>
+          </Button>
+
+          {/* Direct link preserving existing test inspection */}
+          <a
+            href={`/api/receipts/${cleanCode}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] border border-rule bg-surface text-[12px] font-medium text-ink hover:bg-bg-sunken hover:border-ink-subtle select-none"
+            title="Download official server-signed A5 Receipt PDF"
+          >
+            <FileText size={14} strokeWidth={1.5} />
+            <span>Official A5 PDF</span>
+          </a>
+
           <Button
             variant="secondary"
             size="sm"
             onClick={handleDownloadPng}
             disabled={isDownloading}
           >
-            <Download size={16} strokeWidth={1.5} />
-            <span>{isDownloading ? 'Exporting...' : 'Download PNG'}</span>
+            <Download size={14} strokeWidth={1.5} />
+            <span>{isDownloading ? 'Exporting...' : 'PNG'}</span>
           </Button>
 
           <Button
@@ -166,11 +240,23 @@ export default function CollectionReceiptPage({ params }: ReceiptPageProps) {
             size="sm"
             onClick={() => window.print()}
           >
-            <Printer size={16} strokeWidth={1.5} />
-            <span>Print Preview</span>
+            <Printer size={14} strokeWidth={1.5} />
+            <span>Print</span>
           </Button>
         </div>
       </div>
+
+      {toastMessage && (
+        <div className="no-print w-full max-w-[148mm] mb-4 p-2.5 rounded-[4px] border border-rule bg-surface text-[13px] text-ink flex items-center justify-between">
+          <span>{toastMessage}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-[11px] font-mono text-ink-muted hover:text-ink underline ml-3"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* A5 Printable Receipt Artifact */}
       <div ref={receiptRef} className="w-full flex justify-center">

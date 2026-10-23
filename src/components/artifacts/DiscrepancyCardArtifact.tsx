@@ -92,7 +92,7 @@ export const DiscrepancyCardArtifact: React.FC<DiscrepancyCardProps> = ({
       {/* Small Panel with Tolerance and Acceptable vs Excess Loss */}
       <div className="p-3 border border-rule bg-bg-sunken/30 rounded-[2px] space-y-1.5 text-[12px] font-mono">
         <div className="flex justify-between items-baseline text-ink-muted">
-          <span>Configured tolerance: {configuredTolerancePercent}% ({productName}) · placeholder value</span>
+          <span>Configured tolerance: {configuredTolerancePercent}% ({productName}) · Illustrative benchmark (unverified policy)</span>
         </div>
         <div className="flex justify-between items-baseline pt-0.5 border-t border-rule/50">
           <span className="text-ink">

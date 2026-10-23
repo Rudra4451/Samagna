@@ -189,7 +189,7 @@ export function useOffline(): UseOfflineReturn {
   // Sync an individual record with mock server API
   const syncSingleRecord = async (
     record: SyncRecord
-  ): Promise<{ success: boolean; conflict?: boolean; serverPayload?: any; error?: string }> => {
+  ): Promise<{ success: boolean; conflict?: boolean; serverPayload?: any; error?: string; permanent?: boolean }> => {
     // If wifi-only is ON and record has heavy photos, defer on mobile data simulation
     if (wifiOnly && record.hasPhotos) {
       return {
@@ -219,16 +219,132 @@ export function useOffline(): UseOfflineReturn {
       };
     }
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 350));
-
-    // Simulated Conflict Check for Demo
+    // Demo Simulated Conflict Check
     if (record.server_payload && record.state === 'conflict') {
       return { success: false, conflict: true, serverPayload: record.server_payload };
     }
 
-    // Normal success simulation
-    return { success: true };
+    // Real API Handshake with Graceful Offline Resilience
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotencyKey: record.local_id,
+          localId: record.local_id,
+          entityType: record.entity,
+          action: record.action,
+          payload: record.payload,
+          hasPhotos: record.hasPhotos,
+        }),
+      });
+
+      if (response.status === 409) {
+        const conflictData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          conflict: true,
+          serverPayload: conflictData.server_payload || record.server_payload,
+        };
+      }
+
+      if (!response.ok && response.status !== 200 && response.status !== 201) {
+        if (response.status === 503) {
+          return {
+            success: false,
+            error: 'Server database unconfigured: transaction preserved in offline queue',
+          };
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const isPermanent = [400, 401, 403, 422].includes(response.status);
+        return {
+          success: false,
+          permanent: isPermanent,
+          error: errData.message || `Server responded with HTTP ${response.status}`,
+        };
+      }
+
+      const syncResult = await response.json().catch(() => ({}));
+      const confirmedBatchId =
+        syncResult?.batchId ||
+        syncResult?.cachedResponse?.batchId ||
+        record.payload?.id ||
+        record.batch_code?.replace(/^#/, '');
+
+      // Step B & C: Check for queued offline photo evidence and upload if present
+      if (record.hasPhotos || record.attachmentId) {
+        try {
+          const db = getDatabase();
+          let attachment = record.attachmentId
+            ? await db.offlineAttachments.get(record.attachmentId)
+            : await db.offlineAttachments.where('recordId').equals(record.local_id).first();
+
+          if (!attachment) {
+            attachment = await db.offlineAttachments.where('batchCode').equals(record.batch_code).first();
+          }
+
+          if (attachment && attachment.blob) {
+            // Upload to server storage if not yet confirmed uploaded
+            if (attachment.uploadState !== 'uploaded') {
+              const formData = new FormData();
+              const ext =
+                attachment.mimeType === 'image/png'
+                  ? '.png'
+                  : attachment.mimeType === 'image/webp'
+                  ? '.webp'
+                  : '.jpg';
+              formData.append('file', attachment.blob, `evidence-${record.local_id}${ext}`);
+              formData.append('batchId', confirmedBatchId);
+              formData.append('evidenceType', 'COLLECTION_PHOTO');
+
+              const uploadRes = await fetch('/api/uploads', {
+                method: 'POST',
+                body: formData,
+              });
+
+              if (uploadRes.status === 201 || uploadRes.ok) {
+                const uploadData = await uploadRes.json().catch(() => ({}));
+                await db.offlineAttachments.update(attachment.id, {
+                  uploadState: 'uploaded',
+                  serverUrl: uploadData?.data?.url,
+                  serverAttachmentId: uploadData?.data?.id,
+                  sha256Hash: uploadData?.data?.sha256Hash,
+                  error: undefined,
+                });
+              } else {
+                // Upload failed: Preserve photo Blob and queued record for safe retry
+                const isPermanentUploadErr = [401, 403, 413, 415, 422].includes(uploadRes.status);
+                const uploadErr = await uploadRes.json().catch(() => ({}));
+                await db.offlineAttachments.update(attachment.id, {
+                  uploadState: isPermanentUploadErr ? 'failed' : 'pending',
+                  error: uploadErr.message || `Upload failed with HTTP ${uploadRes.status}`,
+                });
+                return {
+                  success: false,
+                  permanent: isPermanentUploadErr,
+                  error: `Batch created on server, but photo evidence upload failed (${uploadRes.status}): ${uploadErr.message || 'pending retry'}`,
+                };
+              }
+            }
+          }
+        } catch (photoErr: any) {
+          console.warn('Offline photo upload attempt failed:', photoErr);
+          return {
+            success: false,
+            error: `Batch created, photo upload pending: ${photoErr?.message || 'network error'}`,
+          };
+        }
+      }
+
+      return { success: true };
+    } catch {
+      // Offline fallback: Network unavailable or offline simulation active
+      return {
+        success: false,
+        error: 'Network unavailable: transaction preserved safely in local outbox queue',
+      };
+    }
   };
 
   // Bulk sync all queued records
@@ -286,8 +402,9 @@ export function useOffline(): UseOfflineReturn {
             server_payload: result.serverPayload,
           });
         } else {
+          const isPerm = (result as any)?.permanent;
           await db.syncQueue.update(rec.local_id, {
-            state: 'failed',
+            state: isPerm ? 'failed' : 'queued',
             retryCount: rec.retryCount + 1,
             error: result.error || 'Network error during sync handshake',
             updatedAt: Date.now(),
@@ -342,8 +459,9 @@ export function useOffline(): UseOfflineReturn {
           await refreshQueueFromDB();
           return false;
         } else {
+          const isPerm = (result as any)?.permanent;
           await db.syncQueue.update(local_id, {
-            state: 'failed',
+            state: isPerm ? 'failed' : 'queued',
             retryCount: rec.retryCount + 1,
             error: result.error || 'Sync retry failed',
             updatedAt: Date.now(),

@@ -10,7 +10,8 @@ import {
 import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { SackTagArtifact, SackTagData } from '../../../../components/artifacts/SackTagArtifact';
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Printer, Download, FileText, Tag as TagIcon, Share2 } from 'lucide-react';
+import { downloadPdfBlob, sharePdf } from '../../../../lib/pdfClient';
 
 interface TagPageProps {
   params: {
@@ -24,6 +25,9 @@ export default function CollectionTagPage({ params }: TagPageProps) {
 
   const tagRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<string | null>(null);
+  const [isSharingPdf, setIsSharingPdf] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [dbBatch, setDbBatch] = useState<any>(null);
 
   useEffect(() => {
@@ -60,6 +64,40 @@ export default function CollectionTagPage({ params }: TagPageProps) {
       console.error('Failed to download PNG:', err);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  // Dedicated Download Tag PDF Handler
+  const handleDownloadTagPdf = async (type: 'collection' | 'product') => {
+    setIsDownloadingPdf(type);
+    try {
+      const isColl = type === 'collection';
+      await downloadPdfBlob({
+        url: `/api/tags/${cleanCode}/pdf?type=${type}`,
+        filename: `BanaSetu-${isColl ? 'BatchTag' : 'ProductTag'}-${cleanCode}.pdf`,
+        onLoadingChange: (loading) => !loading && setIsDownloadingPdf(null),
+        onSuccess: (fn) => setToastMessage(`Tag PDF downloaded: ${fn}`),
+        onError: (err) => setToastMessage(err),
+      });
+    } catch {
+      // Handled in onError
+    }
+  };
+
+  // Dedicated Share Tag PDF Handler
+  const handleShareTagPdf = async () => {
+    try {
+      await sharePdf({
+        url: `/api/tags/${cleanCode}/pdf?type=collection`,
+        filename: `BanaSetu-BatchTag-${cleanCode}.pdf`,
+        title: `BanaSetu Tag ${cleanCode}`,
+        text: `Authoritative BanaSetu A6 Sack Tag for Batch #${cleanCode} (${tagData.productName}, ${tagData.netWeightKg} kg)`,
+        onLoadingChange: setIsSharingPdf,
+        onSuccess: () => setToastMessage('Tag shared successfully'),
+        onError: (err) => setToastMessage(err),
+      });
+    } catch {
+      // Handled in onError
     }
   };
 
@@ -131,15 +169,77 @@ export default function CollectionTagPage({ params }: TagPageProps) {
           <span>Back to Collection</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Direct Download Collection Tag */}
+          <Button
+            id="btn-download-collection-tag-pdf"
+            variant="secondary"
+            size="sm"
+            onClick={() => handleDownloadTagPdf('collection')}
+            disabled={isDownloadingPdf === 'collection'}
+            title="Download authoritative A6 Batch Sack Tag PDF directly"
+          >
+            <Download size={14} strokeWidth={1.5} />
+            <span>{isDownloadingPdf === 'collection' ? 'Downloading Tag...' : 'Download A6 Tag'}</span>
+          </Button>
+
+          {/* Direct Download Product Spec Tag */}
+          <Button
+            id="btn-download-product-spec-pdf"
+            variant="secondary"
+            size="sm"
+            onClick={() => handleDownloadTagPdf('product')}
+            disabled={isDownloadingPdf === 'product'}
+            title="Download authoritative A6 Product Lot Spec Tag PDF directly"
+          >
+            <Download size={14} strokeWidth={1.5} />
+            <span>{isDownloadingPdf === 'product' ? 'Downloading Spec...' : 'Download Spec PDF'}</span>
+          </Button>
+
+          {/* Dedicated Share Tag Action */}
+          <Button
+            id="btn-share-tag-pdf"
+            variant="secondary"
+            size="sm"
+            onClick={handleShareTagPdf}
+            disabled={isSharingPdf}
+            title="Share authoritative A6 Tag PDF via system share sheet"
+          >
+            <Share2 size={14} strokeWidth={1.5} />
+            <span>{isSharingPdf ? 'Sharing...' : 'Share Tag'}</span>
+          </Button>
+
+          {/* Direct links preserving existing test assertions */}
+          <a
+            href={`/api/tags/${cleanCode}/pdf?type=collection`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] border border-rule bg-surface text-[12px] font-medium text-ink hover:bg-bg-sunken hover:border-ink-subtle select-none"
+            title="Open authoritative A6 Batch Sack Tag PDF in browser"
+          >
+            <FileText size={14} strokeWidth={1.5} />
+            <span>A6 Tag PDF</span>
+          </a>
+
+          <a
+            href={`/api/tags/${cleanCode}/pdf?type=product`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] border border-rule bg-surface text-[12px] font-medium text-ink hover:bg-bg-sunken hover:border-ink-subtle select-none"
+            title="Open authoritative A6 Product Lot Spec Tag PDF in browser"
+          >
+            <TagIcon size={14} strokeWidth={1.5} />
+            <span>Product Spec PDF</span>
+          </a>
+
           <Button
             variant="secondary"
             size="sm"
             onClick={handleDownloadPng}
             disabled={isDownloading}
           >
-            <Download size={16} strokeWidth={1.5} />
-            <span>{isDownloading ? 'Exporting...' : 'Download PNG'}</span>
+            <Download size={14} strokeWidth={1.5} />
+            <span>{isDownloading ? 'Exporting...' : 'PNG'}</span>
           </Button>
 
           <Button
@@ -147,11 +247,23 @@ export default function CollectionTagPage({ params }: TagPageProps) {
             size="sm"
             onClick={() => window.print()}
           >
-            <Printer size={16} strokeWidth={1.5} />
-            <span>Print Preview</span>
+            <Printer size={14} strokeWidth={1.5} />
+            <span>Print</span>
           </Button>
         </div>
       </div>
+
+      {toastMessage && (
+        <div className="no-print w-full max-w-[105mm] mb-4 p-2.5 rounded-[4px] border border-rule bg-surface text-[13px] text-ink flex items-center justify-between">
+          <span>{toastMessage}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-[11px] font-mono text-ink-muted hover:text-ink underline ml-3"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* A6 Printable Tag Sheet */}
       <div ref={tagRef} className="w-full flex justify-center">

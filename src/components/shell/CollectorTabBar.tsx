@@ -29,19 +29,26 @@ export const CollectorTabBar: React.FC = () => {
         return (
           <button
             key={tab.id}
+            id={`collector-tab-${tab.id}`}
+            type="button"
             role="tab"
             aria-selected={isActive}
+            aria-controls={`collector-panel-${tab.id}`}
+            tabIndex={0}
             onClick={() => setActiveCollectorTab(tab.id)}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center h-full transition-colors focus:outline-2 focus:outline-accent focus:outline-offset-0',
-              isActive ? 'text-accent' : 'text-ink-muted hover:text-ink'
+              'flex-1 flex flex-col items-center justify-center h-full transition-colors relative focus:outline-2 focus:outline-accent focus:outline-offset-0',
+              isActive ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink'
             )}
             aria-label={label}
           >
+            {isActive && (
+              <span className="absolute top-0 inset-x-3 h-[2px] bg-accent rounded-full" />
+            )}
             <Icon size={20} strokeWidth={1.5} className="mb-0.5 shrink-0" />
             <span
               className={cn(
-                'text-[16px] leading-tight font-medium',
+                'text-[15px] leading-tight font-medium',
                 language === 'OR' && 'font-odia text-[16px] leading-[1.6]'
               )}
             >

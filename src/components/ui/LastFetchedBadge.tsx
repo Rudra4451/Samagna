@@ -8,18 +8,44 @@ export interface LastFetchedBadgeProps {
   timestamp: Date;
   onRefresh?: () => void;
   className?: string;
+  placeholder?: string;
+}
+
+/**
+ * Deterministic timestamp formatter avoiding platform/ICU variations
+ * between Node.js SSR and client browser engines.
+ * Formats consistently as 'hh:mm:ss AM/PM' with standard ASCII spacing and uppercase AM/PM.
+ */
+export function formatTimeSafe(date: Date): string {
+  if (!date || isNaN(date.getTime())) {
+    return '--:--:--';
+  }
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = (hours % 12 || 12).toString().padStart(2, '0');
+  return `${displayHours}:${minutes}:${seconds} ${ampm}`;
 }
 
 export const LastFetchedBadge: React.FC<LastFetchedBadgeProps> = ({
   timestamp,
   onRefresh,
   className,
+  placeholder = '--:--:--',
 }) => {
+  const [mounted, setMounted] = useState(false);
   const [secondsAgo, setSecondsAgo] = useState(0);
 
   useEffect(() => {
+    setMounted(true);
+
     const updateAge = () => {
-      const diffSec = Math.floor((Date.now() - timestamp.getTime()) / 1000);
+      if (!timestamp || isNaN(timestamp.getTime())) {
+        setSecondsAgo(0);
+        return;
+      }
+      const diffSec = Math.max(0, Math.floor((Date.now() - timestamp.getTime()) / 1000));
       setSecondsAgo(diffSec);
     };
 
@@ -28,14 +54,8 @@ export const LastFetchedBadge: React.FC<LastFetchedBadgeProps> = ({
     return () => clearInterval(interval);
   }, [timestamp]);
 
-  const isStale = secondsAgo >= 60;
-
-  const timeString = timestamp.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  });
+  const isStale = mounted && secondsAgo >= 60;
+  const timeString = formatTimeSafe(timestamp);
 
   return (
     <div
@@ -45,7 +65,7 @@ export const LastFetchedBadge: React.FC<LastFetchedBadgeProps> = ({
       )}
     >
       <span>
-        Fetched {timeString} ({secondsAgo}s ago)
+        Fetched {mounted ? `${timeString} (${secondsAgo}s ago)` : placeholder}
       </span>
       {isStale && onRefresh && (
         <button
@@ -60,3 +80,4 @@ export const LastFetchedBadge: React.FC<LastFetchedBadgeProps> = ({
     </div>
   );
 };
+

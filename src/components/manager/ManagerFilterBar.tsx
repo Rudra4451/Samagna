@@ -22,6 +22,15 @@ export interface ManagerFiltersState {
   dateTo: string;
 }
 
+export const DEFAULT_MANAGER_FILTERS: ManagerFiltersState = {
+  savedView: 'all',
+  search: '',
+  statuses: [],
+  village: '',
+  dateFrom: '',
+  dateTo: '',
+};
+
 interface ManagerFilterBarProps {
   roleKey: 'collection' | 'inventory';
   availableStatuses: { value: string; label: string }[];

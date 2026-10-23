@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppStore } from '../../store/useAppStore';
@@ -35,6 +35,22 @@ interface NavItem {
 export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
   const pathname = usePathname();
   const { isOffline, toggleOffline } = useAppStore();
+  const [currentHash, setCurrentHash] = useState<string>('');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        setCurrentHash(window.location.hash || '');
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, []);
 
   const isCollection = role === 'collection_manager';
 
@@ -55,6 +71,8 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
   const managerProfile = isCollection
     ? { name: 'R. Mohanty', id: 'CM-12', role: 'Field Collection Manager', center: 'Karanjia Point #01' }
     : { name: 'S. Das', id: 'IM-04', role: 'Warehouse Inventory Manager', center: 'Baripada Depôt #02' };
+
+  const isDesignActive = pathname === '/design';
 
   return (
     <aside className="w-[240px] shrink-0 min-h-[calc(100vh-80px)] flex flex-col bg-sidebar-bg text-sidebar-ink select-none border-r border-sidebar-ink/15 shadow-none">
@@ -81,15 +99,43 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
 
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== '/collection' && item.href !== '/inventory' && pathname.includes(item.href));
+          const itemHash = item.href.includes('#') ? `#${item.href.split('#')[1]}` : '';
+          const itemPath = item.href.split('#')[0];
+          const isPathMatch = pathname === itemPath;
+
+          const isItemActive = () => {
+            if (!isPathMatch) return false;
+            if (itemHash) {
+              if (itemHash === '#shrinkage') {
+                return currentHash === '#shrinkage' || currentHash === '#moisture';
+              }
+              return currentHash === itemHash;
+            }
+            if (isCollection) {
+              return currentHash === '' || currentHash === '#aggregation';
+            } else {
+              return currentHash === '' || currentHash === '#reweigh';
+            }
+          };
+
+          const isActive = isItemActive();
+
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => {
+                if (itemHash) {
+                  setCurrentHash(itemHash);
+                } else {
+                  setCurrentHash('');
+                }
+              }}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex items-center justify-between px-4 py-2.5 text-[13px] font-medium transition-colors border-l-2',
+                'flex items-center justify-between px-4 py-2.5 text-[13px] font-medium transition-colors border-l-2 focus:outline-2 focus:outline-accent',
                 isActive
-                  ? 'border-accent bg-sidebar-ink/10 text-sidebar-ink'
+                  ? 'border-accent bg-sidebar-ink/10 text-sidebar-ink font-semibold'
                   : 'border-transparent text-sidebar-ink/80 hover:bg-sidebar-ink/5 hover:text-sidebar-ink'
               )}
             >
@@ -119,10 +165,11 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
         </div>
         <Link
           href="/design"
+          aria-current={isDesignActive ? 'page' : undefined}
           className={cn(
-            'flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors border-l-2',
-            pathname === '/design'
-              ? 'border-accent bg-sidebar-ink/10 text-sidebar-ink'
+            'flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium transition-colors border-l-2 focus:outline-2 focus:outline-accent',
+            isDesignActive
+              ? 'border-accent bg-sidebar-ink/10 text-sidebar-ink font-semibold'
               : 'border-transparent text-sidebar-ink/80 hover:bg-sidebar-ink/5 hover:text-sidebar-ink'
           )}
         >

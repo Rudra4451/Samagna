@@ -1,0 +1,424 @@
+// Prisma schema for BanaSetu Minor Forest Produce (MFP) Traceability Ledger
+// Configured for PostgreSQL in production with support for offline Dexie sync idempotency.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  COLLECTOR
+  SHG_FACILITATOR
+  COLLECTION_MANAGER
+  WAREHOUSE_MANAGER
+  SUPERVISOR_ADMIN
+}
+
+enum BatchStatus {
+  REQUESTED
+  SAVED_OFFLINE_PENDING_SYNC
+  PENDING_VERIFICATION
+  VERIFIED_SALEABLE
+  QUARANTINED_DISCREPANCY
+}
+
+enum DiscrepancyStatus {
+  OPEN_QUARANTINED
+  JOINT_REVIEW_PENDING
+  RECONCILED
+}
+
+enum PaymentStatus {
+  READY_FOR_DISBURSEMENT
+  PAID_SIMULATED
+  HELD_FOR_REVIEW
+}
+
+// User account with invitation/admin-controlled provisioning (no open registration)
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String?   @unique
+  passwordHash String
+  fullName     String
+  fullNameOdia String?
+  role         UserRole
+  district     String    @default("Mayurbhanj")
+  block        String?
+  village      String?
+  centerId     String?   // Multi-tenant aggregation center ID
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+
+  @@index([role])
+  @@index([username])
+}
+
+// Server-side session record for token invalidation / logout
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+// Configurable, dated rate and loss threshold registry with provenance.
+// Avoids hardcoding illustrative rates or loss thresholds as permanent government policy.
+model ProduceRateConfiguration {
+  id                         String    @id @default(cuid())
+  produceName                String    @unique
+  produceOdia                String
+  scientificName             String?
+  ratePerKg                  Float
+  allowableShrinkagePercent  Float     @default(1.5)
+  effectiveFrom              DateTime  @default(now())
+  effectiveTo                DateTime?
+  sourceAuthority            String    // e.g. "TDCCOL LABHA Notification (Simulated/Illustrative)"
+  isOfficialVerified         Boolean   @default(false)
+  provenanceNotes            String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  batches                    Batch[]
+}
+
+// Master Batch ledger record
+model Batch {
+  id                      String                     @id // ULID or assigned code e.g. "BS-402"
+  produceConfigId         String?
+  produceConfig           ProduceRateConfiguration?  @relation(fields: [produceConfigId], references: [id], onDelete: SetNull)
+  produceName             String
+  produceOdia             String
+  scientificName          String?
+  district                String
+  block                   String
+  gramPanchayat           String
+  centerName              String
+  shgName                 String
+  facilitatorName         String
+  referenceRatePerKg      Float
+  rateSource              String
+  ratePublishedDate       String
+  seasonalReadinessStatus String
+  pickupRequestId         String
+  status                  BatchStatus                @default(REQUESTED)
+  version                 Int                        @default(1) // Optimistic concurrency check
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+
+  // Authoritative Active Destination Depot (Nullable for REQUESTED and legacy records)
+  destinationDepotId      String?
+  destinationDepot        AggregationLocation?       @relation("BatchActiveDestinationDepot", fields: [destinationDepotId], references: [code], onDelete: SetNull)
+
+  collectors              CollectorContribution[]
+  step1                   Step1FieldVerification?
+  step2                   Step2WarehouseVerification?
+  discrepancyCases        DiscrepancyCase[]
+  auditEvents             AuditEvent[]
+
+  @@index([status])
+  @@index([pickupRequestId])
+  @@index([updatedAt])
+  @@index([destinationDepotId])
+}
+
+// Tribal gatherer contribution breakdown
+model CollectorContribution {
+  id                  String        @id // ULID
+  batchId             String
+  batch               Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  tribalId            String        // Masked for privacy: OR-MAY-***-1109
+  name                String
+  nameOdia            String
+  gender              String
+  age                 Int
+  village             String
+  villageOdia         String
+  weightKg            Float
+  ratePerKg           Float
+  grossPayout         Float
+  bankName            String
+  accountEnding       String        // Masked to last 4 digits
+  dbtRef              String        // Staged or simulated reference
+  paymentStatus       PaymentStatus @default(READY_FOR_DISBURSEMENT)
+  isSimulated         Boolean       @default(true)
+  collectedDate       String
+  signedByFacilitator String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([batchId])
+}
+
+// Step 1: Collection Center field weighment and vehicle dispatch record
+model Step1FieldVerification {
+  id                      String   @id @default(cuid())
+  batchId                 String   @unique
+  batch                   Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  grossWeightKg           Float
+  tareWeightKg            Float
+  netAcceptedKg           Float
+  grade                   String
+  sackCount               Int
+  sealTagId               String
+  vehicleNumber           String
+  driverName              String
+  tarpaulinConfirmed      Boolean  @default(true)
+  transitWaybillId        String
+  observedMoisturePercent Float
+  initialDestinationDepotId String?
+  initialDestinationDepot   AggregationLocation? @relation("Step1InitialDestination", fields: [initialDestinationDepotId], references: [code], onDelete: Restrict)
+  verifiedBy              String
+  verifiedByRole          String
+  verifiedAt              DateTime @default(now())
+  localRecordId           String?
+  notes                   String?
+
+  @@index([initialDestinationDepotId])
+}
+
+// Step 2: Baripada Central Depôt warehouse arrival and reweighment record
+model Step2WarehouseVerification {
+  id                      String   @id @default(cuid())
+  batchId                 String   @unique
+  batch                   Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  arrivalGrossWeightKg    Float
+  arrivalTareWeightKg     Float
+  arrivalNetWeightKg      Float
+  storageZone             String
+  receivingDepotId        String?
+  receivingDepot          AggregationLocation? @relation("Step2ReceivingDepot", fields: [receivingDepotId], references: [code], onDelete: Restrict)
+  shrinkagePercentAllowed Float
+  shrinkageKgAllowed      Float
+  unexplainedVarianceKg   Float
+  discrepancyTriggered    Boolean  @default(false)
+  supervisorCaseId        String?
+  verifiedBy              String
+  verifiedByRole          String
+  verifiedAt              DateTime @default(now())
+  notes                   String?
+
+  @@index([receivingDepotId])
+}
+
+// Quarantined loss case requiring supervisor review
+model DiscrepancyCase {
+  id                    String            @id // e.g. "DISC-402"
+  batchId               String
+  batch                 Batch             @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  dispatchedNetKg       Float
+  arrivalNetKg          Float
+  shrinkageAllowedKg    Float
+  unexplainedVarianceKg Float
+  status                DiscrepancyStatus @default(OPEN_QUARANTINED)
+  currentActionTaken    String
+  assignedSupervisor    String
+  resolutionReason      String?
+  notes                 String
+  createdAt             DateTime          @default(now())
+  resolvedAt            DateTime?
+
+  @@index([batchId])
+  @@index([status])
+}
+
+// Append-only chronological audit log
+model AuditEvent {
+  id               String   @id // ULID
+  timestamp        DateTime @default(now())
+  batchId          String?
+  batch            Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  actorId          String
+  actorName        String
+  actorRole        String
+  actionType       String
+  title            String
+  description      String
+  details          String?  // JSON stringified metadata
+  evidencePhotoUrl String?
+  evidenceLabel    String?
+  syncId           String?
+  isSimulated      Boolean  @default(true)
+  previousHash     String?  // Cryptographic chaining foundation
+  eventHash        String?
+
+  @@index([timestamp])
+  @@index([actorId])
+  @@index([actionType])
+}
+
+// Offline sync idempotency record to guarantee zero duplicates during retry
+model SyncIdempotencyRecord {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique // Client ULID or act-key
+  localId        String   // Dexie record local_id
+  entityType     String   // pickup_request, collection, dispatch, storage_receipt
+  action         String   // create, update, verify, quarantine
+  actorId        String
+  status         String   // PROCESSED, CONFLICT, REJECTED
+  payloadHash    String?
+  responseJson   String?  // Cached JSON response to return on idempotent retries
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([idempotencyKey])
+  @@index([localId])
+}
+
+// Expanded 17 Odisha Minor Forest Produce Catalogue (Phase G1)
+model ProductCatalogue {
+  id                         String    @id // e.g. "PROD-MAHUA", "PROD-SAL"
+  slug                       String    @unique // e.g. "mahua", "sal-seeds"
+  nameEnglish                String
+  nameOdia                   String
+  scientificName             String
+  botanicalFamily            String?
+  primaryHarvestSeason       String    // e.g. "March - May"
+  standardPackaging          String    // e.g. "50kg Jute Gunny Bag"
+  typicalTareKgPerBag        Float     @default(1.5)
+  baselineMoistureMaxPercent Float     @default(12.0)
+  allowableShrinkagePercent  Float     @default(1.5)
+  currentBenchmarkRatePerKg  Float
+  rateSource                 String    @default("TDCCOL MSP Notification (Illustrative Baseline)")
+  isOfficialMsp              Boolean   @default(false)
+  description                String
+  iconSvgKey                 String    // Corresponds to ProductIcons.tsx key
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+// Mayurbhanj Geographical Hierarchy & Aggregation Center Infrastructure (Phase G3)
+model AggregationLocation {
+  id                  String   @id // e.g. "LOC-KRN-01"
+  code                String   @unique // e.g. "KRN-01"
+  name                String
+  nameOdia            String
+  district            String   @default("Mayurbhanj")
+  block               String   // Karanjia, Jashipur, Rairangpur, Baripada, etc.
+  gramPanchayat       String
+  village             String?
+  locationType        String   // "VILLAGE_COLLECTION_POINT", "BLOCK_AGGREGATION_CENTER", "CENTRAL_DEPOT"
+  latitude            Float
+  longitude           Float
+  storageCapacityKg   Float
+  managerName         String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Back-relations for depot isolation and transit tracking
+  activeBatchesDestinedHere Batch[]                      @relation("BatchActiveDestinationDepot")
+  dispatchesTargetedHere    Step1FieldVerification[]     @relation("Step1InitialDestination")
+  receiptsAcceptedHere      Step2WarehouseVerification[] @relation("Step2ReceivingDepot")
+  salesFromDepot            InventorySale[]              @relation("DepotOutwardSales")
+
+  @@index([block])
+  @@index([locationType])
+}
+
+// Tribal Gatherer Grievance & Feedback Tracking (Phase G9)
+model GrievanceRecord {
+  id             String    @id // e.g. "GRV-1029"
+  trackingCode   String    @unique // e.g. "GRV-24-1029"
+  collectorName  String
+  collectorOdia  String?
+  village        String
+  contactPhone   String?
+  category       String    // "PAYMENT_QUERY", "SCALE_INQUIRY", "PRODUCE_GRADING", "GENERAL_FEEDBACK"
+  description    String
+  status         String    @default("SUBMITTED") // "SUBMITTED", "UNDER_REVIEW", "RESOLVED"
+  supervisorNote String?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([trackingCode])
+}
+
+// Multipart Upload & Digital Evidence Attachment Registry (Phase F5 & Pilot Phase C)
+model UploadedAttachment {
+  id               String   @id // ULID
+  originalFilename String
+  storagePath      String   // Public URL or relative local path
+  storageProvider  String   @default("local") // "supabase" or "local"
+  storageKey       String?  // Object key in private bucket (e.g. evidence/batchId/ulid.jpg)
+  bucketName       String?  // e.g. "banasetu-evidence"
+  isPrivate        Boolean  @default(true)
+  mimeType         String
+  fileSizeBytes    Int
+  sha256Hash       String
+  evidenceType     String   // "COLLECTION_PHOTO", "VOICE_NOTE", "SCALE_READOUT", "WAYBILL_SCAN"
+  batchId          String?
+  uploaderId       String
+  createdAt        DateTime @default(now())
+
+  @@index([batchId])
+  @@index([uploaderId])
+  @@index([storageKey])
+}
+
+// Centralized offline/online sync conflict review record (Phase D & F7)
+model SyncConflictRecord {
+  id              String    @id @default(cuid())
+  localId         String    // Dexie record local_id
+  batchCode       String    // e.g. "BS-402"
+  entityType      String    // "collection", "dispatch", "storage_receipt"
+  action          String    // "create", "update", "verify"
+  actorId         String    // Submitting officer ID
+  actorName       String?
+  actorRole       String?
+  clientPayload   String    // JSON stringified client payload
+  serverPayload   String    // JSON stringified conflicting server payload
+  conflictReason  String
+  status          String    @default("OPEN") // "OPEN", "RESOLVED_KEEP_LOCAL", "RESOLVED_KEEP_SERVER", "RESOLVED_MERGED"
+  resolutionNote  String?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([batchCode])
+  @@index([createdAt])
+}
+
+// Outward Warehouse Inventory Sale & Stock Allocation Ledger (Phase F10 & Batch 2)
+model InventorySale {
+  id             String               @id // ULID e.g. "01M5KYG..."
+  saleReference  String               @unique // Institutional sale reference e.g. "SALE-BRP-2025-001"
+  produceName    String
+  quantityKg     Float
+  buyerName      String
+  destination    String?
+  salePricePerKg Float?
+  totalAmount    Float?
+  depotId        String               // Canonical depot code e.g. "BRP-01"
+  depotLocation  AggregationLocation? @relation("DepotOutwardSales", fields: [depotId], references: [code], onDelete: Restrict)
+  actorId        String
+  actorName      String?
+  actorRole      String?
+  idempotencyKey String?
+  notes          String?
+  dispatchedAt   DateTime             @default(now())
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([actorId, idempotencyKey])
+  @@index([depotId])
+  @@index([produceName])
+  @@index([dispatchedAt])
+}
+

@@ -55,18 +55,42 @@ import {
   Info,
   Trash2,
   Check,
+  Users,
+  Truck,
+  History,
+  ArrowRight,
+  ExternalLink,
+  ShieldCheck,
+  Download,
+  Share2,
 } from 'lucide-react';
 import { useHotkeys } from '../../lib/useHotkeys';
 import { KeyboardShortcutsDrawer } from '../../components/manager/KeyboardShortcutsDrawer';
+import {
+  AuditTimelineArtifact,
+  AuditTimelineEvent,
+} from '../../components/artifacts/AuditTimelineArtifact';
 import {
   ManagerFilterBar,
   ManagerFiltersState,
   ColumnConfig,
   TableDensity,
+  DEFAULT_MANAGER_FILTERS,
 } from '../../components/manager/ManagerFilterBar';
 import { BulkActionBar } from '../../components/manager/BulkActionBar';
 import { RowActionMenu } from '../../components/manager/RowActionMenu';
 import { InlineEditableCell } from '../../components/manager/InlineEditableCell';
+import { ProductGuidanceCard } from '../../components/guidance/ProductGuidanceCard';
+import {
+  getProductGuidance,
+  evaluateDispatchMatch,
+  RECORDED_VEHICLES,
+  RECORDED_DEPOTS,
+  VehicleCapabilityRecord,
+  DepotCapabilityRecord,
+  CAPABILITY_DEFINITIONS,
+  CapabilityMatchStatus,
+} from '../../lib/productGuidance';
 
 interface QueueItem {
   code: string;
@@ -82,6 +106,245 @@ interface QueueItem {
   syncState?: SyncState;
   hasInlineEdit?: boolean;
 }
+
+type CollectionSection = 'aggregation' | 'collectors' | 'dispatches' | 'audit';
+
+interface TribalCollectorItem {
+  id: string;
+  tribalId: string;
+  name: string;
+  nameOdia: string;
+  gender: 'F' | 'M';
+  age: number;
+  village: string;
+  produce: string;
+  weightKg: number;
+  ratePerKg: number;
+  grossPayout: number;
+  bankName: string;
+  accountMasked: string;
+  dbtRef: string;
+  paymentStatus: 'PAID_SIMULATED' | 'READY_FOR_DISBURSEMENT';
+  statusVariant: StatusVariant;
+  collectedDate: string;
+  receiptCode: string;
+  shgGroup: string;
+}
+
+interface TransitDispatchItem {
+  id: string;
+  batchCode: string;
+  waybillId: string;
+  sealTagId: string;
+  vehicleNumber: string;
+  driverName: string;
+  driverPhone: string;
+  netWeightKg: number;
+  sackCount: number;
+  packaging: string;
+  moisturePercent: number;
+  tarpaulinConfirmed: boolean;
+  originCenter: string;
+  destinationDepot: string;
+  timestamp: string;
+  status: string;
+  statusVariant: StatusVariant;
+  statusDetail: string;
+  receiptUrl: string;
+  tagUrl: string;
+}
+
+const COLLECTION_TRIBAL_COLLECTORS: TribalCollectorItem[] = [
+  {
+    id: 'COL-001',
+    tribalId: 'OR-MAY-KRN-0842',
+    name: 'Sunita Soren',
+    nameOdia: 'ସୁନୀତା ସୋରେନ',
+    gender: 'F',
+    age: 36,
+    village: 'Badagaon, Karanjia',
+    produce: 'Dried Mahua Flowers',
+    weightKg: 40.0,
+    ratePerKg: 42.0,
+    grossPayout: 1680.0,
+    bankName: 'Canara Bank (Karanjia Branch)',
+    accountMasked: '••••4812',
+    dbtRef: 'DBT-OD-2024-8841',
+    paymentStatus: 'PAID_SIMULATED',
+    statusVariant: 'success',
+    collectedDate: '14 Mar 2025 · 09:15 AM',
+    receiptCode: '#BS-402',
+    shgGroup: 'Maa Tarini SHG',
+  },
+  {
+    id: 'COL-002',
+    tribalId: 'OR-MAY-KRN-1109',
+    name: 'Budhu Marndi',
+    nameOdia: 'ବୁଧୁ ମାରାଣ୍ଡି',
+    gender: 'M',
+    age: 44,
+    village: 'Badagaon, Karanjia',
+    produce: 'Dried Mahua Flowers',
+    weightKg: 35.0,
+    ratePerKg: 42.0,
+    grossPayout: 1470.0,
+    bankName: 'Odisha Gramya Bank (Karanjia)',
+    accountMasked: '••••9103',
+    dbtRef: 'DBT-OD-2024-8842',
+    paymentStatus: 'PAID_SIMULATED',
+    statusVariant: 'success',
+    collectedDate: '14 Mar 2025 · 09:40 AM',
+    receiptCode: '#BS-402',
+    shgGroup: 'Maa Tarini SHG',
+  },
+  {
+    id: 'COL-003',
+    tribalId: 'OR-MAY-KRN-0623',
+    name: 'Kamla Majhi',
+    nameOdia: 'କମଳା ମାଝି',
+    gender: 'F',
+    age: 31,
+    village: 'Kadamdiha, Karanjia',
+    produce: 'Dried Mahua Flowers',
+    weightKg: 25.0,
+    ratePerKg: 42.0,
+    grossPayout: 1050.0,
+    bankName: 'State Bank of India (Karanjia)',
+    accountMasked: '••••2271',
+    dbtRef: 'DBT-OD-2024-8843',
+    paymentStatus: 'PAID_SIMULATED',
+    statusVariant: 'success',
+    collectedDate: '14 Mar 2025 · 10:05 AM',
+    receiptCode: '#BS-402',
+    shgGroup: 'Maa Tarini SHG',
+  },
+];
+
+const COLLECTION_DISPATCHES: TransitDispatchItem[] = [
+  {
+    id: 'disp-1',
+    batchCode: '#BS-402',
+    waybillId: 'WB-OD-24-099',
+    sealTagId: 'OD-ST-8840',
+    vehicleNumber: 'OR-11-F-4412',
+    driverName: 'B. Soren',
+    driverPhone: '94371-88421',
+    netWeightKg: 100.0,
+    sackCount: 3,
+    packaging: 'High-density double-stitched jute sacks',
+    moisturePercent: 8.8,
+    tarpaulinConfirmed: true,
+    originCenter: 'Karanjia Primary MFP Point #01',
+    destinationDepot: 'Baripada Central Depôt #02',
+    timestamp: '14 Mar 2025 · 11:20 AM',
+    status: 'In Transit',
+    statusVariant: 'warning',
+    statusDetail: 'En route to Baripada (Expected 02:30 PM)',
+    receiptUrl: '/collection/receipt/BS-402',
+    tagUrl: '/collection/tag/BS-402',
+  },
+  {
+    id: 'disp-2',
+    batchCode: '#BS-400',
+    waybillId: 'WB-OD-24-097',
+    sealTagId: 'OD-MBJ-KRN-400',
+    vehicleNumber: 'OD-11-AB-1234',
+    driverName: 'B. Nayak',
+    driverPhone: '94371-55210',
+    netWeightKg: 60.0,
+    sackCount: 1,
+    packaging: 'Standard jute sack',
+    moisturePercent: 8.4,
+    tarpaulinConfirmed: true,
+    originCenter: 'Karanjia Primary MFP Point #01',
+    destinationDepot: 'Baripada Central Depôt #02',
+    timestamp: '13 Mar 2025 · 03:30 PM',
+    status: 'Delivered · Verified Saleable',
+    statusVariant: 'success',
+    statusDetail: 'Arrival verified by S. Das (IM-04)',
+    receiptUrl: '/collection/receipt/BS-400',
+    tagUrl: '/collection/tag/BS-400',
+  },
+  {
+    id: 'disp-3',
+    batchCode: '#BS-398',
+    waybillId: 'WB-OD-24-095',
+    sealTagId: 'OD-MBJ-KRN-398',
+    vehicleNumber: 'OD-11-AB-1234',
+    driverName: 'B. Nayak',
+    driverPhone: '94371-55210',
+    netWeightKg: 25.0,
+    sackCount: 1,
+    packaging: 'Standard jute sack',
+    moisturePercent: 8.2,
+    tarpaulinConfirmed: true,
+    originCenter: 'Karanjia Primary MFP Point #01',
+    destinationDepot: 'Baripada Central Depôt #02',
+    timestamp: '12 Mar 2025 · 04:15 PM',
+    status: 'Delivered · Verified Saleable',
+    statusVariant: 'success',
+    statusDetail: 'Arrival verified by S. Das (IM-04)',
+    receiptUrl: '/collection/receipt/BS-398',
+    tagUrl: '/collection/tag/BS-398',
+  },
+];
+
+const COLLECTION_AUDIT_EVENTS: AuditTimelineEvent[] = [
+  {
+    id: 'aud-col-1',
+    dayHeader: '14 March 2025',
+    time: '11:20 AM',
+    actor: 'Driver B. Soren (#VH-04)',
+    action: 'Dispatched Transit Waybill #WB-OD-24-099 with 3 jute sacks under tarpaulin cover to Baripada Depôt.',
+    delta: '100.0 kg dispatched',
+    deltaVariant: 'neutral',
+  },
+  {
+    id: 'aud-col-2',
+    dayHeader: '14 March 2025',
+    time: '11:15 AM',
+    actor: 'R. Mohanty (Field Manager CM-12)',
+    action: 'Applied tamper-evident bag stencil tag #BS-402 and locked digital seal tag #OD-ST-8840.',
+    delta: 'Seal secured',
+    deltaVariant: 'success',
+  },
+  {
+    id: 'aud-col-3',
+    dayHeader: '14 March 2025',
+    time: '10:07 AM',
+    actor: 'Facilitator Champa Majhi (#SHG-FAC-09)',
+    action: 'Intake calibration for Kamla Majhi: 25.0 kg Dried Mahua Flowers accepted. DBT ₹1,050.00 released.',
+    delta: '+25.0 kg',
+    deltaVariant: 'success',
+  },
+  {
+    id: 'aud-col-4',
+    dayHeader: '14 March 2025',
+    time: '09:42 AM',
+    actor: 'Facilitator Champa Majhi (#SHG-FAC-09)',
+    action: 'Intake calibration for Budhu Marndi: 35.0 kg Dried Mahua Flowers accepted. DBT ₹1,470.00 released.',
+    delta: '+35.0 kg',
+    deltaVariant: 'success',
+  },
+  {
+    id: 'aud-col-5',
+    dayHeader: '14 March 2025',
+    time: '09:22 AM',
+    actor: 'Facilitator Champa Majhi (#SHG-FAC-09)',
+    action: 'Intake calibration for Sunita Soren: 40.0 kg Dried Mahua Flowers accepted. DBT ₹1,680.00 released.',
+    delta: '+40.0 kg',
+    deltaVariant: 'success',
+  },
+  {
+    id: 'aud-col-6',
+    dayHeader: '14 March 2025',
+    time: '09:15 AM',
+    actor: 'R. Mohanty (Field Manager CM-12)',
+    action: 'Aggregated Pickup Request #REQ-109 opened at Karanjia Center. Scale zero-point calibrated.',
+    delta: 'Intake open',
+    deltaVariant: 'neutral',
+  },
+];
 
 const DEFAULT_COLLECTION_COLUMNS: ColumnConfig[] = [
   { id: 'code', label: 'Batch Code', visible: true },
@@ -204,65 +467,114 @@ export default function CollectionManagerPage() {
     },
   ]);
 
-  // Persisted Filters (Rule 3)
-  const [filters, setFilters] = useState<ManagerFiltersState>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('banasetu_filter_collection');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {
-      savedView: 'all',
-      search: '',
-      statuses: [],
-      village: '',
-      dateFrom: '',
-      dateTo: '',
-    };
-  });
+  // Deterministic initial state for SSR & initial client render (hydration-safe)
+  const [filters, setFilters] = useState<ManagerFiltersState>(DEFAULT_MANAGER_FILTERS);
+  const [density, setDensity] = useState<TableDensity>('comfortable');
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLLECTION_COLUMNS);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
 
+  // Restore persisted state after mounting (Rule 3, 4, 7)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    try {
+      const savedFilters = localStorage.getItem('banasetu_filter_collection');
+      if (savedFilters) {
+        setFilters(JSON.parse(savedFilters));
+      }
+    } catch (e) {}
+
+    try {
+      const savedDensity = localStorage.getItem('banasetu_table_density');
+      if (savedDensity === 'comfortable' || savedDensity === 'compact') {
+        setDensity(savedDensity);
+      }
+    } catch (e) {}
+
+    try {
+      const savedCols = localStorage.getItem('banasetu_cols_collection');
+      if (savedCols) {
+        setColumns(JSON.parse(savedCols));
+      }
+    } catch (e) {}
+
+    setFiltersHydrated(true);
+  }, []);
+
+  // Persist state updates only after initial hydration
+  useEffect(() => {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_filter_collection', JSON.stringify(filters));
-    }
-  }, [filters]);
-
-  // Persisted Table Density (Rule 4)
-  const [density, setDensity] = useState<TableDensity>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('banasetu_table_density');
-      if (saved === 'comfortable' || saved === 'compact') return saved;
-    }
-    return 'comfortable';
-  });
+    } catch (e) {}
+  }, [filters, filtersHydrated]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_table_density', density);
-    }
-  }, [density]);
-
-  // Persisted Column Visibility (Rule 7)
-  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('banasetu_cols_collection');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return DEFAULT_COLLECTION_COLUMNS;
-  });
+    } catch (e) {}
+  }, [density, filtersHydrated]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!filtersHydrated) return;
+    try {
       localStorage.setItem('banasetu_cols_collection', JSON.stringify(columns));
-    }
-  }, [columns]);
+    } catch (e) {}
+  }, [columns, filtersHydrated]);
 
   // Bulk Selection state (Rule 6)
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Active Navigation Section (Field Operations: aggregation | collectors | dispatches | audit)
+  const [activeSection, setActiveSection] = useState<CollectionSection>('aggregation');
+
+  // Synchronize activeSection with window.location.hash and browser back/forward
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window === 'undefined') return;
+      const hash = window.location.hash;
+      if (hash === '#collectors') {
+        setActiveSection('collectors');
+      } else if (hash === '#dispatches') {
+        setActiveSection('dispatches');
+      } else if (hash === '#audit') {
+        setActiveSection('audit');
+      } else {
+        setActiveSection('aggregation');
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
+  }, []);
+
+  const navigateToSection = (sec: CollectionSection) => {
+    setActiveSection(sec);
+    if (typeof window !== 'undefined') {
+      const targetHash = sec === 'aggregation' ? '' : `#${sec}`;
+      if (window.location.hash !== targetHash) {
+        window.history.pushState(null, '', targetHash || window.location.pathname);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Dispatch preparation & capability matching state (Phase G3 / Product Guidance)
+  const [dispatchSelectedProduce, setDispatchSelectedProduce] = useState<string>('mahua');
+  const [dispatchSelectedVehicle, setDispatchSelectedVehicle] = useState<string>('OR-11-F-4412');
+  const [dispatchSelectedDepot, setDispatchSelectedDepot] = useState<string>('LOC-BRP-01');
+  const [dispatchSuccessNotice, setDispatchSuccessNotice] = useState<string | null>(null);
+
+  const dispatchMatchEvaluation = evaluateDispatchMatch(
+    dispatchSelectedProduce,
+    dispatchSelectedVehicle,
+    dispatchSelectedDepot
+  );
 
   // Offline queue state
   const [offlineQueue, setOfflineQueue] = useState<PendingSyncItem[]>([
@@ -294,6 +606,8 @@ export default function CollectionManagerPage() {
   const [individualReceiptToggle, setIndividualReceiptToggle] = useState(true);
   const [grossWeight, setGrossWeight] = useState(100.0);
   const [tareWeight, setTareWeight] = useState(0.0);
+  const [sackCount, setSackCount] = useState<number>(1);
+  const [sackTareRate, setSackTareRate] = useState<number>(1.5); // kg per sack (illustrative benchmark)
   const [qualityGrade, setQualityGrade] = useState<'A' | 'B' | 'C'>('A');
   const [acceptedQty, setAcceptedQty] = useState(100.0);
   const [rejectedQty, setRejectedQty] = useState(0.0);
@@ -340,22 +654,189 @@ export default function CollectionManagerPage() {
     genQR();
   }, []);
 
-  // Sync from IndexedDB (Dexie)
+  // Authenticated user session state (F4)
+  const [authenticatedUser, setAuthenticatedUser] = useState<{
+    userId: string;
+    fullName: string;
+    role: string;
+    centerId?: string;
+  } | null>(null);
+
+  // Check authenticated session
   useEffect(() => {
-    async function loadDexie() {
-      if (typeof window === 'undefined') return;
-      try {
-        const db = getDatabase();
-        const records = await db.pendingSync.toArray();
-        if (records.length > 0) {
-          setOfflineQueue(records);
+    let isMounted = true;
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.authenticated && data.user) {
+          setAuthenticatedUser(data.user);
         }
-      } catch (e) {
-        console.warn('Dexie pendingSync read error:', e);
-      }
-    }
-    loadDexie();
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const [serverSyncStatus, setServerSyncStatus] = useState<
+    'ONLINE_SYNCED' | 'OFFLINE_LOCAL' | 'SERVER_UNAVAILABLE'
+  >('OFFLINE_LOCAL');
+
+  // Synchronize batches with Server & IndexedDB (Dexie) safely
+  const loadData = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const db = getDatabase();
+      const records = await db.pendingSync.toArray();
+      if (records.length > 0) {
+        setOfflineQueue(records);
+      }
+
+      // Track local pending IDs that must NEVER be overwritten by server data
+      const pendingSyncSet = new Set<string>();
+      for (const p of records) {
+        pendingSyncSet.add(p.id.replace('#', ''));
+      }
+
+      // Check syncQueue for queued or draft changes
+      try {
+        const queuedItems = await db.syncQueue.toArray();
+        for (const q of queuedItems) {
+          if (q.state === 'queued' || q.state === 'draft') {
+            pendingSyncSet.add(q.batch_code.replace('#', ''));
+          }
+        }
+      } catch {
+        // syncQueue might not exist or be empty
+      }
+
+      // Check existing local batches with pending status
+      const existingBatches = await db.batches.toArray();
+      for (const b of existingBatches) {
+        if (b.status === 'SAVED_OFFLINE_PENDING_SYNC') {
+          pendingSyncSet.add(b.id.replace('#', ''));
+        }
+      }
+
+      // Attempt to retrieve authorized server records when online
+      if (!isOffline) {
+        try {
+          const res = await fetch('/api/batches');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.serverAvailable && Array.isArray(data.batches)) {
+              setServerSyncStatus('ONLINE_SYNCED');
+
+              // Merge server batches into Dexie safely:
+              // Deduplicate by stable batch ID.
+              // Server authoritative version takes precedence over stale local synchronized data.
+              // Local pending changes are NEVER overwritten or silently discarded!
+              for (const sBatch of data.batches) {
+                const sId = sBatch.id.replace('#', '');
+                if (pendingSyncSet.has(sId)) {
+                  // Do not overwrite local-only queued / pending records
+                  continue;
+                }
+
+                // Upsert authoritative server batch to local Dexie cache
+                await db.batches.put({
+                  id: sId,
+                  produceName: sBatch.produceName,
+                  produceOdia: sBatch.produceOdia,
+                  scientificName: sBatch.scientificName || '',
+                  district: sBatch.district,
+                  block: sBatch.block,
+                  gramPanchayat: sBatch.gramPanchayat,
+                  centerName: sBatch.centerName,
+                  shgName: sBatch.shgName,
+                  facilitatorName: sBatch.facilitatorName,
+                  referenceRatePerKg: sBatch.referenceRatePerKg,
+                  rateSource: sBatch.rateSource,
+                  ratePublishedDate: sBatch.ratePublishedDate,
+                  seasonalReadinessStatus: sBatch.seasonalReadinessStatus,
+                  pickupRequestId: sBatch.pickupRequestId,
+                  collectors: sBatch.collectors || [],
+                  status: sBatch.status,
+                  step1: sBatch.step1 || null,
+                  step2: sBatch.step2 || null,
+                  createdAt: typeof sBatch.createdAt === 'string' ? sBatch.createdAt : new Date(sBatch.createdAt).toISOString(),
+                  updatedAt: typeof sBatch.updatedAt === 'string' ? sBatch.updatedAt : new Date(sBatch.updatedAt).toISOString(),
+                });
+              }
+            } else {
+              setServerSyncStatus('SERVER_UNAVAILABLE');
+            }
+          } else if (res.status === 503) {
+            setServerSyncStatus('SERVER_UNAVAILABLE');
+          } else {
+            setServerSyncStatus('OFFLINE_LOCAL');
+          }
+        } catch {
+          setServerSyncStatus('OFFLINE_LOCAL');
+        }
+      } else {
+        setServerSyncStatus('OFFLINE_LOCAL');
+      }
+
+      // Read consolidated batches from Dexie
+      const consolidatedBatches = await db.batches.toArray();
+      if (consolidatedBatches.length > 0) {
+        const mappedQueue: QueueItem[] = consolidatedBatches.map((b) => {
+          const cCont = b.collectors?.[0];
+          let statusLabel: 'Pending' | 'Scheduled' | 'Collected' | 'In Review' | 'Quarantined' = 'Pending';
+          let statusVariant: StatusVariant = 'warning';
+
+          if (b.status === 'VERIFIED_SALEABLE') {
+            statusLabel = 'Collected';
+            statusVariant = 'success';
+          } else if (b.status === 'PENDING_VERIFICATION') {
+            statusLabel = 'Collected';
+            statusVariant = 'info';
+          } else if (b.status === 'QUARANTINED_DISCREPANCY') {
+            statusLabel = 'Quarantined';
+            statusVariant = 'danger';
+          } else if (b.status === 'SAVED_OFFLINE_PENDING_SYNC') {
+            statusLabel = 'Pending';
+            statusVariant = 'warning';
+          }
+
+          const isPending = pendingSyncSet.has(b.id.replace('#', '')) || b.status === 'SAVED_OFFLINE_PENDING_SYNC';
+
+          return {
+            code: `#${b.id.replace('#', '')}`,
+            collector: cCont?.name || 'Tribal Collector',
+            village: cCont?.village || `${b.block}, ${b.district}`,
+            product: b.produceName,
+            estQty: cCont?.weightKg || b.step1?.netAcceptedKg || 40.0,
+            qualityGrade: (b.step1?.grade?.includes('A') ? 'A' : b.step1?.grade?.includes('B') ? 'B' : 'A') as 'A' | 'B' | 'C',
+            requestedAt: b.createdAt || 'Recent',
+            requestedDateIso: new Date().toISOString().split('T')[0],
+            status: statusLabel,
+            statusVariant,
+            syncState: isPending ? 'queued' : 'synced',
+          };
+        });
+
+        setQueueItems((prev) => {
+          const codeMap = new Map<string, QueueItem>();
+          for (const item of prev) {
+            codeMap.set(item.code, item);
+          }
+          for (const item of mappedQueue) {
+            codeMap.set(item.code, item);
+          }
+          return Array.from(codeMap.values());
+        });
+      }
+    } catch (e) {
+      console.warn('Dexie/Server batch sync error:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [isOffline]);
+
 
   // Open drawer for a specific queue item
   const handleOpenRecordDrawer = (code: string) => {
@@ -536,22 +1017,18 @@ export default function CollectionManagerPage() {
     receipt: {
       variant: 'info',
       title: 'Pickup queue refreshed',
-      description: 'Synchronized with local field cache.',
+      description: 'Synchronized with local field cache and server registry.',
     },
-    onExecute: () => {
+    onExecute: async () => {
       setLastFetched(new Date());
+      await loadData();
     },
   });
 
-  // 2. Sync Now Action (Semi-reversible with inline confirmation)
+  // 2. Sync Now Action (Safe offline sync; strictly preserves records on failure)
   const syncNowAction = useAction({
     name: 'sync-offline-queue',
     showToast: (t) => setActiveToast(t),
-    receipt: {
-      variant: 'success',
-      title: 'Cloud handshake confirmed',
-      description: 'Queued collection records promoted to central ledger with audit hash.',
-    },
     onExecute: async () => {
       if (isOffline) {
         setActiveToast({
@@ -564,11 +1041,86 @@ export default function CollectionManagerPage() {
       }
 
       try {
+        const res = await fetch('/api/health');
+        const health = await res.json().catch(() => null);
+
+        if (!health?.database?.connected) {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'warning',
+            title: 'Server database unconfigured · Sync postponed',
+            description: 'PostgreSQL database is unconfigured. All offline records remain safely retained in local device ledger.',
+          });
+          return;
+        }
+
         const db = getDatabase();
-        await db.pendingSync.clear();
-        setOfflineQueue([]);
+        const pending = await db.pendingSync.toArray();
+        let syncedCount = 0;
+
+        for (const item of pending) {
+          try {
+            const verifyRes = await fetch('/api/collection/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                batchId: item.id,
+                grossWeightKg: item.data?.gross || 100,
+                tareWeightKg: item.data?.tare || 1.5,
+                netAcceptedKg: item.data?.net || (item.data?.gross || 100) - (item.data?.tare || 1.5),
+                grade: item.data?.grade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade A - Properly Dried',
+                sackCount: item.data?.sackCount || 1,
+                sealTagId: `OD-TAG-${item.id}`,
+                vehicleNumber: 'OR-11-F-4412',
+                driverName: 'B. Soren',
+                tarpaulinConfirmed: true,
+                transitWaybillId: `WB-OD-24-${item.id}`,
+                observedMoisturePercent: 8.5,
+                idempotencyKey: item.data?.idempotencyKey,
+              }),
+            });
+            const vData = await verifyRes.json().catch(() => null);
+            if (verifyRes.ok && vData?.success && vData?.serverVerified) {
+              await db.pendingSync.delete(item.id);
+              await db.batches.update(item.id, {
+                status: 'PENDING_VERIFICATION',
+              });
+              syncedCount++;
+            }
+          } catch {
+            // Retain on error
+          }
+        }
+
+        const remaining = await db.pendingSync.toArray();
+        setOfflineQueue(remaining);
+
+        if (syncedCount > 0) {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'success',
+            title: `${syncedCount} record(s) synchronized with server`,
+            description:
+              remaining.length === 0
+                ? 'Local sync buffer is now clear.'
+                : `${remaining.length} record(s) remain safely pending.`,
+          });
+        } else {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'warning',
+            title: 'Sync incomplete · Records retained',
+            description: `${remaining.length} record(s) retained locally in device ledger.`,
+          });
+        }
       } catch (e) {
-        setOfflineQueue([]);
+        console.warn('Sync attempt error:', e);
+        setActiveToast({
+          id: `toast-${Date.now()}`,
+          variant: 'warning',
+          title: 'Sync failed · Records retained',
+          description: 'Network or server error. All offline records remain preserved.',
+        });
       }
     },
   });
@@ -644,9 +1196,12 @@ export default function CollectionManagerPage() {
       }
       setWeightError(null);
 
-      const shouldSaveOffline = forceOffline || isOffline;
+      const cleanId = selectedQueueCode.replace('#', '');
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
+      const actualSackCount = sackCount || 1;
+
       const newRecord: PendingSyncItem = {
-        id: `BS-${Math.floor(403 + Math.random() * 50)}`,
+        id: cleanId, // Deterministic ID prevents duplicate records on retry
         code: selectedQueueCode,
         collector: 'Raimati Soren',
         product: DEMO_PRODUCT.name,
@@ -658,24 +1213,28 @@ export default function CollectionManagerPage() {
           tare: tareWeight,
           net: computedNet,
           grade: qualityGrade,
+          sackCount: actualSackCount,
           individualReceipt: individualReceiptToggle,
           idempotencyKey,
         },
       };
 
-      const cleanId = selectedQueueCode.replace('#', '');
-      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST';
-
-      if (shouldSaveOffline) {
+      // Helper function to safely persist locally as SAVED_OFFLINE_PENDING_SYNC
+      const saveLocallyPendingSync = async (reasonNote: string) => {
         try {
           const db = getDatabase();
+          // Idempotent upsert by cleanId
           await db.pendingSync.put(newRecord);
           await db.syncQueue.put({
-            local_id: `ULID-${Date.now()}`,
+            local_id: idempotencyKey || `SYNC-${cleanId}`,
             batch_code: selectedQueueCode,
             entity: 'collection',
             action: 'create',
-            actor: { id: 'COL-MGR-02', name: 'R. Mohanty', role: 'Collection Manager' },
+            actor: {
+              id: authenticatedUser?.userId || 'COL-MGR-02',
+              name: authenticatedUser?.fullName || 'R. Mohanty',
+              role: authenticatedUser?.role || 'Collection Manager',
+            },
             payload: newRecord,
             state: 'queued',
             createdAt: Date.now(),
@@ -684,7 +1243,6 @@ export default function CollectionManagerPage() {
             approxSizeBytes: 3500,
           });
 
-          // Also persist/update in batches table with offline status
           const existing = await db.batches.get(cleanId);
           if (existing) {
             await db.batches.update(cleanId, {
@@ -694,51 +1252,17 @@ export default function CollectionManagerPage() {
                 grossWeightKg: grossWeight,
                 tareWeightKg: tareWeight,
                 netAcceptedKg: computedNet,
-                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
-                verifiedBy: 'R. Mohanty (ID: CM-12)',
-                verifiedByRole: 'Field Collection Manager',
+                grade:
+                  qualityGrade === 'A'
+                    ? 'Grade A - Properly Dried'
+                    : qualityGrade === 'B'
+                    ? 'Grade B - Moderate Moisture'
+                    : 'Grade C - Substandard',
+                sackCount: actualSackCount,
+                verifiedBy: `${authenticatedUser?.fullName || 'R. Mohanty'} (Local)`,
+                verifiedByRole: authenticatedUser?.role || 'Field Collection Manager',
                 verifiedAt: nowStr,
-              },
-              updatedAt: nowStr,
-            });
-          }
-        } catch (err) {
-          console.warn('Dexie save offline error:', err);
-        }
-
-        setOfflineQueue((prev) => [newRecord, ...prev]);
-        setQueueItems((prev) =>
-          prev.map((item) =>
-            item.code === selectedQueueCode
-              ? { ...item, status: 'Collected', statusVariant: 'info', syncState: 'queued' }
-              : item
-          )
-        );
-        setIsDrawerOpen(false);
-        setShowDiscardPrompt(false);
-
-        setActiveToast({
-          id: `toast-${Date.now()}`,
-          variant: 'warning',
-          title: `Saved offline · ${selectedQueueCode}`,
-          description: 'Network offline. Record queued in device IndexedDB pending sync.',
-        });
-      } else {
-        try {
-          const db = getDatabase();
-          const existing = await db.batches.get(cleanId);
-          if (existing) {
-            await db.batches.update(cleanId, {
-              status: 'PENDING_VERIFICATION',
-              step1: {
-                ...existing.step1,
-                grossWeightKg: grossWeight,
-                tareWeightKg: tareWeight,
-                netAcceptedKg: computedNet,
-                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
-                verifiedBy: 'R. Mohanty (ID: CM-12)',
-                verifiedByRole: 'Field Collection Manager',
-                verifiedAt: nowStr,
+                notes: reasonNote,
               },
               updatedAt: nowStr,
             });
@@ -755,46 +1279,53 @@ export default function CollectionManagerPage() {
               shgName: 'Maa Tarini SHG',
               facilitatorName: 'Champa Majhi (SHG-FAC-09)',
               referenceRatePerKg: ratePerKg,
-              rateSource: 'LABHA Scheme Notified Floor MSP',
+              rateSource: 'LABHA Scheme Floor MSP (Illustrative Test Baseline)',
               ratePublishedDate: '15-Apr-2024',
-              seasonalReadinessStatus: 'Dispatched to Baripada Depôt',
+              seasonalReadinessStatus: 'Stored at Collection Center (Pending Sync)',
               pickupRequestId: `REQ-${cleanId}`,
-              collectors: [{
-                id: 'COL-001',
-                tribalId: 'OR-MAY-KRN-0842',
-                name: 'Raimati Soren',
-                nameOdia: 'ରାଇମତୀ ସୋରେନ',
-                gender: 'F',
-                age: 34,
-                village: 'Badagaon, Karanjia',
-                villageOdia: 'ବଡ଼ଗାଁ, କରଞ୍ଜିଆ',
-                weightKg: computedNet,
-                ratePerKg,
-                grossPayout: computedNet * ratePerKg,
-                bankName: 'Canara Bank (Karanjia Branch)',
-                accountEnding: '•••4812',
-                dbtRef: `DBT-OD-${Math.floor(1000 + Math.random() * 9000)}`,
-                paymentStatus: 'READY_FOR_DISBURSEMENT',
-                collectedDate: nowStr,
-                signedByFacilitator: 'Champa Majhi',
-              }],
-              status: 'PENDING_VERIFICATION',
+              collectors: [
+                {
+                  id: 'COL-001',
+                  tribalId: 'OR-MAY-KRN-0842',
+                  name: 'Raimati Soren',
+                  nameOdia: 'ରାଇମତୀ ସୋରେନ',
+                  gender: 'F',
+                  age: 34,
+                  village: 'Badagaon, Karanjia',
+                  villageOdia: 'ବଡ଼ଗାଁ, କରଞ୍ଜିଆ',
+                  weightKg: computedNet,
+                  ratePerKg,
+                  grossPayout: computedNet * ratePerKg,
+                  bankName: 'Canara Bank (Karanjia Branch)',
+                  accountEnding: '•••4812',
+                  dbtRef: `DBT-OD-${Math.floor(1000 + Math.random() * 9000)}`,
+                  paymentStatus: 'READY_FOR_DISBURSEMENT',
+                  collectedDate: nowStr,
+                  signedByFacilitator: 'Champa Majhi',
+                },
+              ],
+              status: 'SAVED_OFFLINE_PENDING_SYNC',
               step1: {
                 grossWeightKg: grossWeight,
                 tareWeightKg: tareWeight,
                 netAcceptedKg: computedNet,
-                grade: qualityGrade === 'A' ? 'Grade A - Properly Dried' : qualityGrade === 'B' ? 'Grade B - Moderate Moisture' : 'Grade C - Substandard',
-                sackCount: 1,
+                grade:
+                  qualityGrade === 'A'
+                    ? 'Grade A - Properly Dried'
+                    : qualityGrade === 'B'
+                    ? 'Grade B - Moderate Moisture'
+                    : 'Grade C - Substandard',
+                sackCount: actualSackCount,
                 sealTagId: `OD-TAG-${cleanId}`,
                 vehicleNumber: 'OR-11-F-4412',
                 driverName: 'B. Soren',
                 tarpaulinConfirmed: true,
                 transitWaybillId: `WB-OD-24-${cleanId}`,
-                observedMoisturePercent: 8.5,
-                verifiedBy: 'R. Mohanty (ID: CM-12)',
-                verifiedByRole: 'Field Collection Manager',
+                observedMoisturePercent: qualityGrade === 'A' ? 8.5 : qualityGrade === 'B' ? 12.0 : 16.0,
+                verifiedBy: `${authenticatedUser?.fullName || 'R. Mohanty'} (Local)`,
+                verifiedByRole: authenticatedUser?.role || 'Field Collection Manager',
                 verifiedAt: nowStr,
-                notes: 'Field intake verified and dispatched.',
+                notes: reasonNote,
               },
               step2: null,
               createdAt: nowStr,
@@ -802,44 +1333,159 @@ export default function CollectionManagerPage() {
             });
           }
 
+          // Local audit event clearly marked as unauthoritative local entry
           await db.auditEvents.put({
-            id: `AUD-${Date.now()}`,
+            id: `AUD-LOCAL-${Date.now()}`,
             timestamp: nowStr,
-            actorId: 'CM-12',
-            actorName: 'R. Mohanty',
-            actorRole: 'Field Collection Manager',
-            actionType: 'FIELD_WEIGH_COMPLETED',
-            title: `Field Weighment Completed: ${computedNet} kg Net (${selectedQueueCode})`,
-            description: `Gross: ${grossWeight} kg, Tare: ${tareWeight} kg, Net: ${computedNet} kg. Grade: ${qualityGrade}.`,
+            actorId: authenticatedUser?.userId || 'CM-12',
+            actorName: authenticatedUser?.fullName || 'R. Mohanty',
+            actorRole: authenticatedUser?.role || 'Field Collection Manager',
+            actionType: 'OFFLINE_SAVED',
+            title: `Field Weighment Saved Locally: ${computedNet} kg Net (${selectedQueueCode})`,
+            description: `Gross: ${grossWeight} kg, Tare: ${tareWeight} kg. Saved locally; pending authoritative server verification.`,
             details: {
               batchCode: selectedQueueCode,
               grossWeightKg: grossWeight,
               tareWeightKg: tareWeight,
               netWeightKg: computedNet,
               qualityGrade,
+              reason: reasonNote,
             },
           });
         } catch (err) {
-          console.warn('Dexie save online error:', err);
+          console.warn('Dexie save offline error:', err);
         }
 
+        setOfflineQueue((prev) => [newRecord, ...prev.filter((i) => i.id !== cleanId)]);
         setQueueItems((prev) =>
           prev.map((item) =>
             item.code === selectedQueueCode
-              ? { ...item, status: 'Collected', statusVariant: 'info' }
+              ? { ...item, status: 'Pending', statusVariant: 'warning', syncState: 'queued' }
               : item
           )
         );
-
         setIsDrawerOpen(false);
         setShowDiscardPrompt(false);
+      };
 
+      const shouldSaveOffline = forceOffline || isOffline;
+
+      if (shouldSaveOffline) {
+        await saveLocallyPendingSync('Offline mode active');
         setActiveToast({
           id: `toast-${Date.now()}`,
-          variant: 'success',
-          title: `Collection confirmed · ${selectedQueueCode}`,
-          description: `Batch verified (${acceptedQty} kg net). Promoted to pending_verification.`,
+          variant: 'warning',
+          title: `Saved locally · ${selectedQueueCode}`,
+          description: 'Network offline. Record queued in device IndexedDB pending sync.',
         });
+      } else {
+        // Online attempt: Call /api/collection/verify
+        let serverVerified = false;
+        let responseJson: any = null;
+
+        try {
+          const res = await fetch('/api/collection/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batchId: cleanId,
+              grossWeightKg: grossWeight,
+              tareWeightKg: tareWeight,
+              netAcceptedKg: computedNet,
+              grade:
+                qualityGrade === 'A'
+                  ? 'Grade A - Properly Dried'
+                  : qualityGrade === 'B'
+                  ? 'Grade B - Moderate Moisture'
+                  : 'Grade C - Substandard',
+              sackCount: actualSackCount,
+              sealTagId: `OD-TAG-${cleanId}`,
+              vehicleNumber: 'OR-11-F-4412',
+              driverName: 'B. Soren',
+              tarpaulinConfirmed: true,
+              transitWaybillId: `WB-OD-24-${cleanId}`,
+              observedMoisturePercent: qualityGrade === 'A' ? 8.5 : qualityGrade === 'B' ? 12.0 : 16.0,
+              idempotencyKey,
+            }),
+          });
+
+          responseJson = await res.json().catch(() => null);
+
+          if (res.ok && responseJson?.success && responseJson?.serverVerified) {
+            serverVerified = true;
+          }
+        } catch (netErr) {
+          // Network failure -> fallback to local safe persistence
+        }
+
+        if (serverVerified) {
+          // Authoritative server response confirmed and persisted in PostgreSQL
+          try {
+            const db = getDatabase();
+            const existing = await db.batches.get(cleanId);
+            if (existing) {
+              await db.batches.update(cleanId, {
+                status: 'PENDING_VERIFICATION',
+                step1: {
+                  ...existing.step1,
+                  grossWeightKg: grossWeight,
+                  tareWeightKg: tareWeight,
+                  netAcceptedKg: computedNet,
+                  grade:
+                    qualityGrade === 'A'
+                      ? 'Grade A - Properly Dried'
+                      : qualityGrade === 'B'
+                      ? 'Grade B - Moderate Moisture'
+                      : 'Grade C - Substandard',
+                  sackCount: actualSackCount,
+                  verifiedBy: responseJson?.verifiedBy || authenticatedUser?.fullName || 'R. Mohanty',
+                  verifiedByRole: authenticatedUser?.role || 'Field Collection Manager',
+                  verifiedAt: responseJson?.verifiedAt || nowStr,
+                },
+                updatedAt: nowStr,
+              });
+            }
+            await db.pendingSync.delete(cleanId);
+            await db.syncQueue.delete(idempotencyKey || `SYNC-${cleanId}`);
+          } catch (e) {
+            console.warn('Dexie update on server success:', e);
+          }
+
+          setQueueItems((prev) =>
+            prev.map((item) =>
+              item.code === selectedQueueCode
+                ? { ...item, status: 'Collected', statusVariant: 'info', syncState: 'synced' }
+                : item
+            )
+          );
+          setIsDrawerOpen(false);
+          setShowDiscardPrompt(false);
+
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'success',
+            title: `Server verification confirmed · ${selectedQueueCode}`,
+            description: `Batch verified (${computedNet} kg net) and recorded in central server ledger.`,
+          });
+        } else {
+          // Server returned 503 DATABASE_UNCONFIGURED, 401/403, or network failed:
+          // CRITICAL SAFETY INVARIANT: Cannot be shown as a successful server verification!
+          await saveLocallyPendingSync(
+            responseJson?.error === 'DATABASE_UNCONFIGURED'
+              ? 'PostgreSQL unconfigured; saved locally pending synchronization'
+              : 'Server unverified; saved locally in offline ledger'
+          );
+
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            variant: 'warning',
+            title: `Saved locally · Pending sync (${selectedQueueCode})`,
+            description:
+              responseJson?.error === 'DATABASE_UNCONFIGURED'
+                ? 'Server database is unconfigured. Weighment saved locally in device ledger and queued for server synchronization.'
+                : 'Server verification could not be confirmed. Record preserved locally and queued for retry.',
+          });
+        }
       }
     },
   });
@@ -862,22 +1508,155 @@ export default function CollectionManagerPage() {
             <h1 className="font-heading text-[28px] font-semibold text-ink leading-tight">
               Collection
             </h1>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none">
-              Today · 14 Mar 2025 · Mayurbhanj
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted mt-1 select-none flex items-center gap-2 flex-wrap">
+              <span>Today · 14 Mar 2025 · Mayurbhanj</span>
+              {authenticatedUser ? (
+                <StatusBadge variant="success" className="text-[10px]">
+                  {authenticatedUser.centerId || 'KRN-01'} · Manager: {authenticatedUser.fullName}
+                </StatusBadge>
+              ) : (
+                <StatusBadge variant="neutral" className="text-[10px]">
+                  Simulated Center (Demo)
+                </StatusBadge>
+              )}
+              {serverSyncStatus === 'ONLINE_SYNCED' ? (
+                <StatusBadge variant="success" className="text-[10px]">
+                  ✓ Cloud Registry: Synchronized
+                </StatusBadge>
+              ) : serverSyncStatus === 'SERVER_UNAVAILABLE' ? (
+                <StatusBadge variant="neutral" className="text-[10px]">
+                  ⚡ Offline / Local Ledger Mode (Server Unconfigured)
+                </StatusBadge>
+              ) : (
+                <StatusBadge variant="warning" className="text-[10px]">
+                  ⚡ Offline Device Mode
+                </StatusBadge>
+              )}
             </div>
           </div>
           {/* Primary Action Placement: Top-right aligned with page title row */}
           <Button
             variant="primary"
-            onClick={() => handleOpenRecordDrawer('#BS-402')}
+            onClick={() => {
+              if (activeSection !== 'aggregation') {
+                navigateToSection('aggregation');
+              }
+              handleOpenRecordDrawer('#BS-402');
+            }}
             className="self-start sm:self-auto shadow-none"
           >
             Record collection
           </Button>
         </div>
 
-        {/* 2-Column Split: 2/3 Left, 1/3 Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Field Operations Section Navigation Tabs */}
+        <div
+          role="tablist"
+          aria-label="Field Operations Navigation"
+          className="flex items-center gap-2 border-b border-rule pb-2 overflow-x-auto"
+        >
+          <button
+            type="button"
+            role="tab"
+            id="tab-aggregation"
+            aria-selected={activeSection === 'aggregation'}
+            aria-controls="aggregation"
+            onClick={() => navigateToSection('aggregation')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'aggregation'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <Scale size={15} strokeWidth={1.5} />
+            <span>Field Aggregation</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'aggregation' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              100 kg
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-collectors"
+            aria-selected={activeSection === 'collectors'}
+            aria-controls="collectors"
+            onClick={() => navigateToSection('collectors')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'collectors'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <Users size={15} strokeWidth={1.5} />
+            <span>Tribal Collectors</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'collectors' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              3
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-dispatches"
+            aria-selected={activeSection === 'dispatches'}
+            aria-controls="dispatches"
+            onClick={() => navigateToSection('dispatches')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'dispatches'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <Truck size={15} strokeWidth={1.5} />
+            <span>Transit Dispatches</span>
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-[2px]',
+                activeSection === 'dispatches' ? 'bg-white/20 text-accent-ink' : 'bg-bg-sunken text-ink-muted'
+              )}
+            >
+              3
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-audit"
+            aria-selected={activeSection === 'audit'}
+            aria-controls="audit"
+            onClick={() => navigateToSection('audit')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-[13px] font-medium transition-colors select-none shrink-0 border focus:outline-2 focus:outline-accent',
+              activeSection === 'audit'
+                ? 'bg-accent text-accent-ink border-accent font-semibold'
+                : 'bg-surface text-ink border-rule hover:bg-bg-sunken'
+            )}
+          >
+            <History size={15} strokeWidth={1.5} />
+            <span>Custody Audit Log</span>
+          </button>
+        </div>
+
+        {/* ========================================================
+            SECTION 1: Field Aggregation (Intake Queue & Drawer)
+           ======================================================== */}
+        {activeSection === 'aggregation' && (
+        <div id="aggregation" className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* ========================================================
               LEFT COLUMN (2/3): Pickup queue Table & Pagination
              ======================================================== */}
@@ -1300,6 +2079,706 @@ export default function CollectionManagerPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {/* ========================================================
+            SECTION 2: Tribal Collectors Registry
+           ======================================================== */}
+        {activeSection === 'collectors' && (
+          <div id="collectors" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Tribal Collectors Registry
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ଜନଜାତି ସଂଗ୍ରାହକ ତାଲିକା</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Verified primary tribal gatherers registered at Karanjia Center #01, Mayurbhanj District. All transactions disbursed directly into Aadhaar-seeded accounts.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <StatusBadge variant="success" className="text-[11px] font-mono">
+                    3 Registered Gatherers
+                  </StatusBadge>
+                  <StatusBadge variant="info" className="text-[11px] font-mono">
+                    100% Direct Benefit Transfer (DBT)
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Registered Collectors
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums">
+                    3
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Karanjia Block, Mayurbhanj
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Aggregated Harvest
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums">
+                    100.0 <span className="text-[13px] font-normal text-ink-muted">kg</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Dried Mahua Flowers (Grade A)
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Total Disbursed Payout
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-success tabular-nums">
+                    ₹4,200.00
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    At State MSP ₹42.00 / kg
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Collectors Table */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden">
+              <div className="p-3.5 border-b border-rule bg-bg-sunken/30 flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-[0.06em] font-bold text-ink">
+                  Primary Gatherers Roster (3)
+                </span>
+                <span className="text-[11px] font-mono text-ink-subtle">
+                  LABHA Scheme Direct Payout Guarantee
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Tribal Gatherer ID</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Gatherer Name</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Village / GP</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Produce</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Net Weight</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">MSP Rate</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Gross Payout</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">DBT Disbursal & Bank</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Status</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {COLLECTION_TRIBAL_COLLECTORS.map((c) => (
+                      <TableRow key={c.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="font-mono text-[12px] font-semibold text-accent whitespace-nowrap">
+                          {c.tribalId}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="font-semibold text-[13px] text-ink">{c.name}</div>
+                          <div className="text-[11px] text-ink-muted">{c.nameOdia} · {c.gender === 'F' ? 'Female' : 'Male'}, {c.age}y</div>
+                        </TableCell>
+                        <TableCell className="text-[12px] text-ink whitespace-nowrap">
+                          {c.village}
+                        </TableCell>
+                        <TableCell className="text-[12px] text-ink whitespace-nowrap font-medium">
+                          {c.produce}
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-ink text-right tabular-nums whitespace-nowrap">
+                          {c.weightKg.toFixed(1)} kg
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-muted text-right tabular-nums whitespace-nowrap">
+                          ₹{c.ratePerKg.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-success text-right tabular-nums whitespace-nowrap">
+                          ₹{c.grossPayout.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-[11px] font-mono text-ink-muted whitespace-nowrap">
+                          <div>{c.bankName} ({c.accountMasked})</div>
+                          <div className="text-[10px] text-ink-subtle">{c.dbtRef}</div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge variant={c.statusVariant} className="text-[10px] font-mono">
+                            PAID · DBT
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href="/collection/receipt/BS-402"
+                              className="text-[11px] font-mono text-accent hover:underline inline-flex items-center gap-1 font-semibold focus:outline-2 focus:outline-accent"
+                            >
+                              <span>Receipt</span>
+                              <ArrowRight size={11} />
+                            </Link>
+                            <span>·</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilters({
+                                  ...DEFAULT_MANAGER_FILTERS,
+                                  search: c.name,
+                                });
+                                navigateToSection('aggregation');
+                              }}
+                              className="text-[11px] font-mono text-ink-muted hover:text-ink hover:underline focus:outline-2 focus:outline-accent"
+                            >
+                              Batches
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            SECTION 3: Transit Dispatches & Custody Handover
+           ======================================================== */}
+        {activeSection === 'dispatches' && (
+          <div id="dispatches" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Transit Dispatches & Custody Handover
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ପରିବହନ ଓ ହସ୍ତାନ୍ତର</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Authorized vehicle consignments dispatched from Karanjia Field Collection Center #01 to Baripada Central Depôt #02. Double-stitched jute sacks sealed under water-resistant tarpaulin covers.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <StatusBadge variant="warning" className="text-[11px] font-mono">
+                    1 In Transit
+                  </StatusBadge>
+                  <StatusBadge variant="success" className="text-[11px] font-mono">
+                    2 Delivered
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Dispatches Summary Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Total Dispatched Batches
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums">
+                    3 Lots
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    185.0 kg total net weight
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Destination Depôt
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink">
+                    Baripada #02
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Terminal ID: BRP-D02-09
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Security Seal Integrity
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-success">
+                    100% Intact
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Numbered tamper-evident tags
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Consignment Dispatch Preparation & Capability Matcher (Phase G3 / Product Guidance) */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4" data-testid="dispatch-capability-matcher">
+              <div className="border-b border-rule pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Truck size={18} className="text-accent" />
+                    <h3 className="font-heading text-[16px] font-semibold text-ink leading-tight">
+                      Prepare Consignment Dispatch & Capability Matching
+                    </h3>
+                    <span className="text-[11px] font-mono text-ink-muted">· ପ୍ରସ୍ତୁତି ଓ ସୁସଙ୍ଗତତା ଯାଞ୍ଚ</span>
+                  </div>
+                  <p className="text-[12px] text-ink-muted mt-0.5">
+                    Compare product handling requirements with recorded vehicle capabilities and destination depot capabilities before issuing transit waybills.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 font-mono text-[11px]">
+                  <span className="text-ink-muted">Overall Clearance:</span>
+                  <StatusBadge
+                    variant={
+                      dispatchMatchEvaluation.overallStatus === 'SUITABLE'
+                        ? 'success'
+                        : dispatchMatchEvaluation.overallStatus === 'UNSUITABLE'
+                        ? 'danger'
+                        : 'warning'
+                    }
+                  >
+                    {dispatchMatchEvaluation.overallStatus === 'SUITABLE'
+                      ? 'SUITABLE FOR DISPATCH'
+                      : dispatchMatchEvaluation.overallStatus === 'UNSUITABLE'
+                      ? 'UNSUITABLE — BLOCKED'
+                      : 'UNKNOWN / INSPECTION REQ'}
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Selection Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 1. Select Produce Batch */}
+                <div className="space-y-1">
+                  <label htmlFor="dispatch-produce-select" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
+                    1. Produce Consignment
+                  </label>
+                  <select
+                    id="dispatch-produce-select"
+                    value={dispatchSelectedProduce}
+                    onChange={(e) => {
+                      setDispatchSelectedProduce(e.target.value);
+                      setDispatchSuccessNotice(null);
+                    }}
+                    className="h-[36px] w-full rounded-[2px] border border-rule bg-surface px-2.5 text-[12px] font-mono text-ink focus:outline-2 focus:outline-accent"
+                  >
+                    <option value="mahua">#BS-402 · Dried Mahua Flowers (High Moisture Sens)</option>
+                    <option value="sal-seeds">#BS-400 · Sal Tree Seeds (High Oil Sens)</option>
+                    <option value="wild-honey">#LOT-HN-09 · Wild Forest Honey (Food-Grade Carboys)</option>
+                    <option value="lac">#LOT-LC-12 · Natural Sticklac (Heat Sensitive &lt;35°C)</option>
+                    <option value="char-seeds">#LOT-CH-03 · Char Seeds / Chironji (High Value)</option>
+                    <option value="kendu-leaves">#LOT-KL-88 · Kendu Leaves (Combustible Kerries)</option>
+                  </select>
+                </div>
+
+                {/* 2. Select Vehicle */}
+                <div className="space-y-1">
+                  <label htmlFor="dispatch-vehicle-select" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
+                    2. Assigned Transit Vehicle
+                  </label>
+                  <select
+                    id="dispatch-vehicle-select"
+                    value={dispatchSelectedVehicle}
+                    onChange={(e) => {
+                      setDispatchSelectedVehicle(e.target.value);
+                      setDispatchSuccessNotice(null);
+                    }}
+                    className="h-[36px] w-full rounded-[2px] border border-rule bg-surface px-2.5 text-[12px] font-mono text-ink focus:outline-2 focus:outline-accent"
+                  >
+                    {RECORDED_VEHICLES.map((v) => (
+                      <option key={v.vehicleNumber} value={v.vehicleNumber}>
+                        {v.vehicleNumber} · {v.driverName} ({v.verificationStatus === 'VERIFIED' ? 'Verified' : 'Unverified'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 3. Select Destination Depot */}
+                <div className="space-y-1">
+                  <label htmlFor="dispatch-depot-select" className="text-[11px] font-semibold uppercase text-ink-muted block select-none">
+                    3. Destination Depôt
+                  </label>
+                  <select
+                    id="dispatch-depot-select"
+                    value={dispatchSelectedDepot}
+                    onChange={(e) => {
+                      setDispatchSelectedDepot(e.target.value);
+                      setDispatchSuccessNotice(null);
+                    }}
+                    className="h-[36px] w-full rounded-[2px] border border-rule bg-surface px-2.5 text-[12px] font-mono text-ink focus:outline-2 focus:outline-accent"
+                  >
+                    {RECORDED_DEPOTS.map((d) => (
+                      <option key={d.depotId} value={d.depotId}>
+                        {d.depotName} ({d.verificationStatus === 'VERIFIED' ? 'Verified' : 'Unverified'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Product Handling Guidance Card */}
+              <ProductGuidanceCard
+                productIdentifier={dispatchSelectedProduce}
+                stage="DISPATCH"
+                interactiveChecklist={false}
+                compact={true}
+              />
+
+              {/* Side-by-side Capability Comparison Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
+                {/* Vehicle Compatibility Result */}
+                <div
+                  className={cn(
+                    'border rounded-[3px] p-3 space-y-2 bg-surface',
+                    dispatchMatchEvaluation.vehicleResult.status === 'SUITABLE'
+                      ? 'border-success/40 bg-success/5'
+                      : dispatchMatchEvaluation.vehicleResult.status === 'UNSUITABLE'
+                      ? 'border-danger/40 bg-danger/5'
+                      : 'border-warning/40 bg-warning/5'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] uppercase font-bold text-ink">
+                      Vehicle Transit Compatibility
+                    </span>
+                    <StatusBadge
+                      variant={
+                        dispatchMatchEvaluation.vehicleResult.status === 'SUITABLE'
+                          ? 'success'
+                          : dispatchMatchEvaluation.vehicleResult.status === 'UNSUITABLE'
+                          ? 'danger'
+                          : 'warning'
+                      }
+                    >
+                      {dispatchMatchEvaluation.vehicleResult.status === 'SUITABLE'
+                        ? 'SUITABLE'
+                        : dispatchMatchEvaluation.vehicleResult.status === 'UNSUITABLE'
+                        ? 'UNSUITABLE'
+                        : 'UNKNOWN / REQUIRES INSPECTION'}
+                    </StatusBadge>
+                  </div>
+
+                  <p className="text-ink text-[12px] leading-snug">
+                    {dispatchMatchEvaluation.vehicleResult.summary}
+                  </p>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono text-ink-muted uppercase block">
+                      Required Capabilities:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {dispatchMatchEvaluation.profile.requiredVehicleCapabilities.map((cap) => {
+                        const isMatched = dispatchMatchEvaluation.vehicleResult.matchedCapabilities.includes(cap);
+                        return (
+                          <span
+                            key={cap}
+                            className={cn(
+                              'px-1.5 py-0.5 rounded-[2px] text-[10px] font-mono flex items-center gap-1',
+                              isMatched
+                                ? 'bg-success/15 text-success border border-success/30'
+                                : 'bg-danger/15 text-danger border border-danger/30 font-bold'
+                            )}
+                          >
+                            <span>{isMatched ? '✓' : '✗'}</span>
+                            <span>{CAPABILITY_DEFINITIONS[cap]?.label || cap}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] font-mono text-ink-subtle pt-1 border-t border-rule/50">
+                    {dispatchMatchEvaluation.vehicleResult.recommendation}
+                  </div>
+                </div>
+
+                {/* Destination Depot Compatibility Result */}
+                <div
+                  className={cn(
+                    'border rounded-[3px] p-3 space-y-2 bg-surface',
+                    dispatchMatchEvaluation.depotResult.status === 'SUITABLE'
+                      ? 'border-success/40 bg-success/5'
+                      : dispatchMatchEvaluation.depotResult.status === 'UNSUITABLE'
+                      ? 'border-danger/40 bg-danger/5'
+                      : 'border-warning/40 bg-warning/5'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] uppercase font-bold text-ink">
+                      Destination Depôt Storage Compatibility
+                    </span>
+                    <StatusBadge
+                      variant={
+                        dispatchMatchEvaluation.depotResult.status === 'SUITABLE'
+                          ? 'success'
+                          : dispatchMatchEvaluation.depotResult.status === 'UNSUITABLE'
+                          ? 'danger'
+                          : 'warning'
+                      }
+                    >
+                      {dispatchMatchEvaluation.depotResult.status === 'SUITABLE'
+                        ? 'SUITABLE'
+                        : dispatchMatchEvaluation.depotResult.status === 'UNSUITABLE'
+                        ? 'UNSUITABLE'
+                        : 'UNKNOWN / REQUIRES INSPECTION'}
+                    </StatusBadge>
+                  </div>
+
+                  <p className="text-ink text-[12px] leading-snug">
+                    {dispatchMatchEvaluation.depotResult.summary}
+                  </p>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono text-ink-muted uppercase block">
+                      Required Storage Capabilities:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {dispatchMatchEvaluation.profile.suitableStorageCapabilities.map((cap) => {
+                        const isMatched = dispatchMatchEvaluation.depotResult.matchedCapabilities.includes(cap);
+                        return (
+                          <span
+                            key={cap}
+                            className={cn(
+                              'px-1.5 py-0.5 rounded-[2px] text-[10px] font-mono flex items-center gap-1',
+                              isMatched
+                                ? 'bg-success/15 text-success border border-success/30'
+                                : 'bg-danger/15 text-danger border border-danger/30 font-bold'
+                            )}
+                          >
+                            <span>{isMatched ? '✓' : '✗'}</span>
+                            <span>{CAPABILITY_DEFINITIONS[cap]?.label || cap}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] font-mono text-ink-subtle pt-1 border-t border-rule/50">
+                    {dispatchMatchEvaluation.depotResult.recommendation}
+                  </div>
+                </div>
+              </div>
+
+              {/* Gatekeeper Decision Banner & Dispatch Action */}
+              <div className="pt-2 border-t border-rule flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5 min-w-0">
+                  {dispatchMatchEvaluation.overallStatus === 'SUITABLE' ? (
+                    <div className="flex items-center gap-1.5 text-success font-medium text-[13px]">
+                      <CheckCircle2 size={16} />
+                      <span>Verified Dispatch Match: Safe to authorize consignment transit waybill.</span>
+                    </div>
+                  ) : dispatchMatchEvaluation.overallStatus === 'UNSUITABLE' ? (
+                    <div className="flex items-center gap-1.5 text-danger font-medium text-[13px]">
+                      <AlertTriangle size={16} />
+                      <span>Incompatible Dispatch Match: Consignment authorization blocked.</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-warning font-medium text-[13px]">
+                      <Info size={16} />
+                      <span>Physical Inspection Required: Vehicle or depot capabilities unverified.</span>
+                    </div>
+                  )}
+                  <span className="text-[11px] font-mono text-ink-subtle block">
+                    {dispatchMatchEvaluation.blockReason || 'All required vehicle covers and depot dunnage bays are satisfied.'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {dispatchMatchEvaluation.canDispatchSafely ? (
+                    <Button
+                      variant="primary"
+                      type="button"
+                      onClick={() => {
+                        setDispatchSuccessNotice(
+                          `Consignment Waybill #WB-OD-25-042 generated! Lot queued for dispatch via ${dispatchSelectedVehicle} to ${dispatchSelectedDepot}.`
+                        );
+                      }}
+                      className="h-[36px] text-[12px] font-semibold"
+                    >
+                      Authorize & Issue Waybill
+                    </Button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="h-[36px] px-3 rounded-[2px] border border-rule bg-bg-sunken text-ink-muted text-[12px] font-mono cursor-not-allowed select-none opacity-60"
+                      title={dispatchMatchEvaluation.blockReason}
+                    >
+                      {dispatchMatchEvaluation.overallStatus === 'UNSUITABLE'
+                        ? 'Dispatch Blocked: Incompatible Match'
+                        : 'Dispatch Blocked: Inspection Required'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {dispatchSuccessNotice && (
+                <div className="p-2.5 rounded-[2px] bg-success/10 border border-success/30 text-success text-[12px] font-mono flex items-center gap-2">
+                  <span>✓</span>
+                  <span>{dispatchSuccessNotice}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Dispatches Roster */}
+            <div className="border border-rule rounded-[4px] bg-surface overflow-hidden">
+              <div className="p-3.5 border-b border-rule bg-bg-sunken/30 flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-[0.06em] font-bold text-ink">
+                  Consignment Waybills Roster (3)
+                </span>
+                <span className="text-[11px] font-mono text-ink-subtle">
+                  Official TDCCOL Transit Ledger
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-bg-sunken/60">
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Batch Code</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Waybill ID</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Seal Tag ID</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Transport Vehicle & Driver</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-right">Net Weight / Sacks</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Tarpaulin & Moisture</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Dispatch Timestamp</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted">Status</TableHead>
+                      <TableHead className="font-mono text-[11px] uppercase tracking-wider text-ink-muted text-center">Documentation</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {COLLECTION_DISPATCHES.map((d) => (
+                      <TableRow key={d.id} className="hover:bg-bg-sunken/30">
+                        <TableCell className="font-mono text-[13px] font-bold text-accent whitespace-nowrap">
+                          {d.batchCode}
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] font-medium text-ink whitespace-nowrap">
+                          {d.waybillId}
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-muted whitespace-nowrap">
+                          {d.sealTagId}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-[12px]">
+                          <div className="font-medium text-ink">{d.vehicleNumber}</div>
+                          <div className="text-[11px] text-ink-muted font-mono">{d.driverName} ({d.driverPhone})</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] font-bold text-ink text-right tabular-nums whitespace-nowrap">
+                          <div>{d.netWeightKg.toFixed(1)} kg</div>
+                          <div className="text-[10px] text-ink-muted font-normal">{d.sackCount} sack{d.sackCount > 1 ? 's' : ''}</div>
+                        </TableCell>
+                        <TableCell className="text-[12px] font-mono text-ink whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-success font-medium">
+                            <span>✓</span> Tarpaulin dry
+                          </div>
+                          <div className="text-[10px] text-ink-subtle">{d.moisturePercent}% moisture</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-ink-muted whitespace-nowrap">
+                          {d.timestamp}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge variant={d.statusVariant} className="text-[10px] font-mono">
+                            {d.status}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={d.tagUrl}
+                              className="text-[11px] font-mono text-accent hover:underline font-semibold focus:outline-2 focus:outline-accent"
+                            >
+                              Tag PDF
+                            </Link>
+                            <span>·</span>
+                            <Link
+                              href={d.receiptUrl}
+                              className="text-[11px] font-mono text-ink-muted hover:text-ink hover:underline focus:outline-2 focus:outline-accent"
+                            >
+                              Receipt
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            SECTION 4: Custody Audit Log & Dossier
+           ======================================================== */}
+        {activeSection === 'audit' && (
+          <div id="audit" className="space-y-6">
+            {/* Header / Context Card */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-[20px] font-semibold text-ink leading-tight">
+                      Custody Audit Trail & Verification Log
+                    </h2>
+                    <span className="text-[12px] font-mono text-ink-muted">· ଅଡିଟ୍ ଓ ଯାଞ୍ଚ ଇତିହାସ</span>
+                  </div>
+                  <p className="text-[13px] text-ink-muted mt-1">
+                    Monotonic, tamper-evident timeline of all intake weighments, supervisor calibrations, tamper-evident sack tagging, and vehicle custody dispatches.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <StatusBadge variant="success" className="text-[11px] font-mono">
+                    6 Verified Audit Events
+                  </StatusBadge>
+                  <StatusBadge variant="info" className="text-[11px] font-mono">
+                    LABHA Sec 14 Compliant
+                  </StatusBadge>
+                </div>
+              </div>
+
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Total Audit Milestones
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-ink tabular-nums">
+                    6 Events
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Intake to Dispatch Handover
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Primary Batch Focus
+                  </span>
+                  <div className="font-heading text-[22px] font-bold text-accent font-mono">
+                    #BS-402
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Karanjia Collection Point #01
+                  </span>
+                </div>
+                <div className="border border-rule rounded-[2px] p-3 bg-bg-sunken/40">
+                  <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-ink-muted block mb-1">
+                    Official Audit Dossier
+                  </span>
+                  <div className="font-heading text-[16px] font-bold text-ink mt-1">
+                    A4 PDF Certified
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle">
+                    Ready for state inspection
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Embedded Audit Timeline Artifact */}
+            <div className="border border-rule rounded-[4px] bg-surface p-5">
+              <AuditTimelineArtifact
+                batchCode="#BS-402"
+                events={COLLECTION_AUDIT_EVENTS}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================
@@ -1372,9 +2851,58 @@ export default function CollectionManagerPage() {
               </div>
             </div>
 
+            {/* Product-Specific Handling & Quality Standards Profile */}
+            <ProductGuidanceCard
+              productIdentifier={queueItems.find((q) => q.code === selectedQueueCode)?.product || 'Dried Mahua Flowers'}
+              stage="COLLECTION"
+              compact={true}
+              measuredMoisturePercent={qualityGrade === 'A' ? 8.8 : qualityGrade === 'B' ? 12.4 : 15.2}
+              measuredTareKg={tareWeight}
+            />
+
             {/* Section: Weight & Quality */}
             <div className="border border-rule rounded-[4px] p-3.5 bg-surface space-y-3">
-              <SectionLabel>Weight & Quality Calibration</SectionLabel>
+              <div className="flex items-center justify-between">
+                <SectionLabel>Weight & Quality Calibration</SectionLabel>
+                <span className="text-[10px] font-mono text-ink-muted uppercase">
+                  Illustrative Standards
+                </span>
+              </div>
+
+              {/* Sack tare configuration row */}
+              <div className="border border-rule/70 rounded-[2px] p-2 bg-bg-sunken/30 flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="sack-count-select" className="text-ink-muted font-medium select-none">
+                    Sack Count:
+                  </label>
+                  <select
+                    id="sack-count-select"
+                    value={sackCount}
+                    onChange={(e) => {
+                      const count = Number(e.target.value);
+                      setSackCount(count);
+                      setTareWeight(Number((count * sackTareRate).toFixed(2)));
+                    }}
+                    className="h-[28px] rounded-[2px] border border-rule bg-surface px-2 text-[12px] font-mono text-ink"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
+                      <option key={n} value={n}>
+                        {n} Gunny Sack{n > 1 ? 's' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-ink-subtle">
+                  <span>Standard tare: {sackTareRate} kg/sack</span>
+                  <button
+                    type="button"
+                    onClick={() => setTareWeight(Number((sackCount * sackTareRate).toFixed(2)))}
+                    className="px-1.5 py-0.5 rounded-[2px] border border-rule bg-surface text-ink hover:text-accent hover:border-accent text-[11px]"
+                  >
+                    Apply standard tare ({Number((sackCount * sackTareRate).toFixed(2))} kg)
+                  </button>
+                </div>
+              </div>
 
               {/* Three NumberInputs side-by-side: Gross, Tare, Net */}
               <div className="grid grid-cols-3 gap-2.5 items-end">
@@ -1430,28 +2958,47 @@ export default function CollectionManagerPage() {
                 </div>
               </div>
 
+              <p className="text-[11px] text-ink-subtle font-mono">
+                Tare deduction: Configurable (1.5 kg/sack illustrative baseline · Prototype calibration, not official government standard).
+              </p>
+
               {/* Quality Grade Segmented Control (A / B / C as 3 rectangular buttons) */}
               <div className="space-y-1 pt-1">
-                <label className="text-[11px] font-semibold uppercase text-ink-muted block">
-                  Quality Grade Standard
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold uppercase text-ink-muted block">
+                    Quality Grade & Moisture Standard
+                  </label>
+                  <span className="text-[10px] text-ink-subtle font-mono">Illustrative Guideline</span>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {(['A', 'B', 'C'] as const).map((grade) => (
+                  {(
+                    [
+                      { grade: 'A', label: 'Grade A (<10% moist)' },
+                      { grade: 'B', label: 'Grade B (10-14% moist)' },
+                      { grade: 'C', label: 'Grade C (>14% moist)' },
+                    ] as const
+                  ).map(({ grade, label }) => (
                     <button
                       key={grade}
                       type="button"
                       onClick={() => setQualityGrade(grade)}
                       className={cn(
-                        'h-[36px] rounded-[2px] border text-[13px] font-mono font-semibold transition-colors',
+                        'h-[38px] rounded-[2px] border text-[12px] font-mono font-semibold transition-colors flex flex-col items-center justify-center leading-tight',
                         qualityGrade === grade
                           ? 'border-accent bg-accent text-accent-ink'
                           : 'border-rule bg-bg-sunken text-ink hover:border-ink-subtle'
                       )}
                     >
-                      Grade {grade}
+                      <span>Grade {grade}</span>
+                      <span className="text-[9px] font-normal opacity-85">
+                        {grade === 'A' ? '<10% moist' : grade === 'B' ? '10-14% moist' : '>14% moist'}
+                      </span>
                     </button>
                   ))}
                 </div>
+                <p className="text-[10.5px] text-ink-subtle font-mono pt-0.5">
+                  Quality grades and moisture thresholds are illustrative operational guidelines for testing and do not represent official government procurement gazettes.
+                </p>
               </div>
 
               {/* Accepted Qty and Rejected Qty Inputs */}
@@ -1482,7 +3029,7 @@ export default function CollectionManagerPage() {
               <div className="border border-rule rounded-[2px] p-2.5 bg-bg-sunken/50 text-[13px] font-mono tabular-nums text-ink flex items-center justify-between">
                 <span>Calc Readout (Simulated):</span>
                 <span className="font-semibold text-accent">
-                  Accepted {acceptedQty} kg × ₹{ratePerKg}/kg = ₹{computedTotal} (Simulated)
+                  Accepted {acceptedQty} kg × ₹{ratePerKg}/kg (Illustrative baseline MSP) = ₹{computedTotal} (Simulated)
                 </span>
               </div>
             </div>
