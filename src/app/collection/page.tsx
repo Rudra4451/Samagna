@@ -3039,10 +3039,32 @@ export default function CollectionManagerPage() {
               <div className="flex items-center justify-between">
                 <SectionLabel>Evidence Photo Plates</SectionLabel>
                 <div className="flex items-center gap-1.5">
-                  <button className="h-[28px] px-2 rounded-[2px] border border-rule text-[11px] font-medium bg-bg-sunken hover:border-ink-subtle">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveToast({
+                        id: `photo-${Date.now()}`,
+                        title: 'Evidence Plate Captured',
+                        description: 'Weighment & commodity batch photo plate attached to custody manifest.',
+                        variant: 'info',
+                      });
+                    }}
+                    className="h-[28px] px-2 rounded-[2px] border border-rule text-[11px] font-medium bg-bg-sunken hover:border-ink-subtle"
+                  >
                     Attach photo
                   </button>
-                  <button className="h-[28px] px-2 rounded-[2px] border border-rule text-[11px] font-medium bg-bg-sunken hover:border-ink-subtle">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveToast({
+                        id: `photo-retake-${Date.now()}`,
+                        title: 'Camera Initialized',
+                        description: 'Device optical sensor recalibrated for retake.',
+                        variant: 'info',
+                      });
+                    }}
+                    className="h-[28px] px-2 rounded-[2px] border border-rule text-[11px] font-medium bg-bg-sunken hover:border-ink-subtle"
+                  >
                     Retake
                   </button>
                 </div>

@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 
 export interface ProductIconProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
@@ -539,72 +541,170 @@ export const DhatakiFlowerIcon: React.FC<ProductIconProps> = ({
 );
 
 /**
- * Universal Product Icon Selector supporting all 17 Odisha MFP products
+ * Map product slug or name to authentic photographic picture asset
  */
-export interface ProductVisualProps extends ProductIconProps {
+export function getProductImagePath(product: string): string {
+  const norm = (product || '').toLowerCase();
+
+  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca')) {
+    return '/products/mahua.jpg';
+  }
+  if (norm.includes('sal') || norm.includes('shorea')) {
+    return '/products/sal-seeds.jpg';
+  }
+  if (norm.includes('kendu') || norm.includes('diospyros')) {
+    return '/products/kendu-leaves.jpg';
+  }
+  if (norm.includes('deseeded') || norm.includes('de-seeded')) {
+    return '/products/tamarind-deseeded.jpg';
+  }
+  if (norm.includes('tamarind') || norm.includes('tentuli')) {
+    return '/products/tamarind-seeded.jpg';
+  }
+  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('myrobalan')) {
+    return '/products/harida.jpg';
+  }
+  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('baheda')) {
+    return '/products/bahada.jpg';
+  }
+  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry')) {
+    return '/products/amla.jpg';
+  }
+  if (norm.includes('karanja') || norm.includes('pinnata')) {
+    return '/products/karanja-seeds.jpg';
+  }
+  if (norm.includes('kusum') || norm.includes('schleichera')) {
+    return '/products/kusum-seeds.jpg';
+  }
+  if (norm.includes('neem') || norm.includes('azadirachta')) {
+    return '/products/neem-seeds.jpg';
+  }
+  if (norm.includes('char') || norm.includes('chironji') || norm.includes('buchanania')) {
+    return '/products/char-seeds.jpg';
+  }
+  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu')) {
+    return '/products/hill-broom.jpg';
+  }
+  if (norm.includes('honey') || norm.includes('mahu') || norm.includes('apis')) {
+    return '/products/wild-honey.jpg';
+  }
+  if (norm.includes('lac') || norm.includes('kerria') || norm.includes('lakh')) {
+    return '/products/lac.jpg';
+  }
+  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia')) {
+    return '/products/shikakai.jpg';
+  }
+  if (norm.includes('dhataki') || norm.includes('woodfordia')) {
+    return '/products/dhataki.jpg';
+  }
+
+  return '/products/mahua.jpg';
+}
+
+/**
+ * Botanical Vector Symbol Selector (for icons/badges)
+ */
+export const ProductSymbol: React.FC<{ product: string; size?: number; className?: string }> = ({
+  product,
+  size = 48,
+  className = '',
+}) => {
+  const norm = (product || '').toLowerCase();
+
+  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca')) {
+    return <MahuaFlowerIcon size={size} className={className} />;
+  }
+  if (norm.includes('sal') || norm.includes('shorea')) {
+    return <SalSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('kendu') || norm.includes('diospyros')) {
+    return <KenduLeafIcon size={size} className={className} />;
+  }
+  if (norm.includes('deseeded') || norm.includes('de-seeded')) {
+    return <DeseededTamarindIcon size={size} className={className} />;
+  }
+  if (norm.includes('tamarind') || norm.includes('tentuli')) {
+    return <TamarindIcon size={size} className={className} />;
+  }
+  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('myrobalan')) {
+    return <HaridaFruitIcon size={size} className={className} />;
+  }
+  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('baheda')) {
+    return <BahadaFruitIcon size={size} className={className} />;
+  }
+  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry')) {
+    return <AmlaFruitIcon size={size} className={className} />;
+  }
+  if (norm.includes('karanja') || norm.includes('pinnata')) {
+    return <KaranjaSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('kusum') || norm.includes('schleichera')) {
+    return <KusumSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('neem') || norm.includes('azadirachta')) {
+    return <NeemSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('char') || norm.includes('chironji') || norm.includes('buchanania')) {
+    return <CharSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu')) {
+    return <HillBroomIcon size={size} className={className} />;
+  }
+  if (norm.includes('honey') || norm.includes('mahu') || norm.includes('apis')) {
+    return <HoneyIcon size={size} className={className} />;
+  }
+  if (norm.includes('lac') || norm.includes('kerria') || norm.includes('lakh')) {
+    return <LacIcon size={size} className={className} />;
+  }
+  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia')) {
+    return <ShikakaiIcon size={size} className={className} />;
+  }
+  if (norm.includes('dhataki') || norm.includes('woodfordia')) {
+    return <DhatakiFlowerIcon size={size} className={className} />;
+  }
+
+  // Default to Mahua flower as representative MFP
+  return <MahuaFlowerIcon size={size} className={className} />;
+};
+
+/**
+ * Universal Product Visual: Displays the original authentic photograph of the product by default,
+ * with automated graceful fallback to botanical line symbol if image loading fails.
+ */
+export interface ProductVisualProps {
   product: string;
+  size?: number;
+  className?: string;
+  variant?: 'photo' | 'symbol';
+  alt?: string;
 }
 
 export const ProductIcon: React.FC<ProductVisualProps> = ({
   product,
   size = 48,
   className = '',
-  ...props
+  variant = 'photo',
+  alt,
 }) => {
-  const norm = (product || '').toLowerCase();
+  const [hasError, setHasError] = useState(false);
+  const imagePath = getProductImagePath(product);
 
-  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca')) {
-    return <MahuaFlowerIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('sal') || norm.includes('shorea')) {
-    return <SalSeedIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('kendu') || norm.includes('diospyros')) {
-    return <KenduLeafIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('deseeded') || norm.includes('de-seeded')) {
-    return <DeseededTamarindIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('tamarind') || norm.includes('tentuli')) {
-    return <TamarindIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('myrobalan')) {
-    return <HaridaFruitIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('baheda')) {
-    return <BahadaFruitIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry')) {
-    return <AmlaFruitIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('karanja') || norm.includes('pinnata')) {
-    return <KaranjaSeedIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('kusum') || norm.includes('schleichera')) {
-    return <KusumSeedIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('neem') || norm.includes('azadirachta')) {
-    return <NeemSeedIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('char') || norm.includes('chironji') || norm.includes('buchanania')) {
-    return <CharSeedIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu')) {
-    return <HillBroomIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('honey') || norm.includes('mahu') || norm.includes('apis')) {
-    return <HoneyIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('lac') || norm.includes('kerria') || norm.includes('lakh')) {
-    return <LacIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia')) {
-    return <ShikakaiIcon size={size} className={className} {...props} />;
-  }
-  if (norm.includes('dhataki') || norm.includes('woodfordia')) {
-    return <DhatakiFlowerIcon size={size} className={className} {...props} />;
+  if (variant === 'photo' && !hasError) {
+    return (
+      <img
+        src={imagePath}
+        alt={alt || `${product} authentic product photo`}
+        width={size}
+        height={size}
+        loading="lazy"
+        onError={() => setHasError(true)}
+        className={`object-cover rounded-[3px] select-none inline-block shrink-0 ${className}`}
+        style={{ width: `${size}px`, height: `${size}px`, minWidth: `${size}px`, minHeight: `${size}px` }}
+      />
+    );
   }
 
-  // Default to Mahua flower as representative MFP
-  return <MahuaFlowerIcon size={size} className={className} {...props} />;
+  return <ProductSymbol product={product} size={size} className={className} />;
 };
+
+export const ProductImage = ProductIcon;

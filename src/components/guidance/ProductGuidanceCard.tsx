@@ -9,6 +9,7 @@ import {
   MoistureSensitivityLevel,
 } from '../../lib/productGuidance';
 import { StatusBadge } from '../ui/StatusBadge';
+import { ProductIcon } from '../ui/ProductIcons';
 import { cn } from '../../lib/utils';
 import {
   ShieldAlert,
@@ -100,9 +101,9 @@ export function ProductGuidanceCard({
     >
       {/* Header bar */}
       <div className="p-3 bg-bg-sunken/40 border-b border-rule flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[2px] bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-            <PackageCheck size={18} strokeWidth={1.5} />
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-[3px] border border-rule/80 overflow-hidden bg-bg-sunken flex items-center justify-center shrink-0">
+            <ProductIcon product={profile.productSlug} size={40} className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">

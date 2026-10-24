@@ -3,6 +3,7 @@
 import React from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
 import { SyncStatusBadge } from '../ui/SyncStatusBadge';
+import { ProductIcon } from '../ui/ProductIcons';
 import { cn } from '../../lib/utils';
 
 export interface CollectionReceiptData {
@@ -111,12 +112,17 @@ export const CollectionReceiptArtifact: React.FC<CollectionReceiptArtifactProps>
         </section>
 
         {/* Product Information */}
-        <section aria-label="Produce species" className="border-b border-rule pb-3">
-          <span className="text-[10px] font-mono uppercase text-ink-muted block font-bold">
-            Produce Commodity
-          </span>
-          <div className="font-semibold text-ink text-[15px]">{data.productName}</div>
-          <div className="font-odia text-[15px] leading-[1.5] text-ink-muted">{data.productNameOdia}</div>
+        <section aria-label="Produce species" className="border-b border-rule pb-3 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-mono uppercase text-ink-muted block font-bold">
+              Produce Commodity
+            </span>
+            <div className="font-semibold text-ink text-[15px]">{data.productName}</div>
+            <div className="font-odia text-[15px] leading-[1.5] text-ink-muted">{data.productNameOdia}</div>
+          </div>
+          <div className="w-12 h-12 rounded-[4px] overflow-hidden border border-rule/60 bg-bg-sunken flex-shrink-0 shadow-sm">
+            <ProductIcon product={data.productName} size={48} className="w-full h-full object-cover" />
+          </div>
         </section>
 
         {/* Hierarchy 2: Certified Net Weight in Fraunces 36px */}

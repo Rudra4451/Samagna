@@ -23,6 +23,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { ProductIcon } from '../../components/ui/ProductIcons';
 
 interface GroupMember {
   id: string;
@@ -362,6 +363,12 @@ export default function FacilitatorPage() {
                 <div className="text-[11px] text-ink-muted">
                   {m.village} · {m.tribalId}
                 </div>
+                <div className="flex items-center gap-2 pt-1 pb-0.5">
+                  <div className="w-5 h-5 rounded-[2px] overflow-hidden border border-rule/50 bg-bg-sunken flex-shrink-0">
+                    <ProductIcon product={m.product} size={20} className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-[12px] font-medium text-ink truncate">{m.product}</span>
+                </div>
                 <div className="border-t border-rule pt-1.5 flex items-baseline justify-between">
                   <span className="font-mono text-[12px] font-bold text-ink tabular-nums">
                     {m.qtyKg} kg
@@ -503,7 +510,14 @@ export default function FacilitatorPage() {
                   <tr key={m.id} className="hover:bg-bg-sunken/40">
                     <td className="p-2.5 font-sans font-semibold text-ink">{m.name}</td>
                     <td className="p-2.5 text-ink-muted">{m.village}</td>
-                    <td className="p-2.5 font-sans text-ink">{m.product}</td>
+                    <td className="p-2.5 font-sans text-ink">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-[2px] overflow-hidden border border-rule/50 bg-bg-sunken flex-shrink-0">
+                          <ProductIcon product={m.product} size={20} className="w-full h-full object-cover" />
+                        </div>
+                        <span>{m.product}</span>
+                      </div>
+                    </td>
                     <td className="p-2.5 text-right font-bold text-ink tabular-nums">{m.qtyKg} kg</td>
                     <td className="p-2.5 text-right font-bold text-accent tabular-nums">₹{m.totalAmount}</td>
                     <td className="p-2.5 text-center">

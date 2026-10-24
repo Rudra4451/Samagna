@@ -29,6 +29,16 @@ import {
 } from '../src/lib/productGuidance';
 import { createSessionToken } from '../src/lib/server/auth';
 
+if (fs.existsSync(path.join(process.cwd(), '.env.local'))) {
+  const envContent = fs.readFileSync(path.join(process.cwd(), '.env.local'), 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const match = line.match(/^([A-Z_]+)=["']?([^"'\r\n]+)["']?/);
+    if (match && !process.env[match[1]]) {
+      process.env[match[1]] = match[2];
+    }
+  }
+}
+
 process.env.AUTH_SECRET =
   process.env.AUTH_SECRET || 'banasetu-prototype-jwt-hmac-sha256-secret-minimum-32-chars';
 

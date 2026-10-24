@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { cn } from '../../lib/utils';
+import { ProductIcon } from '../ui/ProductIcons';
 
 export interface SackTagData {
   code: string;
@@ -90,12 +91,17 @@ export const SackTagArtifact: React.FC<SackTagArtifactProps> = ({
 
         {/* Product, Collector name (first name + village only — no full identity), Date, Net Weight */}
         <section aria-label="Batch specifications" className="space-y-3 text-[13px] leading-snug">
-          <div className="border-b border-rule pb-2">
-            <span className="text-[10px] font-mono uppercase text-ink-muted block font-bold">
-              Product
-            </span>
-            <div className="font-semibold text-ink text-[16px]">
-              {data.productName}
+          <div className="border-b border-rule pb-2 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-mono uppercase text-ink-muted block font-bold">
+                Product
+              </span>
+              <div className="font-semibold text-ink text-[16px]">
+                {data.productName}
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-[3px] overflow-hidden border border-rule/60 bg-bg-sunken flex-shrink-0 shadow-sm">
+              <ProductIcon product={data.productName} size={40} className="w-full h-full object-cover" />
             </div>
           </div>
 

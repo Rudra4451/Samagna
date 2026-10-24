@@ -574,7 +574,9 @@ export default function AdminConsolePage() {
                   {products.map((p) => (
                     <tr key={p.id} className="hover:bg-bg-sunken/40">
                       <td className="p-3 text-ink">
-                        <ProductIcon product={p.slug} size={24} className="text-accent" />
+                        <div className="w-8 h-8 rounded-[3px] border border-rule/80 overflow-hidden bg-bg-sunken flex items-center justify-center shadow-sm">
+                          <ProductIcon product={p.slug} size={32} className="w-full h-full object-cover" />
+                        </div>
                       </td>
                       <td className="p-3">
                         <div className="font-semibold text-ink font-sans">{p.nameEnglish}</div>
@@ -1098,10 +1100,11 @@ export default function AdminConsolePage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="edit-benchmark-rate" className="text-[12px] font-semibold text-ink block mb-1">
                     Benchmark Procurement Rate (₹/kg)
                   </label>
                   <input
+                    id="edit-benchmark-rate"
                     type="number"
                     value={editRate}
                     onChange={(e) => setEditRate(parseFloat(e.target.value) || 0)}
@@ -1112,10 +1115,11 @@ export default function AdminConsolePage() {
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="edit-shrinkage-tolerance" className="text-[12px] font-semibold text-ink block mb-1">
                     Natural Transit Shrinkage Tolerance (%)
                   </label>
                   <input
+                    id="edit-shrinkage-tolerance"
                     type="number"
                     value={editShrinkage}
                     onChange={(e) => setEditShrinkage(parseFloat(e.target.value) || 0)}
@@ -1127,10 +1131,11 @@ export default function AdminConsolePage() {
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="edit-provenance-note" className="text-[12px] font-semibold text-ink block mb-1">
                     Administrative Provenance Note
                   </label>
                   <input
+                    id="edit-provenance-note"
                     type="text"
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
@@ -1167,10 +1172,11 @@ export default function AdminConsolePage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="invite-username" className="text-[12px] font-semibold text-ink block mb-1">
                     System Username
                   </label>
                   <input
+                    id="invite-username"
                     type="text"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
@@ -1181,10 +1187,11 @@ export default function AdminConsolePage() {
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="invite-fullname" className="text-[12px] font-semibold text-ink block mb-1">
                     Full Legal Name
                   </label>
                   <input
+                    id="invite-fullname"
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
@@ -1195,10 +1202,11 @@ export default function AdminConsolePage() {
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="invite-role" className="text-[12px] font-semibold text-ink block mb-1">
                     Operational Role
                   </label>
                   <select
+                    id="invite-role"
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value)}
                     className="w-full h-9 px-3 text-[13px] border border-rule rounded-[3px] bg-surface font-mono"
@@ -1211,10 +1219,11 @@ export default function AdminConsolePage() {
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-semibold text-ink block mb-1">
+                  <label htmlFor="invite-jurisdiction" className="text-[12px] font-semibold text-ink block mb-1">
                     Assigned Center / Village
                   </label>
                   <input
+                    id="invite-jurisdiction"
                     type="text"
                     value={newJurisdiction}
                     onChange={(e) => setNewJurisdiction(e.target.value)}

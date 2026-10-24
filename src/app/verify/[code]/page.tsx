@@ -19,6 +19,7 @@ import {
   ServerCrash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ProductIcon } from '@/components/ui/ProductIcons';
 import { getDatabase } from '@/lib/db';
 
 interface VerifyPageProps {
@@ -367,14 +368,21 @@ export default function PublicVerifyPage({ params }: VerifyPageProps) {
 
           {/* Core Produce Facts */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="border border-rule rounded-[3px] p-3 bg-bg-sunken">
-              <span className="text-[11px] font-mono uppercase text-ink-muted block">Minor Forest Produce</span>
-              <div className="font-heading text-[18px] font-bold text-ink mt-0.5">
-                {batchData?.produceName}
+            <div className="border border-rule rounded-[3px] p-3 bg-bg-sunken flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-mono uppercase text-ink-muted block">Minor Forest Produce</span>
+                <div className="font-heading text-[18px] font-bold text-ink mt-0.5">
+                  {batchData?.produceName}
+                </div>
+                <p className="text-[12px] text-ink-subtle font-odia">
+                  {batchData?.produceOdia} {batchData?.scientificName ? `(${batchData.scientificName})` : ''}
+                </p>
               </div>
-              <p className="text-[12px] text-ink-subtle font-odia">
-                {batchData?.produceOdia} {batchData?.scientificName ? `(${batchData.scientificName})` : ''}
-              </p>
+              {batchData?.produceName && (
+                <div className="w-14 h-14 rounded-[4px] overflow-hidden border border-rule/60 bg-surface shrink-0 shadow-sm">
+                  <ProductIcon product={batchData.produceName} size={56} className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
 
             <div className="border border-rule rounded-[3px] p-3 bg-bg-sunken">

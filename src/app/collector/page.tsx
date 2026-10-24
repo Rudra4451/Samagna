@@ -1053,8 +1053,8 @@ export default function CollectorMobilePage() {
                     </div>
                   </div>
 
-                  <div className="w-[56px] h-[56px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0">
-                    <ProductIcon product={currentProduct.key} size={44} />
+                  <div className="w-[56px] h-[56px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 overflow-hidden shadow-sm">
+                    <ProductIcon product={currentProduct.key} size={56} className="w-full h-full object-cover" />
                   </div>
                 </div>
 
@@ -1257,8 +1257,8 @@ export default function CollectorMobilePage() {
                       )}
                       aria-label={`View request details for ${req.statusCode}`}
                     >
-                      <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0">
-                        <ProductIcon product={req.productKey} size={32} />
+                      <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 overflow-hidden shadow-sm">
+                        <ProductIcon product={req.productKey} size={44} className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1311,8 +1311,8 @@ export default function CollectorMobilePage() {
                     key={rec.id}
                     className="rounded-[4px] border border-rule bg-surface p-3.5 flex items-center justify-between gap-3 shadow-none"
                   >
-                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0">
-                      <ProductIcon product={rec.productKey} size={32} />
+                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 overflow-hidden shadow-sm">
+                      <ProductIcon product={rec.productKey} size={44} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -1423,8 +1423,8 @@ export default function CollectorMobilePage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="w-[52px] h-[52px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 mt-0.5">
-                        <ProductIcon product={prod.key} size={36} />
+                      <div className="w-[52px] h-[52px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 mt-0.5 overflow-hidden shadow-sm">
+                        <ProductIcon product={prod.key} size={52} className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h2 className={cn('text-[17px] font-bold text-ink leading-tight break-words', isOr && 'font-odia text-[19px]')}>
@@ -1560,8 +1560,8 @@ export default function CollectorMobilePage() {
                     )}
                     aria-label={`View request details for ${req.statusCode}`}
                   >
-                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0">
-                      <ProductIcon product={req.productKey} size={32} />
+                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 overflow-hidden shadow-sm">
+                      <ProductIcon product={req.productKey} size={44} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1606,8 +1606,8 @@ export default function CollectorMobilePage() {
                     key={rec.id}
                     className="rounded-[4px] border border-rule bg-surface p-3.5 flex items-center justify-between gap-3 shadow-none"
                   >
-                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0">
-                      <ProductIcon product={rec.productKey} size={32} />
+                    <div className="w-[44px] h-[44px] rounded-[4px] border border-rule bg-bg-sunken flex items-center justify-center text-ink shrink-0 overflow-hidden shadow-sm">
+                      <ProductIcon product={rec.productKey} size={44} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -1830,8 +1830,8 @@ export default function CollectorMobilePage() {
                             : 'border-rule bg-surface hover:bg-bg-sunken'
                         )}
                       >
-                        <div className="w-[40px] h-[40px] rounded-[2px] bg-bg-sunken flex items-center justify-center text-ink shrink-0 border border-rule">
-                          <ProductIcon product={prod.key} size={32} />
+                        <div className="w-[40px] h-[40px] rounded-[2px] bg-bg-sunken flex items-center justify-center text-ink shrink-0 border border-rule overflow-hidden shadow-sm">
+                          <ProductIcon product={prod.key} size={40} className="w-full h-full object-cover" />
                         </div>
                         <div className="min-w-0">
                           <div className={cn('text-[13px] font-bold text-ink truncate leading-tight', isOr && 'font-odia text-[14px]')}>
