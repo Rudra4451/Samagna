@@ -10,6 +10,9 @@ jobs:
   audit-and-test:
     name: Run BanaSetu Audit & Verification Suites
     runs-on: ubuntu-latest
+    env:
+      AUTH_SECRET: 'banasetu-ci-testing-auth-secret-key-minimum-32-chars'
+      ALLOW_DEMO_ACCOUNTS: 'true'
 
     steps:
       - name: Check out repository

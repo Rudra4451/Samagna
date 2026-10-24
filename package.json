@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:i18n": "node scripts/check-i18n.js",
-    "test:a11y": "node scripts/check-a11y.ts",
+    "test:a11y": "tsx scripts/check-a11y.ts",
     "test:auth": "tsx scripts/test-auth-rbac.ts",
     "test:collector": "tsx scripts/test-collector-f3.ts",
     "test:collection": "tsx scripts/test-collection-f4.ts",
