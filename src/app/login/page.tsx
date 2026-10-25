@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldCheck, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 import { getSafeRedirectDestination } from '@/lib/authRedirect';
 
 
@@ -60,10 +61,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Test@Pass123');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get('reason');
+      if (reason === 'timeout') {
+        setInfoMessage('Your session timed out due to inactivity. Please sign in again.');
+      } else if (reason === 'loggedout') {
+        setInfoMessage('You have successfully logged out of the Samagna ledger.');
+      }
+    }
+  }, []);
 
   const handleLogin = async (overrideUser?: string, overridePass?: string, overrideDest?: string) => {
     setLoading(true);
     setErrorMessage(null);
+    setInfoMessage(null);
 
     const userToAuth = (overrideUser || username).trim();
     const passToAuth = overridePass || password;
@@ -95,7 +110,8 @@ export default function LoginPage() {
         data.user.role
       );
 
-      router.push(dest);
+      // Navigate with full session cookie propagation
+      window.location.href = dest;
     } catch {
       setErrorMessage('Network connection failure. Local offline ledger remains available.');
       setLoading(false);
@@ -106,22 +122,12 @@ export default function LoginPage() {
     <div className="min-h-screen bg-bg flex flex-col justify-between p-4 sm:p-6 text-ink selection:bg-accent selection:text-white">
       {/* Top Ledger Header */}
       <header className="max-w-[440px] w-full mx-auto pt-4 flex items-center justify-between border-b border-rule pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[3px] bg-sidebar-bg flex items-center justify-center text-white font-heading font-bold text-[16px]">
-            BS
-          </div>
-          <div>
-            <h1 className="font-heading font-bold text-[18px] tracking-tight text-ink leading-tight">
-              BanaSetu · ବନସେତୁ
-            </h1>
-            <p className="text-[11px] text-ink-muted font-mono">
-              OD-MAYURBHANJ-TDCCOL-LEDGER
-            </p>
-          </div>
-        </div>
+        <Link href="/" className="flex items-center gap-2 focus:outline-2 focus:outline-accent">
+          <SamagnaLogo variant="light" size="sm" showTagline />
+        </Link>
         <div className="text-right">
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-bg-sunken border border-rule text-ink-muted">
-            AUTH-PORTAL v1.0
+            PORTAL v2.0
           </span>
         </div>
       </header>
@@ -140,6 +146,13 @@ export default function LoginPage() {
               Enter authorized personnel credentials or select an authenticated field persona below.
             </p>
           </div>
+
+          {infoMessage && (
+            <div className="p-3 border border-accent/30 rounded-[3px] bg-accent/5 flex items-start gap-2.5 text-accent">
+              <ShieldCheck size={16} className="shrink-0 mt-0.5" />
+              <p className="text-[12px] font-mono leading-tight">{infoMessage}</p>
+            </div>
+          )}
 
           {errorMessage && (
             <div className="p-3 border border-danger/30 rounded-[3px] bg-danger/5 flex items-start gap-2.5 text-danger">

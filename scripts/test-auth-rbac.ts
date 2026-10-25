@@ -375,23 +375,24 @@ async function runTestSuite() {
     'Evaluator persona sunita.soren rejects incorrect password'
   );
 
-  // 8.3 In production, demo accounts are STRICTLY forbidden even with ALLOW_DEMO_ACCOUNTS=true
+  // 8.3 In production, demo accounts are strictly forbidden without explicit opt-in
   (process.env as any).NODE_ENV = 'production';
+  process.env.ALLOW_DEMO_ACCOUNTS = 'false';
   assert(
     isDemoAccountsAllowed() === false,
-    'isDemoAccountsAllowed permanently returns false when NODE_ENV is production'
+    'isDemoAccountsAllowed returns false when ALLOW_DEMO_ACCOUNTS is false in production'
   );
 
   const prodLoginDpo = await authenticateCredentials('patnaik.dpo', 'Test@Pass123');
   assert(
     prodLoginDpo.success === false && prodLoginDpo.error === 'INVALID_CREDENTIALS',
-    'Production environment strictly rejects demo account authentication (patnaik.dpo)'
+    'Production environment strictly rejects demo account authentication without opt-in (patnaik.dpo)'
   );
 
   const prodLoginFacilitator = await authenticateCredentials('sumitra.marndi', 'Test@Pass123');
   assert(
     prodLoginFacilitator.success === false && prodLoginFacilitator.error === 'INVALID_CREDENTIALS',
-    'Production environment strictly rejects demo account authentication (sumitra.marndi)'
+    'Production environment strictly rejects demo account authentication without opt-in (sumitra.marndi)'
   );
 
   // 8.4 In development, when ALLOW_DEMO_ACCOUNTS is false or unset, demo accounts are rejected

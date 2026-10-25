@@ -1,8 +1,19 @@
 import { create } from 'zustand';
 
-export type DemoRole = 'collector' | 'collection_manager' | 'inventory_manager' | 'facilitator';
+export type DemoRole = 'collector' | 'collection_manager' | 'inventory_manager' | 'facilitator' | 'admin';
 export type AppLanguage = 'EN' | 'OR';
 export type CollectorTab = 'home' | 'prices' | 'requests' | 'help';
+
+export interface AuthUser {
+  userId: string;
+  username: string;
+  role: string;
+  fullName: string;
+  centerId?: string;
+  village?: string;
+  district: string;
+  isDemo?: boolean;
+}
 
 export interface PendingRecord {
   id: string;
@@ -19,6 +30,10 @@ interface AppState {
   toggleOffline: () => void;
   setOffline: (offline: boolean) => void;
   syncNow: () => void;
+
+  // Authenticated User Session
+  authUser: AuthUser | null;
+  setAuthUser: (user: AuthUser | null) => void;
 
   // Role State
   activeRole: DemoRole;
@@ -65,6 +80,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     }, 600);
   },
+
+  authUser: null,
+  setAuthUser: (user: AuthUser | null) =>
+    set({
+      authUser: user,
+    }),
 
   activeRole: 'collector',
   setActiveRole: (role: DemoRole) =>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 
 interface ProduceItem {
   id: string;
@@ -121,18 +122,8 @@ export default function MarketingHomePage() {
       <header className="border-b border-[#E4DBC9] bg-[#FAF6EE]/95 sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2.5 text-[#1F1A14] no-underline focus:outline-none">
-              <span className="w-8 h-8 bg-[#1F2A22] text-[#E9E3D3] rounded-[3px] flex items-center justify-center font-serif font-bold text-sm">
-                BS
-              </span>
-              <div>
-                <span className="font-serif font-bold text-lg tracking-tight block leading-none">
-                  BanaSetu
-                </span>
-                <span className="text-[10px] font-mono text-[#5E5245] uppercase tracking-wider block mt-0.5">
-                  Mayurbhanj · TDCCOL
-                </span>
-              </div>
+            <Link href="/" className="flex items-center gap-2.5 text-[#0F172A] no-underline focus:outline-none">
+              <SamagnaLogo variant="light" size="sm" showTagline />
             </Link>
           </div>
 
@@ -157,13 +148,13 @@ export default function MarketingHomePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/verify"
-              className="px-3 py-1.5 text-xs font-mono text-[#1F1A14] border border-[#E4DBC9] rounded-[3px] bg-[#FAF6EE] hover:bg-[#F2EBDD] transition-colors"
+              className="px-3 py-1.5 text-xs font-mono text-[#0F172A] border border-[#E2E8F0] rounded-[3px] bg-[#F5F5F0] hover:bg-[#EBEBE4] transition-colors"
             >
               Verify Code
             </Link>
             <Link
               href="/login"
-              className="px-3.5 py-1.5 text-xs font-mono font-semibold text-white bg-[#B24E2E] rounded-[3px] hover:bg-[#9C4126] transition-colors"
+              className="px-3.5 py-1.5 text-xs font-mono font-semibold text-white bg-[#0B3D2E] rounded-[3px] hover:bg-[#2E7D32] transition-colors"
             >
               Sign In
             </Link>
@@ -173,32 +164,33 @@ export default function MarketingHomePage() {
 
       <main>
         {/* 2. Hero Section: Direct Statement & Product as Main Visual */}
-        <section className="pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[#E4DBC9]">
+        <section className="pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[#E2E8F0]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[2px] bg-[#F2EBDD] border border-[#E4DBC9] text-xs font-mono text-[#5E5245] mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2E5C2D]" />
-              <span>Odisha LABHA Scheme Field Ledger · Mayurbhanj District</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[3px] bg-[#CFE8C9]/50 border border-[#2E7D32]/30 text-xs font-mono text-[#0B3D2E] mb-6">
+              <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+              <span className="font-semibold">Samagna · Forest · People · Prosperity</span>
+              <span className="text-[#475569] hidden sm:inline">· Odisha LABHA Scheme</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#1F1A14] tracking-tight leading-[1.15] max-w-3xl mx-auto">
-              A trusted digital ledger for forest produce.
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#0F172A] tracking-tight leading-[1.15] max-w-3xl mx-auto">
+              Transparent. Traceable. Together.
             </h1>
 
-            <p className="mt-5 text-base sm:text-lg text-[#5E5245] max-w-2xl mx-auto leading-relaxed">
-              BanaSetu records weighments at village collection points, enforces government minimum support
+            <p className="mt-5 text-base sm:text-lg text-[#475569] max-w-2xl mx-auto leading-relaxed">
+              Samagna records weighments at village collection points, enforces government minimum support
               rates, and tracks physical custody across transit into central cooperative depots.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/collector"
-                className="px-5 py-2.5 bg-[#B24E2E] text-white text-xs font-mono font-semibold rounded-[3px] hover:bg-[#9C4126] transition-colors"
+                className="px-5 py-2.5 bg-[#0B3D2E] text-white text-xs font-mono font-semibold rounded-[3px] hover:bg-[#2E7D32] transition-colors shadow-sm"
               >
                 Launch Collector Portal
               </Link>
               <a
                 href="#verify"
-                className="px-5 py-2.5 bg-[#FAF6EE] text-[#1F1A14] border border-[#E4DBC9] text-xs font-mono font-semibold rounded-[3px] hover:bg-[#F2EBDD] transition-colors"
+                className="px-5 py-2.5 bg-[#F5F5F0] text-[#0F172A] border border-[#E2E8F0] text-xs font-mono font-semibold rounded-[3px] hover:bg-[#EBEBE4] transition-colors"
               >
                 Inspect Sample Batch BS-402
               </a>
@@ -734,40 +726,33 @@ export default function MarketingHomePage() {
       </main>
 
       {/* 7. Footer: Real Governance & Legal Links */}
-      <footer className="bg-[#FAF6EE] text-[#5E5245] text-xs font-mono py-12 border-t border-[#E4DBC9]">
+      <footer className="bg-[#F5F5F0] text-[#475569] text-xs font-mono py-12 border-t border-[#E2E8F0]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-[#E4DBC9]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-[#E2E8F0]">
             <div>
-              <div className="flex items-center gap-2 text-[#1F1A14]">
-                <span className="w-6 h-6 bg-[#1F2A22] text-[#E9E3D3] rounded-[2px] flex items-center justify-center font-serif font-bold text-xs">
-                  BS
-                </span>
-                <span className="font-serif font-bold text-sm tracking-tight">
-                  BanaSetu · ବନସେତୁ
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-[#5E5245]">
+              <SamagnaLogo variant="light" size="sm" showTagline />
+              <p className="mt-2 text-[11px] text-[#475569]">
                 Tribal Development Co-operative Corporation of Odisha (TDCCOL)
               </p>
-              <p className="text-[10px] text-[#5E5245]">
+              <p className="text-[10px] text-[#64748B]">
                 LABHA Scheme Traceability Infrastructure · Mayurbhanj District
               </p>
             </div>
 
             <div className="flex flex-wrap gap-6 text-xs">
-              <Link href="/terms" className="text-[#5E5245] hover:text-[#1F1A14] transition-colors">
+              <Link href="/terms" className="text-[#475569] hover:text-[#0F172A] transition-colors">
                 Terms of Service
               </Link>
-              <Link href="/privacy" className="text-[#5E5245] hover:text-[#1F1A14] transition-colors">
+              <Link href="/privacy" className="text-[#475569] hover:text-[#0F172A] transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/verify" className="text-[#5E5245] hover:text-[#1F1A14] transition-colors">
+              <Link href="/verify" className="text-[#475569] hover:text-[#0F172A] transition-colors">
                 Verify Batch
               </Link>
-              <Link href="/demo" className="text-[#5E5245] hover:text-[#1F1A14] transition-colors">
+              <Link href="/demo" className="text-[#475569] hover:text-[#0F172A] transition-colors">
                 Demonstration
               </Link>
-              <Link href="/login" className="text-[#B24E2E] hover:underline font-semibold">
+              <Link href="/login" className="text-[#0B3D2E] hover:underline font-semibold">
                 Personnel Portal
               </Link>
             </div>

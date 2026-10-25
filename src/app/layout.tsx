@@ -3,8 +3,8 @@ import './globals.css';
 import { BanaSetuProvider } from '../context/BanaSetuContext';
 
 export const metadata: Metadata = {
-  title: 'BanaSetu — Forest Produce Integrity Ledger',
-  description: 'Auditable Minor Forest Produce (MFP) procurement and custody ledger for tribal primary collectors in Odisha.',
+  title: 'Samagna · ସମଗ୍ନ — Forest, People, Prosperity',
+  description: 'Transparent. Traceable. Together. Minor Forest Produce (MFP) procurement and custody ledger for tribal primary collectors in Odisha.',
 };
 
 export default function RootLayout({

@@ -4,11 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import { ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 
 export default function UnauthorizedPage() {
   return (
-    <div className="min-h-screen bg-bg flex flex-col justify-center items-center p-6 text-ink">
+    <div className="min-h-screen bg-bg flex flex-col justify-center items-center p-6 text-ink selection:bg-accent selection:text-white">
       <div className="max-w-[440px] w-full border border-rule rounded-[4px] bg-surface p-6 sm:p-8 space-y-6 text-center">
+        <div className="flex justify-center mb-2">
+          <SamagnaLogo variant="light" size="sm" showTagline />
+        </div>
         <div className="w-12 h-12 rounded-full bg-danger/10 border border-danger/30 text-danger flex items-center justify-center mx-auto">
           <ShieldAlert size={24} />
         </div>

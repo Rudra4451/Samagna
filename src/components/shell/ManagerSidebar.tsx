@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '../../store/useAppStore';
 import { cn } from '../../lib/utils';
+import { SamagnaLogo } from '../ui/SamagnaLogo';
 import {
   Scale,
   Users,
@@ -17,6 +18,7 @@ import {
   Sliders,
   Wifi,
   WifiOff,
+  LogOut,
 } from 'lucide-react';
 
 interface ManagerSidebarProps {
@@ -33,6 +35,7 @@ interface NavItem {
 }
 
 export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
+  const router = useRouter();
   const pathname = usePathname();
   const { isOffline, toggleOffline } = useAppStore();
   const [currentHash, setCurrentHash] = useState<string>('');
@@ -76,17 +79,12 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
 
   return (
     <aside className="w-[240px] shrink-0 min-h-[calc(100vh-80px)] flex flex-col bg-sidebar-bg text-sidebar-ink select-none border-r border-sidebar-ink/15 shadow-none">
-      {/* Top of Sidebar */}
+      {/* Top of Sidebar: Samagna Logo */}
       <div className="p-4 border-b border-sidebar-ink/15">
         <Link href="/" className="block focus:outline-2 focus:outline-accent focus:outline-offset-0">
-          <h1 className="font-heading text-[20px] font-semibold text-sidebar-ink leading-none tracking-tight">
-            BanaSetu
-          </h1>
-          <p className="text-[11px] uppercase tracking-[0.06em] text-ink-subtle mt-1 font-mono">
-            MFP Traceability · Prototype
-          </p>
+          <SamagnaLogo variant="dark" size="sm" showTagline />
         </Link>
-        <div className="mt-2.5 inline-block text-[10px] font-mono uppercase tracking-wider text-accent bg-accent/10 border border-accent/30 px-1.5 py-0.5 rounded-[2px]">
+        <div className="mt-2.5 inline-block text-[10px] font-mono uppercase tracking-wider text-[#CFE8C9] bg-sidebar-ink/10 border border-sidebar-ink/20 px-1.5 py-0.5 rounded-[2px]">
           {isCollection ? 'Mayurbhanj Collection' : 'Central Depôt Terminal'}
         </div>
       </div>
@@ -204,12 +202,27 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
           </button>
         </div>
 
-        {/* Manager User Stamp */}
-        <div className="text-[11px] leading-snug">
-          <div className="font-medium text-sidebar-ink">{managerProfile.name}</div>
-          <div className="text-[10px] text-sidebar-ink/60 font-mono">
-            {managerProfile.id} • {managerProfile.center}
+        {/* Manager User Stamp & Logout */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="text-[11px] leading-snug">
+            <div className="font-medium text-sidebar-ink">{managerProfile.name}</div>
+            <div className="text-[10px] text-sidebar-ink/60 font-mono">
+              {managerProfile.id} • {managerProfile.center}
+            </div>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+              } catch {}
+              window.location.href = '/login?reason=loggedout';
+            }}
+            title="Log out"
+            aria-label="Log out of manager session"
+            className="p-1.5 rounded-[3px] text-sidebar-ink/60 hover:text-danger hover:bg-sidebar-ink/10 transition-colors"
+          >
+            <LogOut size={16} strokeWidth={1.5} />
+          </button>
         </div>
       </div>
     </aside>

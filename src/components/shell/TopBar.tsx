@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAppStore, DemoRole } from '../../store/useAppStore';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Button } from '../ui/Button';
@@ -10,11 +11,14 @@ import { useFontScale } from '../../lib/useFontScale';
 import { useOffline } from '../../lib/useOffline';
 import { SyncDrawer } from '../sync/SyncDrawer';
 import { ConflictDrawer } from '../sync/ConflictDrawer';
-import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck } from 'lucide-react';
+import { SamagnaLogo } from '../ui/SamagnaLogo';
+import { useAuthSession } from '../../lib/useAuthSession';
 
 export const TopBar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, logout } = useAuthSession();
   const {
     isOffline,
     toggleOffline,
@@ -62,6 +66,8 @@ export const TopBar: React.FC = () => {
       setActiveRole('inventory_manager');
     } else if (pathname.startsWith('/facilitator') && activeRole !== 'facilitator') {
       setActiveRole('facilitator');
+    } else if (pathname.startsWith('/admin') && activeRole !== 'admin') {
+      setActiveRole('admin');
     }
   }, [pathname, activeRole, setActiveRole]);
 
@@ -76,6 +82,8 @@ export const TopBar: React.FC = () => {
       router.push('/inventory');
     } else if (newRole === 'facilitator') {
       router.push('/facilitator');
+    } else if (newRole === 'admin') {
+      router.push('/admin');
     }
   };
 
@@ -85,21 +93,26 @@ export const TopBar: React.FC = () => {
     <header className="sticky top-0 z-40 w-full flex flex-col border-b border-rule bg-surface select-none shadow-none">
       {/* Top Bar Row */}
       <div className="flex h-[48px] items-center justify-between px-4 sm:px-6 gap-2">
-        {/* Left: Role Switcher */}
-        <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-1.5">
+        {/* Left: Brand Logo & Role Switcher */}
+        <div className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-1.5 focus:outline-2 focus:outline-accent">
+            <SamagnaLogo variant="light" size="sm" />
+          </Link>
+          <div className="hidden sm:block h-4 w-px bg-rule" />
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-1.5">
             <label
               htmlFor="demo-role-select"
               className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted whitespace-nowrap sr-only sm:not-sr-only"
             >
-              {language === 'OR' ? 'ଡେମୋ ଭୂମିକା:' : 'Demo role:'}
+              {language === 'OR' ? 'ଭୂମିକା:' : 'Role:'}
             </label>
             <div className="relative">
               <select
                 id="demo-role-select"
                 value={activeRole}
                 onChange={handleRoleChange}
-                aria-label="Demo role switcher"
+                aria-label="Role switcher"
                 className={cn(
                   'h-[28px] appearance-none rounded-[4px] border border-rule bg-surface pl-2 pr-6 text-[12px] font-medium text-ink transition-colors',
                   'hover:border-ink-subtle focus:outline-2 focus:outline-accent focus:outline-offset-0 cursor-pointer shadow-none',
@@ -107,16 +120,19 @@ export const TopBar: React.FC = () => {
                 )}
               >
                 <option value="collector">
-                  {language === 'OR' ? 'ରାଇମତୀ ସୋରେନ (ଆଦିବାସୀ ସଂଗ୍ରାହକ)' : 'Raimati Soren (Tribal Collector)'}
+                  {language === 'OR' ? 'ରାଇମତୀ ସୋରେନ (ଆଦିବାସୀ ସଂଗ୍ରାହକ)' : 'Sunita Soren (Tribal Collector)'}
                 </option>
                 <option value="collection_manager">
                   {language === 'OR' ? 'ଆର. ମହାନ୍ତି (ସଂଗ୍ରହ ପରିଚାଳକ)' : 'R. Mohanty (Collection Manager)'}
                 </option>
                 <option value="inventory_manager">
-                  {language === 'OR' ? 'ଏସ. ଦାସ (ଗୋଦାମ ପରିଚାଳକ)' : 'S. Das (Inventory Manager)'}
+                  {language === 'OR' ? 'ଏସ. ଦାସ (ଗୋଦାମ ପରିଚାଳକ)' : 'S. Das (Warehouse Manager)'}
                 </option>
                 <option value="facilitator">
-                  {language === 'OR' ? 'ଚମ୍ପା ମାଝୀ (ଏସଏଚଜି ସହାୟିକା)' : 'Champa Majhi (SHG Facilitator)'}
+                  {language === 'OR' ? 'ସୁମିତ୍ରା ମାର୍ଣ୍ଡି (ଦଳ ସଂଯୋଜକ)' : 'Sumitra Marndi (SHG Lead)'}
+                </option>
+                <option value="admin">
+                  {language === 'OR' ? 'ଏ. ପଟ୍ଟନାୟକ (ଜିଲ୍ଲା ଅଧିକାରୀ)' : 'A. Patnaik (District Admin)'}
                 </option>
               </select>
               <ChevronDown
@@ -126,9 +142,21 @@ export const TopBar: React.FC = () => {
               />
             </div>
           </div>
-          <span className="text-[9px] font-mono text-ink-subtle leading-none mt-0.5 tracking-tight">
-            {language === 'OR' ? 'କେବଳ ପ୍ରଦର୍ଶନ ପାଇଁ — ଲଗ୍ଇନ୍ ବ୍ୟବସ୍ଥା ନାହିଁ।' : 'Demo only — auth is not implemented.'}
-          </span>
+          {user ? (
+            <span className="text-[10px] font-mono text-accent leading-none mt-0.5 tracking-tight flex items-center gap-1 font-semibold">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{user.fullName || user.username}</span>
+              <span className="text-ink-muted hidden md:inline">({user.role})</span>
+            </span>
+          ) : (
+            <Link
+              href="/login"
+              className="text-[10px] font-mono text-accent hover:underline leading-none mt-0.5 tracking-tight"
+            >
+              {language === 'OR' ? 'ପ୍ରାମାଣିକ ଅଭିଗମନ · ଲଗଇନ୍' : 'Authenticated Ledger · Log In →'}
+            </Link>
+          )}
+          </div>
         </div>
 
         {/* Center: Always-Visible, Always-Tappable Offline Pill (Rule 9) */}
@@ -238,6 +266,19 @@ export const TopBar: React.FC = () => {
               ଓଡ଼ିଆ
             </button>
           </div>
+
+          {/* Visible Logout Option (Prompt 2 requirement) */}
+          <button
+            onClick={() => logout('loggedout')}
+            title={language === 'OR' ? 'ଲଗ୍ ଆଉଟ୍ କରନ୍ତୁ' : 'Log out of session'}
+            aria-label="Log out"
+            className="h-[32px] px-2.5 rounded-[4px] border border-rule bg-bg-sunken text-[12px] font-medium text-ink-muted hover:text-danger hover:border-danger/40 transition-colors flex items-center gap-1.5 focus:outline-2 focus:outline-accent"
+          >
+            <LogOut size={14} strokeWidth={1.75} />
+            <span className="hidden sm:inline font-mono text-[11px]">
+              {language === 'OR' ? 'ଲଗଆଉଟ୍' : 'Logout'}
+            </span>
+          </button>
         </div>
       </div>
 
