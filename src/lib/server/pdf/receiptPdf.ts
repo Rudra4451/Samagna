@@ -75,8 +75,8 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', (err: Error) => reject(err));
 
-      // Forest Green Header Bar
-      doc.rect(margin, margin, contentWidth, 3).fill('#2d5a27');
+      // Terracotta Orange Header Bar
+      doc.rect(margin, margin, contentWidth, 3).fill('#B24E2E');
 
       let currentY = margin + 10;
 
@@ -84,8 +84,8 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(13)
-        .fillColor('#2d5a27')
-        .text('BanaSetu · TDCCOL Odisha', margin, currentY);
+        .fillColor('#B24E2E')
+        .text('Samagna · TDCCOL Odisha', margin, currentY);
 
       doc
         .font('Helvetica')
@@ -113,7 +113,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(16)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text(`#${cleanCode}`, margin, currentY + 10, {
           width: contentWidth,
           align: 'right',
@@ -155,7 +155,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(7.5)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text('1. AGGREGATION & ADMINISTRATIVE CUSTODY', margin + 6, currentY + 5);
 
       const col1X = margin + 6;
@@ -222,7 +222,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(7.5)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text('2. PRIMARY GATHERER RECORD (STATUTORY PRIVACY SHIELDED)', margin + 6, currentY + 5);
 
       const sec2ContentY = currentY + 17;
@@ -262,12 +262,12 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       // Section 3: Produce & Certified Weighment
       doc
         .rect(margin, currentY, contentWidth, 80)
-        .fillAndStroke('#f7faf6', '#2d5a27');
+        .fillAndStroke('#FBECE5', '#E4DBC9');
 
       doc
         .font('Helvetica-Bold')
         .fontSize(11)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text(data.produceName, margin + 6, currentY + 6);
 
       if (data.scientificName) {
@@ -314,7 +314,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
         .fillColor('#1f1a14')
         .text(`${Number(data.grossWeightKg).toFixed(1)} kg`, margin + 10, tableY + 14)
         .text(`${Number(data.tareWeightKg).toFixed(1)} kg`, margin + 10 + colW, tableY + 14)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text(`${Number(data.netWeightKg).toFixed(1)} kg`, margin + 10 + colW * 2, tableY + 14);
 
       currentY += 86;
@@ -327,7 +327,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(7.5)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text('4. MINIMUM SUPPORT PRICE (MSP) & CERTIFIED VALUATION', margin + 6, currentY + 5);
 
       const sec4ContentY = currentY + 17;
@@ -351,18 +351,18 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       // Financial Total Badge on Right
       doc
         .rect(margin + contentWidth - 140, currentY + 12, 134, 34)
-        .fillAndStroke('#f5f8f4', '#b9d4b5');
+        .fillAndStroke('#FBECE5', '#E4DBC9');
 
       doc
         .font('Helvetica-Bold')
         .fontSize(6.5)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text('TOTAL CERTIFIED PAYABLE VALUE', margin + contentWidth - 136, currentY + 16);
 
       doc
         .font('Helvetica-Bold')
         .fontSize(13)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text(`₹${Number(data.totalAmount).toFixed(2)}`, margin + contentWidth - 136, currentY + 27);
 
       currentY += 60;
@@ -405,7 +405,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
         doc
           .font('Helvetica-Bold')
           .fontSize(7.5)
-          .fillColor('#2d5a27')
+          .fillColor('#B24E2E')
           .text('5. SETTLEMENT CONFIRMATION', margin + 6, currentY + 5);
 
         doc
@@ -455,7 +455,7 @@ export async function generateReceiptPdfBuffer(data: ReceiptPdfData): Promise<Bu
       doc
         .font('Helvetica-Bold')
         .fontSize(6.5)
-        .fillColor('#2d5a27')
+        .fillColor('#B24E2E')
         .text(`Verify online: ${data.verificationUrl}`, margin, footerY + 6, {
           width: contentWidth,
           align: 'right',

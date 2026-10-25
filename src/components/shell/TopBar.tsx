@@ -144,7 +144,7 @@ export const TopBar: React.FC = () => {
           </div>
           {user ? (
             <span className="text-[10px] font-mono text-accent leading-none mt-0.5 tracking-tight flex items-center gap-1 font-semibold">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               <span>{user.fullName || user.username}</span>
               <span className="text-ink-muted hidden md:inline">({user.role})</span>
             </span>

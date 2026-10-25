@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ProductIcon } from '@/components/ui/ProductIcons';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 import { getDatabase } from '@/lib/db';
 
 interface VerifyPageProps {
@@ -289,23 +290,13 @@ export default function PublicVerifyPage({ params }: VerifyPageProps) {
   const isSaleable = batchData?.status === 'VERIFIED_SALEABLE';
 
   return (
-    <div className="min-h-screen bg-bg text-ink p-4 sm:p-6 print:bg-white print:p-0 selection:bg-accent selection:text-white">
+    <div className="min-h-screen bg-bg text-ink p-4 sm:p-6 print:bg-white print:p-0 selection:bg-accent-tint selection:text-ink">
       <div className="max-w-[640px] mx-auto space-y-6">
         {/* Navigation & Trust Banner */}
         <header className="flex items-center justify-between border-b border-rule pb-3 print:border-b-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[3px] bg-sidebar-bg flex items-center justify-center text-white font-heading font-bold text-[16px]">
-              BS
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-accent font-semibold block">
-                Public Verification Portal · ଜନସାଧାରଣ ଯାଞ୍ଚ ପୋର୍ଟାଲ
-              </span>
-              <h1 className="font-heading font-bold text-[18px] text-ink leading-tight">
-                TDCCOL Custody Verification
-              </h1>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center gap-2 focus:outline-2 focus:outline-accent">
+            <SamagnaLogo variant="light" size="sm" showTagline />
+          </Link>
           <div className="flex items-center gap-2 print:hidden">
             <button
               type="button"

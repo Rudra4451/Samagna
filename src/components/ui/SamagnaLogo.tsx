@@ -47,25 +47,25 @@ export function SamagnaLogo({
           width="100"
           height="100"
           rx="18"
-          fill={isDark ? '#0B3D2E' : '#0B3D2E'}
+          fill={isDark ? '#B24E2E' : '#B24E2E'}
         />
 
-        {/* Lower supporting leaf base (Foliage Green #2E7D32) */}
+        {/* Lower supporting leaf base (Warm Terracotta Shade) */}
         <path
           d="M20 74C32 82 58 84 76 68C66 76 46 76 34 71C26 67 22 62 20 74Z"
-          fill="#2E7D32"
+          fill="#8E351A"
         />
 
         {/* Sprouting leaf base */}
         <path
           d="M32 68C42 58 64 60 74 72C60 76 44 74 32 68Z"
-          fill="#CFE8C9"
+          fill="#F2EBDD"
         />
 
-        {/* Outer stylized S leaf curve (Vibrant Green #2E7D32) */}
+        {/* Outer stylized S curve */}
         <path
           d="M62 20C44 18 30 28 32 44C34 56 46 60 56 64C68 68 76 72 74 82C72 90 62 94 48 92C34 90 26 82 24 76C24 76 32 82 46 82C58 82 66 76 66 70C66 62 54 58 44 54C32 50 22 44 24 30C26 16 42 10 60 12C68 13 74 16 78 20L62 20Z"
-          fill="#2E7D32"
+          fill="#C05638"
         />
 
         {/* Inner white leaf silhouette forming the S-core */}
@@ -74,17 +74,17 @@ export function SamagnaLogo({
           fill="#FFFFFF"
         />
 
-        {/* Central green leaf bud with vein */}
+        {/* Central leaf bud with vein */}
         <path
           d="M52 38C58 42 60 48 54 54C48 48 48 42 52 38Z"
-          fill="#2E7D32"
+          fill="#8E351A"
         />
         <line
           x1="52"
           y1="38"
           x2="53"
           y2="54"
-          stroke="#CFE8C9"
+          stroke="#FAF6EE"
           strokeWidth="1.5"
           strokeLinecap="round"
         />
@@ -96,14 +96,14 @@ export function SamagnaLogo({
           <div className="flex items-baseline gap-1.5 leading-none">
             <span
               className={`font-heading font-bold tracking-tight ${textSizes[size]} ${
-                isDark ? 'text-[#F5F5F0]' : 'text-[#0B3D2E]'
+                isDark ? 'text-sidebar-ink' : 'text-ink'
               }`}
             >
               Samagna
             </span>
             <span
-              className={`text-[11px] font-odia font-semibold ${
-                isDark ? 'text-[#CFE8C9]' : 'text-[#2E7D32]'
+              className={`text-[12px] font-odia font-semibold ${
+                isDark ? 'text-accent-tint' : 'text-accent'
               }`}
             >
               ସମଗ୍ନ
@@ -113,7 +113,7 @@ export function SamagnaLogo({
           {showTagline && (
             <span
               className={`text-[9px] font-mono tracking-widest uppercase mt-0.5 ${
-                isDark ? 'text-[#94A3B8]' : 'text-[#475569]'
+                isDark ? 'text-sidebar-ink/60' : 'text-ink-muted'
               }`}
             >
               FOREST · PEOPLE · PROSPERITY

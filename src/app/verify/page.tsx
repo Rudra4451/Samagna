@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldCheck, Search, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 
 export default function VerifyIndexPage() {
   const router = useRouter();
@@ -19,20 +20,15 @@ export default function VerifyIndexPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col justify-between p-4 sm:p-6 text-ink">
+    <div className="min-h-screen bg-bg flex flex-col justify-between p-4 sm:p-6 text-ink selection:bg-accent-tint selection:text-ink">
       <header className="max-w-[440px] w-full mx-auto pt-4 flex items-center justify-between border-b border-rule pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[3px] bg-sidebar-bg flex items-center justify-center text-white font-heading font-bold text-[16px]">
-            BS
-          </div>
-          <div>
-            <h1 className="font-heading font-bold text-[18px] tracking-tight text-ink leading-tight">
-              BanaSetu · ବନସେତୁ
-            </h1>
-            <p className="text-[11px] text-ink-muted font-mono">
-              PUBLIC CUSTODY VERIFICATION
-            </p>
-          </div>
+        <Link href="/" className="flex items-center gap-2 focus:outline-2 focus:outline-accent">
+          <SamagnaLogo variant="light" size="sm" showTagline />
+        </Link>
+        <div className="text-right">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-bg-sunken border border-rule text-ink-muted">
+            PUBLIC VERIFY
+          </span>
         </div>
       </header>
 

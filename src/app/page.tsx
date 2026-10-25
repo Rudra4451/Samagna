@@ -148,13 +148,13 @@ export default function MarketingHomePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/verify"
-              className="px-3 py-1.5 text-xs font-mono text-[#0F172A] border border-[#E2E8F0] rounded-[3px] bg-[#F5F5F0] hover:bg-[#EBEBE4] transition-colors"
+              className="px-3 py-1.5 text-xs font-mono text-ink border border-rule rounded-[3px] bg-bg hover:bg-bg-sunken transition-colors"
             >
               Verify Code
             </Link>
             <Link
               href="/login"
-              className="px-3.5 py-1.5 text-xs font-mono font-semibold text-white bg-[#0B3D2E] rounded-[3px] hover:bg-[#2E7D32] transition-colors"
+              className="px-3.5 py-1.5 text-xs font-mono font-semibold text-accent-ink bg-accent rounded-[3px] hover:bg-accent-hover transition-colors"
             >
               Sign In
             </Link>
@@ -164,19 +164,19 @@ export default function MarketingHomePage() {
 
       <main>
         {/* 2. Hero Section: Direct Statement & Product as Main Visual */}
-        <section className="pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[#E2E8F0]">
+        <section className="pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-rule">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[3px] bg-[#CFE8C9]/50 border border-[#2E7D32]/30 text-xs font-mono text-[#0B3D2E] mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[3px] bg-accent-tint border border-accent/20 text-xs font-mono text-accent mb-6">
+              <span className="w-2 h-2 rounded-full bg-accent" />
               <span className="font-semibold">Samagna · Forest · People · Prosperity</span>
-              <span className="text-[#475569] hidden sm:inline">· Odisha LABHA Scheme</span>
+              <span className="text-ink-muted hidden sm:inline">· Odisha LABHA Scheme</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#0F172A] tracking-tight leading-[1.15] max-w-3xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl font-heading font-bold text-ink tracking-tight leading-[1.15] max-w-3xl mx-auto">
               Transparent. Traceable. Together.
             </h1>
 
-            <p className="mt-5 text-base sm:text-lg text-[#475569] max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-lg text-ink-muted max-w-2xl mx-auto leading-relaxed">
               Samagna records weighments at village collection points, enforces government minimum support
               rates, and tracks physical custody across transit into central cooperative depots.
             </p>
@@ -184,13 +184,13 @@ export default function MarketingHomePage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/collector"
-                className="px-5 py-2.5 bg-[#0B3D2E] text-white text-xs font-mono font-semibold rounded-[3px] hover:bg-[#2E7D32] transition-colors shadow-sm"
+                className="px-5 py-2.5 bg-accent text-accent-ink text-xs font-mono font-semibold rounded-[3px] hover:bg-accent-hover transition-colors shadow-none"
               >
                 Launch Collector Portal
               </Link>
               <a
                 href="#verify"
-                className="px-5 py-2.5 bg-[#F5F5F0] text-[#0F172A] border border-[#E2E8F0] text-xs font-mono font-semibold rounded-[3px] hover:bg-[#EBEBE4] transition-colors"
+                className="px-5 py-2.5 bg-surface text-ink border border-rule text-xs font-mono font-semibold rounded-[3px] hover:bg-bg-sunken transition-colors"
               >
                 Inspect Sample Batch BS-402
               </a>
@@ -749,10 +749,10 @@ export default function MarketingHomePage() {
               <Link href="/verify" className="text-[#475569] hover:text-[#0F172A] transition-colors">
                 Verify Batch
               </Link>
-              <Link href="/demo" className="text-[#475569] hover:text-[#0F172A] transition-colors">
+              <Link href="/demo" className="text-ink-muted hover:text-ink transition-colors">
                 Demonstration
               </Link>
-              <Link href="/login" className="text-[#0B3D2E] hover:underline font-semibold">
+              <Link href="/login" className="text-accent hover:underline font-semibold">
                 Personnel Portal
               </Link>
             </div>

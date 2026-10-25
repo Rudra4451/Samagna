@@ -84,7 +84,7 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
         <Link href="/" className="block focus:outline-2 focus:outline-accent focus:outline-offset-0">
           <SamagnaLogo variant="dark" size="sm" showTagline />
         </Link>
-        <div className="mt-2.5 inline-block text-[10px] font-mono uppercase tracking-wider text-[#CFE8C9] bg-sidebar-ink/10 border border-sidebar-ink/20 px-1.5 py-0.5 rounded-[2px]">
+        <div className="mt-2.5 inline-block text-[10px] font-mono uppercase tracking-wider text-accent-tint bg-sidebar-ink/10 border border-sidebar-ink/20 px-1.5 py-0.5 rounded-[2px]">
           {isCollection ? 'Mayurbhanj Collection' : 'Central Depôt Terminal'}
         </div>
       </div>

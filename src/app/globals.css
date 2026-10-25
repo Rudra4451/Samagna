@@ -1,33 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+Oriya:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Samagna Field Ledger Design System Tokens */
-  --bg: #F5F5F0; /* Soft warm canvas #F5F5F0 */
-  --bg-sunken: #EBEBE4;
-  --surface: #FFFFFF;
-  --ink: #0F172A; /* Deep Slate Navy #0F172A */
-  --ink-muted: #475569;
-  --ink-subtle: #64748B;
-  --rule: #E2E8F0;
-  --accent: #0B3D2E; /* Primary Deep Forest Green #0B3D2E */
-  --accent-secondary: #2E7D32; /* Vibrant Foliage Green #2E7D32 */
-  --accent-tint: #CFE8C9; /* Fresh Sprout Tint #CFE8C9 */
-  --accent-ink: #FFFFFF;
-  --success: #2E7D32;
-  --warning: #854C0E;
-  --danger: #8E2F26;
-  --info: #0B3D2E;
-  --sidebar-bg: #0B3D2E; /* Signature Forest Green */
-  --sidebar-ink: #F5F5F0;
+  /* Samagna Field Ledger Design System Tokens (Restored Terracotta Orange & Warm White) */
+  --bg: #FAF6EE; /* Warm parchment / near-white subtle canvas */
+  --bg-sunken: #F2EBDD; /* Warm recessed neutral */
+  --surface: #FFFFFF; /* Pure crisp white surface */
+  --ink: #1F1A14; /* Warm deep charcoal (>14:1 contrast on #FAF6EE) */
+  --ink-muted: #5E5245; /* Measured >7:1 contrast on #FAF6EE and #FFFFFF */
+  --ink-subtle: #6B5E50; /* Measured >5.4:1 contrast on #FAF6EE and #FFFFFF */
+  --rule: #E4DBC9; /* Warm subtle dividing border */
+  --accent: #B24E2E; /* Primary Terracotta Orange: primary actions, active nav, focus ring */
+  --accent-hover: #9E3E20; /* Deepened terracotta for interactive hover */
+  --accent-tint: #FBECE5; /* Soft warm terracotta wash for active chips and badges */
+  --accent-ink: #FFFFFF; /* High-contrast white text on terracotta */
 
-  /* Font variables */
-  --font-fraunces: 'Fraunces', Georgia, serif;
-  --font-ibm-plex-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-noto-sans-oriya: 'Noto Sans Oriya', 'IBM Plex Sans', sans-serif;
+  /* Semantic Status Tokens (Kept strictly separate from brand accent) */
+  --success: #2E5C2D; /* Forest Green: strictly verified/matched status */
+  --warning: #854C0E; /* Earthen Amber: transit shrinkage/caution status */
+  --danger: #8E2F26;  /* Crimson Red: quarantined/discrepancy status */
+  --info: #234252;    /* Slate Blue: auditable log notices */
+
+  /* Sidebar Tokens (Dark warm charcoal navigation desk) */
+  --sidebar-bg: #1F1A14;
+  --sidebar-ink: #F2EBDD;
+  --sidebar-rule: rgba(242, 235, 221, 0.15);
+
+  /* Bulletproof cross-platform font stacks (Windows, Android, iOS, macOS) */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', 'Oriya Sangam MN', sans-serif;
+  --font-heading: var(--font-sans);
+  --font-odia: 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', 'Oriya Sangam MN', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 /* Global resets for ledger aesthetic */
@@ -43,8 +47,8 @@ body {
   padding: 0;
   background-color: var(--bg);
   color: var(--ink);
-  font-family: var(--font-ibm-plex-sans);
-  line-height: 1.45;
+  font-family: var(--font-sans);
+  line-height: 1.5;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -60,24 +64,27 @@ input[type="number"],
   font-feature-settings: 'tnum' 1;
 }
 
-/* Odia typography fallback: Noto Sans Oriya at 16px / 1.6 line-height */
+/* Odia typography safeguards: prevent clipping, overcrowding, or broken diacritics */
 .lang-odia,
 [lang="or"],
+:lang(or),
 .font-odia {
-  font-family: var(--font-noto-sans-oriya);
-  font-size: 16px;
-  line-height: 1.6;
+  font-family: var(--font-odia) !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  line-height: 1.55 !important;
 }
 
-/* Headings: Fraunces (500-600) used sparingly, short labels only. Line-height 1.2 */
+/* Clean, structured sans-serif headings replacing eccentric display serif */
 h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: var(--font-fraunces);
-  font-feature-settings: 'swsh' 0;
-  line-height: 1.2;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.25;
   color: var(--ink);
+  letter-spacing: -0.01em;
 }
 
-/* Focus styles: accent focus ring 2px, 2px offset, never suppressed */
+/* Focus styles: accent terracotta ring 2px, 2px offset, never suppressed */
 :focus-visible {
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px !important;
@@ -87,7 +94,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 aside :focus-visible,
 .sidebar :focus-visible,
 [data-sidebar] :focus-visible {
-  outline: 2px solid #E9E3D3 !important;
+  outline: 2px solid #F2EBDD !important;
   outline-offset: 2px !important;
 }
 

@@ -22,6 +22,8 @@ const config: Config = {
         rule: 'var(--rule)',
         accent: {
           DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          tint: 'var(--accent-tint)',
           ink: 'var(--accent-ink)',
         },
         success: 'var(--success)',
@@ -31,12 +33,14 @@ const config: Config = {
         sidebar: {
           bg: 'var(--sidebar-bg)',
           ink: 'var(--sidebar-ink)',
+          rule: 'var(--sidebar-rule)',
         },
       },
       fontFamily: {
-        heading: ['var(--font-fraunces)', 'Fraunces', 'Georgia', 'serif'],
-        body: ['var(--font-ibm-plex-sans)', '"IBM Plex Sans"', '"Noto Sans Oriya"', 'sans-serif'],
-        odia: ['"Noto Sans Oriya"', 'sans-serif'],
+        heading: ['var(--font-heading)', 'var(--font-sans)', 'sans-serif'],
+        body: ['var(--font-sans)', 'sans-serif'],
+        odia: ['var(--font-odia)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       fontSize: {
         'scale-12': ['12px', { lineHeight: '1.45' }],
