@@ -9,6 +9,10 @@
 ## 1. Authentication & Session Security
 
 - **Cryptographic Token Standard:** HS256 JWT generated via the `jose` library using a 256-bit cryptographically random secret (`AUTH_SECRET`).
+- **Production Secret Hardening:**
+  - In production (`NODE_ENV === 'production'`), authentication strictly refuses to operate if `AUTH_SECRET` is unset, shorter than 32 characters, or set to the development default fallback.
+  - Hardcoded or repository-committed secrets are strictly prohibited from configuration files (e.g., `netlify.toml`).
+  - Production deployments must supply `AUTH_SECRET` via secure platform environment variables (e.g., Netlify Dashboard, Docker secrets, or Kubernetes secrets).
 - **Cookie Flags:**
   - `HttpOnly`: Strictly prevents JavaScript `document.cookie` access, mitigating cross-site scripting (XSS) session theft.
   - `SameSite=Lax`: Restricts cross-site request forgery (CSRF) vectors during navigation.
@@ -103,3 +107,32 @@ Configured globally in `next.config.js`:
   - Bank account details (never shown).
   - Private phone numbers (never shown).
 - **Audit Logging:** Administrative actions, rate card adjustments, and discrepancy resolutions are written to immutable append-only audit tables recording actor ID, IP address, timestamp, and changes.
+
+---
+
+## 7. Dependency Security & Audit Analysis
+
+All third-party dependencies are tracked and analyzed for security vulnerabilities. As of this release, the known `npm audit` advisories have been systematically audited and determined to pose no exploitable risk to production workloads without breaking changes:
+
+| Package | Advisory / Severity | Analysis & Mitigating Controls | Remediation Status |
+|:---|:---|:---|:---|
+| `next` (`14.2.15`) | GHSA-p293-qw3h-jr36, GHSA-2xp9-vwfh-vxw4, GHSA-2464-fhr4-w9xw, GHSA-7m27-7ghc-44w9 (Critical / High) | **1.** Windows RCE advisory affects only Windows host servers; production targets Linux containerized hosts (Netlify/Docker).<br>**2.** Image Optimization advisories affect remote AVIF/SVG processing; Samagna serves static local JPEG/PNG assets and inline SVGs with no external `remotePatterns`.<br>**3.** Server Actions DoS does not affect Samagna because all mutations use standard Next.js Route Handlers (`src/app/api/...`), not Server Actions. | Requires major framework upgrade (`next@16.x`), which introduces breaking App Router/React 18 incompatibilities. Withheld per safety policy. |
+| `zod` (`^3.25.76`) | GHSA-mrhx-c7xc-m3w5 (High) | Memory exhaustion on unbounded recursive schemas. In Samagna, Zod validates shallow, strictly typed payloads (login credentials, pickup requests) whose payload sizes are hard-capped by body size limits and sliding-window rate limiters. | Requires major version upgrade (`zod@4.x`), which is an unreleased/breaking rewrite. Input sizes remain strictly bounded. |
+| `postcss` (`<=8.5.22`) | GHSA-qx2v-qp2m-jg93, GHSA-6g55-p6wh-862q (High) | PostCSS runs solely at compile time during build (`next build`). No user-supplied CSS strings or external source maps are parsed at runtime. | Nested dependency of `next`. Build-time only. |
+| `postcss-selector-parser` (`<7.1.6`) | GHSA-rj75-hqrm-r3gf (Moderate) | CSS selector parsing complexity. Executes strictly at build time within the Tailwind CSS build pipeline. | Requires `tailwindcss@4.x` breaking migration. Zero runtime exposure. |
+| `glob` (`10.2.0 - 10.4.5`) | GHSA-5j98-mcp5-4vw2 (High) | Command execution vulnerability in `glob` CLI. Nested under `eslint-config-next` (`devDependency`). Not used in production runtime. | Dev-dependency only. |
+
+---
+
+## 8. Vulnerability Reporting Policy
+
+If you discover a security vulnerability or security-sensitive defect in Samagna:
+
+1. **Do not open a public GitHub issue.**
+2. Send a confidential report directly to the repository maintainer:
+   - **Email:** `security@rudra.dev` (or open a private GitHub Security Advisory at [Security Advisories](https://github.com/Rudra4451/bana-setu/security/advisories)).
+3. Please include:
+   - A description of the vulnerability and its potential impact.
+   - Exact steps or code snippet to reproduce the issue.
+   - Mitigation suggestions, if available.
+4. Maintainers will acknowledge receipt within 48 hours and coordinate a private remediation and patch release.

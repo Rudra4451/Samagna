@@ -4,7 +4,13 @@
 [build.environment]
   NODE_VERSION = "20"
   ALLOW_DEMO_ACCOUNTS = "true"
-  AUTH_SECRET = "banasetu-secure-development-secret-key-32-chars-minimum"
+
+# PRODUCTION SECURITY NOTICE:
+# Do NOT store credentials, passwords, or signing secrets in this version-controlled file.
+# Configure the following required environment variable securely in the Netlify UI:
+# Site Configuration > Environment variables:
+#   - AUTH_SECRET: Minimum 32-character cryptographically secure string (e.g. generated via `openssl rand -base64 32`)
+#   - DATABASE_URL (optional): PostgreSQL connection string for live database persistence
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

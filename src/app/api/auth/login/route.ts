@@ -60,6 +60,15 @@ export async function POST(req: NextRequest) {
   // Authenticate against database or safe test registry
   const authResult = await authenticateCredentials(username, password);
   if (!authResult.success || !authResult.user) {
+    if (authResult.error === 'SERVER_CONFIGURATION_ERROR') {
+      return NextResponse.json(
+        {
+          error: 'SERVER_CONFIGURATION_ERROR',
+          message: 'Authentication service temporarily unavailable due to server configuration.',
+        },
+        { status: 500 }
+      );
+    }
     if (authResult.error === 'AUTHENTICATION_SERVICE_ERROR') {
       return NextResponse.json(
         {

@@ -63,22 +63,60 @@ export const MIN_AUTH_SECRET_LENGTH = 32;
 export const DEFAULT_AUTH_SECRET = 'samagna-odisha-forest-ledger-secure-key-32-chars-minimum';
 
 export function validateAuthSecret(): { valid: boolean; error?: string } {
-  const secret = process.env.AUTH_SECRET || DEFAULT_AUTH_SECRET;
-  if (secret.length < MIN_AUTH_SECRET_LENGTH) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const secret = process.env.AUTH_SECRET;
+
+  if (isProd) {
+    if (!secret) {
+      return {
+        valid: false,
+        error:
+          'CRITICAL SECURITY ERROR: AUTH_SECRET environment variable is missing in production. Refusing to operate authentication without an explicit secret.',
+      };
+    }
+    if (secret.length < MIN_AUTH_SECRET_LENGTH) {
+      return {
+        valid: false,
+        error: `CRITICAL SECURITY ERROR: AUTH_SECRET in production is too weak (${secret.length} chars). Minimum required length is ${MIN_AUTH_SECRET_LENGTH} characters.`,
+      };
+    }
+    if (secret === DEFAULT_AUTH_SECRET) {
+      return {
+        valid: false,
+        error:
+          'CRITICAL SECURITY ERROR: Default development AUTH_SECRET must not be used in production.',
+      };
+    }
+    return { valid: true };
+  }
+
+  // Non-production (development / test)
+  const devSecret = secret || DEFAULT_AUTH_SECRET;
+  if (devSecret.length < MIN_AUTH_SECRET_LENGTH) {
     return {
       valid: false,
-      error: `AUTH_SECRET is too weak (${secret.length} chars). Minimum required length is ${MIN_AUTH_SECRET_LENGTH} characters.`,
+      error: `AUTH_SECRET is too weak (${devSecret.length} chars). Minimum required length is ${MIN_AUTH_SECRET_LENGTH} characters.`,
     };
   }
   return { valid: true };
 }
 
-function getSecretKey(): Uint8Array {
-  const secret =
-    process.env.AUTH_SECRET && process.env.AUTH_SECRET.length >= MIN_AUTH_SECRET_LENGTH
-      ? process.env.AUTH_SECRET
-      : DEFAULT_AUTH_SECRET;
-  return new TextEncoder().encode(secret);
+export function getSecretKey(): Uint8Array {
+  const isProd = process.env.NODE_ENV === 'production';
+  const secret = process.env.AUTH_SECRET;
+
+  if (isProd) {
+    if (!secret || secret.length < MIN_AUTH_SECRET_LENGTH || secret === DEFAULT_AUTH_SECRET) {
+      throw new Error(
+        'CRITICAL SECURITY ERROR: AUTH_SECRET is missing, invalid, or using default in production. Authentication operations are blocked.'
+      );
+    }
+    return new TextEncoder().encode(secret);
+  }
+
+  const activeSecret =
+    secret && secret.length >= MIN_AUTH_SECRET_LENGTH ? secret : DEFAULT_AUTH_SECRET;
+  return new TextEncoder().encode(activeSecret);
 }
 
 export function isDemoAccountsAllowed(): boolean {
@@ -102,6 +140,11 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 
 // Session Token Generation using Signed JWT
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
+  const secretValidation = validateAuthSecret();
+  if (!secretValidation.valid) {
+    throw new Error(secretValidation.error || 'Invalid authentication secret configuration');
+  }
+
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuedAt()
@@ -203,6 +246,13 @@ export async function authenticateCredentials(
   username: string,
   plainPassword: string
 ): Promise<{ success: boolean; user?: SessionPayload; error?: string }> {
+  // Fail-secure: refuse authentication if secret configuration is invalid
+  const secretValidation = validateAuthSecret();
+  if (!secretValidation.valid) {
+    console.error('Authentication refused:', secretValidation.error);
+    return { success: false, error: 'SERVER_CONFIGURATION_ERROR' };
+  }
+
   const normalizedUser = username.trim().toLowerCase();
 
   // 1. Try PostgreSQL User table if configured

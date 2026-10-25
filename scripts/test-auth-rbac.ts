@@ -16,12 +16,17 @@ import {
   requireServerPermission,
   isResourceAuthorized,
   isDemoAccountsAllowed,
+  validateAuthSecret,
+  getSecretKey,
+  DEFAULT_AUTH_SECRET,
   ROLE_PERMISSIONS,
   UserRole,
   Permission,
   SessionPayload,
 } from '../src/lib/server/auth';
 import { NextRequest } from 'next/server';
+import { SignJWT } from 'jose';
+import { POST as logoutPost, GET as logoutGet } from '../src/app/api/auth/logout/route';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -43,9 +48,76 @@ async function runTestSuite() {
   console.log('======================================================\n');
 
   // --------------------------------------------------------------------------
+  // TEST GROUP 0: Secret Configuration & Production Fail-Secure Hardening
+  // --------------------------------------------------------------------------
+  console.log('--- 0. Cryptographic Secret Validation & Fail-Secure Invariants ---');
+  const origEnv = process.env.NODE_ENV;
+  const origSecret = process.env.AUTH_SECRET;
+
+  try {
+    // 0.1 Development environment allows default secret
+    (process.env as any).NODE_ENV = 'development';
+    delete process.env.AUTH_SECRET;
+    const devValid = validateAuthSecret();
+    assert(devValid.valid === true, 'Development allows default auth secret');
+    assert(getSecretKey().length >= 32, 'Development getSecretKey returns valid key buffer');
+
+    // 0.2 Production strictly rejects missing AUTH_SECRET
+    (process.env as any).NODE_ENV = 'production';
+    delete process.env.AUTH_SECRET;
+    const prodMissing = validateAuthSecret();
+    assert(prodMissing.valid === false, 'Production rejects missing AUTH_SECRET');
+
+    let prodKeyThrew = false;
+    try {
+      getSecretKey();
+    } catch {
+      prodKeyThrew = true;
+    }
+    assert(prodKeyThrew, 'Production getSecretKey throws when AUTH_SECRET is missing');
+
+    const missingSecretLogin = await authenticateCredentials('manager.mohanty', 'Test@Pass123');
+    assert(
+      missingSecretLogin.success === false && missingSecretLogin.error === 'SERVER_CONFIGURATION_ERROR',
+      'Production refuses authentication when AUTH_SECRET is missing'
+    );
+
+    // 0.3 Production strictly rejects weak AUTH_SECRET (< 32 chars)
+    process.env.AUTH_SECRET = 'short-secret-16c';
+    const prodWeak = validateAuthSecret();
+    assert(prodWeak.valid === false, 'Production rejects weak AUTH_SECRET (< 32 chars)');
+
+    let prodWeakThrew = false;
+    try {
+      getSecretKey();
+    } catch {
+      prodWeakThrew = true;
+    }
+    assert(prodWeakThrew, 'Production getSecretKey throws when AUTH_SECRET is weak');
+
+    // 0.4 Production strictly rejects DEFAULT_AUTH_SECRET
+    process.env.AUTH_SECRET = DEFAULT_AUTH_SECRET;
+    const prodDefault = validateAuthSecret();
+    assert(prodDefault.valid === false, 'Production rejects default development AUTH_SECRET');
+
+    // 0.5 Production accepts strong custom AUTH_SECRET (>= 32 chars)
+    process.env.AUTH_SECRET = 'production-custom-secret-key-32-chars-long!';
+    const prodStrong = validateAuthSecret();
+    assert(prodStrong.valid === true, 'Production accepts strong custom AUTH_SECRET (>= 32 chars)');
+    assert(getSecretKey().length >= 32, 'Production getSecretKey returns key buffer for valid secret');
+  } finally {
+    (process.env as any).NODE_ENV = origEnv;
+    if (origSecret) {
+      process.env.AUTH_SECRET = origSecret;
+    } else {
+      process.env.AUTH_SECRET = 'test-auth-secret-for-banasetu-test-suite-minimum-32-chars';
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // TEST GROUP 1: Successful and Failed Login
   // --------------------------------------------------------------------------
-  console.log('--- 1. Login Authentication & Password Verification ---');
+  console.log('\n--- 1. Login Authentication & Password Verification ---');
 
   // 1.1 Valid logins for each role
   const rolesToTest: { user: string; role: UserRole }[] = [
@@ -117,6 +189,34 @@ async function runTestSuite() {
   // Expired / Malformed Token
   const malformedRes = await verifySessionToken('not-a-real-token');
   assert(malformedRes === null, 'Rejects malformed token');
+
+  const expiredToken = await new SignJWT({ ...testPayload })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuedAt(Math.floor(Date.now() / 1000) - 7200)
+    .setExpirationTime(Math.floor(Date.now() / 1000) - 3600)
+    .sign(getSecretKey());
+  const expiredRes = await verifySessionToken(expiredToken);
+  assert(expiredRes === null, 'Rejects expired session token');
+
+  // Logout Route Behavior
+  const logoutRes = await logoutPost();
+  assert(logoutRes.status === 200, 'Logout POST endpoint returns HTTP 200');
+  const logoutCookie = logoutRes.headers.get('set-cookie') || '';
+  assert(
+    logoutCookie.includes('banasetu_session=;') || logoutCookie.includes('Max-Age=0'),
+    'Logout POST clears session cookie with Max-Age=0'
+  );
+
+  const logoutGetReq = new Request('http://localhost:3000/api/auth/logout');
+  const logoutGetRes = await logoutGet(logoutGetReq);
+  assert(
+    logoutGetRes.status === 307 || logoutGetRes.status === 302,
+    'Logout GET redirects unauthenticated session'
+  );
+  assert(
+    Boolean(logoutGetRes.headers.get('location')?.includes('/login?reason=loggedout')),
+    'Logout GET redirect targets login with reason=loggedout'
+  );
 
   // --------------------------------------------------------------------------
   // TEST GROUP 3: Unauthenticated API Requests
