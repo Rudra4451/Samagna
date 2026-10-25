@@ -239,7 +239,7 @@ export default function PublicVerifyPage({ params }: VerifyPageProps) {
             {errorMessage || `No record matching batch identifier #${cleanCode} was found in the official TDCCOL BanaSetu registry. This batch may not exist or has not yet been registered.`}
           </p>
           <div className="p-3 border border-rule rounded-[3px] bg-bg-sunken text-[12px] font-mono text-ink-muted text-left">
-            <p><strong>Guidance:</strong> If this batch was recently collected offline in the field, it may still be pending synchronization on the collector's device.</p>
+            <p><strong>Guidance:</strong> If this batch was recently collected offline in the field, it may still be pending synchronization on the collector&apos;s device.</p>
           </div>
           <div className="pt-2">
             <Link

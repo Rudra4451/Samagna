@@ -477,13 +477,13 @@ export default function PrintDesignShowcasePage() {
             <div className="flex items-center gap-2">
               <ShieldCheck size={16} strokeWidth={1.5} className="text-success" />
               <h3 className="font-semibold text-ink text-[15px]">
-                5. The "Verified" Badge Specification
+                5. The &quot;Verified&quot; Badge Specification
               </h3>
             </div>
             <VerifiedBadge />
           </div>
           <p className="text-[13px] text-ink-muted leading-relaxed">
-            One badge style used everywhere stock becomes saleable: <strong>1px success border, 8% success tint, success text, 11px uppercase "Verified"</strong>. It appears on the batch row, drawer header, and stock tile simultaneously when approval happens. Do not use checkmarks alone — the word matters.
+            One badge style used everywhere stock becomes saleable: <strong>1px success border, 8% success tint, success text, 11px uppercase &quot;Verified&quot;</strong>. It appears on the batch row, drawer header, and stock tile simultaneously when approval happens. Do not use checkmarks alone — the word matters.
           </p>
           <div className="flex items-center gap-4 pt-1 text-[12px] font-mono">
             <div className="flex items-center gap-2">

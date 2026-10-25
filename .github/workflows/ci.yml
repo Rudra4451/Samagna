@@ -1,4 +1,4 @@
-name: BanaSetu Continuous Integration
+name: Samagna Continuous Integration
 
 on:
   push:
@@ -6,12 +6,15 @@ on:
   pull_request:
     branches: [ master, main ]
 
+permissions:
+  contents: read
+
 jobs:
   audit-and-test:
-    name: Run BanaSetu Audit & Verification Suites
+    name: Run Samagna Audit & Verification Suites
     runs-on: ubuntu-latest
     env:
-      AUTH_SECRET: 'banasetu-ci-testing-auth-secret-key-minimum-32-chars'
+      AUTH_SECRET: 'samagna-ci-testing-auth-secret-key-minimum-32-chars'
       ALLOW_DEMO_ACCOUNTS: 'true'
 
     steps:
@@ -24,44 +27,17 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies (frozen lockfile)
         run: npm ci
 
       - name: Verify TypeScript compilation
         run: npx tsc --noEmit
 
-      - name: Run Inclusive Design & Accessibility Audit (A11y)
-        run: npm run test:a11y
+      - name: Run ESLint verification
+        run: npm run lint
 
-      - name: Run Bilingual English/Odia Key Parity Audit (i18n)
-        run: npm run test:i18n
+      - name: Run Comprehensive Verification Test Suites (All 24 Suites)
+        run: npm run test:all
 
-      - name: Run Authentication & RBAC Test Suite (F2/F3)
-        run: npm run test:auth
-
-      - name: Run Tribal Collector Interface Test Suite (F3/F8)
-        run: npm run test:collector
-
-      - name: Run Collection Center Intake & Scale Math Test Suite (F4/F9)
-        run: npm run test:collection
-
-      - name: Run Warehouse Arrival & Transit Shrinkage Test Suite (F5/F10)
-        run: npm run test:inventory
-
-      - name: Run Backend Architecture, Rate Limiting & Security Test Suite (F4/F15)
-        run: npm run test:backend
-
-      - name: Run Multipart Upload & Evidence Hashing Test Suite (F5)
-        run: npm run test:uploads
-
-      - name: Run 17 MFP Catalogue & Geography Test Suite (G1/G2/G3)
-        run: npm run test:catalogue
-
-      - name: Run Administration & Governance Test Suite (F11/G6)
-        run: npm run test:admin
-
-      - name: Run Dead-Button, Link & Workflow Integrity Audit (G4)
-        run: npm run test:flows
-
-      - name: Run Production Bundle Build Verification (F16/G8)
+      - name: Run Production Bundle Build Verification
         run: npm run build
