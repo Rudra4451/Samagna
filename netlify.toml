@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  ALLOW_DEMO_ACCOUNTS = "true"
+  AUTH_SECRET = "banasetu-secure-development-secret-key-32-chars-minimum"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
