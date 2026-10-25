@@ -91,7 +91,7 @@ flowchart TD
 ## 3. Directory Structure
 
 ```
-c:/Users/princ/Documents/bana-setu-main/
+samagna/
 ├── .github/workflows/ci.yml       # GitHub Actions CI matrix
 ├── prisma/
 │   ├── migrations/0_init/        # Baseline PostgreSQL migration (DDL)
