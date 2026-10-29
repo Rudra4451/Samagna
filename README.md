@@ -97,19 +97,15 @@ Run individual test suites or the entire automated suite via `npm run test:all`:
 
 ---
 
-## 6. System Documentation Index
+## 6. Architecture & Documentation
 
-The repository includes a comprehensive documentation suite:
+In-depth technical specifications are available in the [`docs/`](./docs/) directory:
 
-- **[`WHAT_IS_REAL.md`](./WHAT_IS_REAL.md):** Transparent disclosure of real code vs simulated sandboxes (payments, live DB).
-- **[`ARCHITECTURE.md`](./ARCHITECTURE.md):** Technical deep-dive into dual-database architecture, JWT sessions, and sync protocols.
-- **[`SECURITY.md`](./SECURITY.md):** Security posture, RBAC boundary enforcement, rate limiting, and dependency audit assessment.
-- **[`ACCESSIBILITY.md`](./ACCESSIBILITY.md):** WCAG 2.1 AA token contrast ratios, keyboard shortcuts, and screen reader design.
-- **[`FEATURES.md`](./FEATURES.md):** Complete functional catalog across all 5 user tiers.
-- **[`STATES.md`](./STATES.md):** State machines for batch lifecycles, shrinkage segregation, and offline outbox sync.
-- **[`DECISIONS.md`](./DECISIONS.md):** Architecture Decision Records (ADRs 01–05).
-- **[`DEPLOY.md`](./DEPLOY.md):** Clean-clone setup, PostgreSQL migration commands, and containerization.
-- **[`FINAL_QA.md`](./FINAL_QA.md):** Comprehensive test results, walkthroughs, and edge cases.
+- **[`docs/architecture.md`](./docs/architecture.md):** Technical deep-dive into dual-engine architecture, IndexedDB outbox, and JWT sessions.
+- **[`docs/security.md`](./docs/security.md):** Security posture, RBAC boundary enforcement, rate limiting, and audit logs.
+- **[`docs/deployment.md`](./docs/deployment.md):** Clean-clone setup, PostgreSQL migration commands, and containerization.
+- **[`docs/DATABASE_SETUP.md`](./docs/DATABASE_SETUP.md):** Local and hosted PostgreSQL configuration guide.
+- **[`docs/presentations/`](./docs/presentations/):** Project slide decks and executive presentation materials.
 
 ---
 
