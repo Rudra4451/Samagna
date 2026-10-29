@@ -594,7 +594,7 @@ export default function MarketingHomePage() {
                     onClick={() => handleQuickCode('BS-400')}
                     className="px-2.5 py-1 text-xs font-mono border border-[#E4DBC9] rounded-[2px] bg-[#FAF6EE] hover:bg-[#F2EBDD] text-[#1F1A14] transition-colors"
                   >
-                    BS-400 (Sal Tree Seeds · Jashipur)
+                    BS-400 (Dried Mahua Flowers · Verified Stock)
                   </button>
                 </div>
               </div>

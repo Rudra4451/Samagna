@@ -34,3 +34,9 @@ next-env.d.ts
 
 # Tunnel binaries
 cloudflared.exe
+
+# IDE settings
+.vscode/
+
+# Build & generator artifacts
+scripts/presentation_slides.html

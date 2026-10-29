@@ -1,17 +1,17 @@
-# ROADMAP.md — BanaSetu Full Build Specification Mapping & Roadmap
+# ROADMAP.md — BanaSetu Engineering Specification Mapping & Roadmap
 
 > **System:** BanaSetu Minor Forest Produce (MFP) Ledger  
-> **Source Specification:** *BanaSetu — Full Build Prompt Pack (F + G)*  
+> **Source Specification:** *BanaSetu Engineering Architecture & Functional Roadmap*  
 > **Jurisdiction:** Mayurbhanj District, Government of Odisha (TDCCOL / LABHA Scheme)  
 
 ---
 
 ## 1. Specification Mapping & Phase Status
 
-| Original Code | Requirement Title | Phase Group | Implemented Status | Verification Evidence |
+| Module Code | Requirement Title | Domain | Implemented Status | Verification Evidence |
 |:---|:---|:---:|:---:|:---|
-| **Prompt 0** | Project Context & Mission | Phase A | **COMPLETE** | Documented in `README.md`, `ARCHITECTURE.md`. |
-| **Prompt 1** | Design System & Anti-Slop Rules | Phase A | **COMPLETE** | `#FAF6EE` paper, `#1F2A22` forest dark, `#C05638` terracotta. Tabular nums, zero shadows/gradients. |
+| **ARCH-01** | Project Context & Mission | Core Domain | **COMPLETE** | Documented in `README.md`, `ARCHITECTURE.md`. |
+| **ARCH-02** | Design System & Field Usability | Design System | **COMPLETE** | `#FAF6EE` paper, `#1F2A22` forest dark, `#C05638` terracotta. Tabular nums, zero shadows/gradients. |
 | **F0** | Context Reset for Real Build | Phase A | **COMPLETE** | Preservation of existing Dexie & test suites; zero destructive actions. |
 | **F1** | Repo, Environment, CI & Decisions | Phase A | **COMPLETE** | `.github/workflows/ci.yml`, `DECISIONS.md`, `DEPLOY.md`. |
 | **F2** | Database Relational Schema | Phase A | **COMPLETE** | `prisma/schema.prisma` with 11 relational models. `npx prisma generate` clean. |

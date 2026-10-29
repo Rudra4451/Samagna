@@ -22,7 +22,19 @@ Samagna addresses these structural challenges through:
 
 ---
 
-## 2. Quickstart & Local Execution
+## 2. Product Walkthrough & Demo
+
+[![Samagna BanaSetu Platform Demo](public/demo/banasetu-demo-poster.jpg)](public/demo/banasetu-demo.mp4)
+
+> 🎥 **[Watch the full high-resolution MP4 demo video](public/demo/banasetu-demo.mp4)** showcasing the complete end-to-end custody flow from tribal gatherer intake in Similipal to warehouse arrival and public QR verification.
+
+<video src="public/demo/banasetu-demo.mp4" controls="controls" poster="public/demo/banasetu-demo-poster.jpg" width="100%">
+  Your browser does not support the video tag. <a href="public/demo/banasetu-demo.mp4">Download or view the demo video directly</a>.
+</video>
+
+---
+
+## 3. Quickstart & Local Execution
 
 ### Prerequisites
 - Node.js 20.x or higher
@@ -80,12 +92,12 @@ Run individual test suites or the entire automated suite via `npm run test:all`:
 | `npm run test:catalogue` | 17 verified MFP species, Mayurbhanj geography, botanical rates |
 | `npm run test:admin` | Admin clearance, rate card adjustments, immutable CSV export |
 | `npm run test:flows` | Route integrity, interactive element audit, zero dead links |
-| `npm run test:senior-qa` | Comprehensive cross-role QA audit across all routes, buttons, and endpoints |
+| `npm run test:release-qa` | Comprehensive cross-role QA audit across all routes, buttons, and endpoints |
 | **`npm run test:all`** | **Full System Pipeline (All 24 automated test suites)** |
 
 ---
 
-## 5. System Documentation Index
+## 6. System Documentation Index
 
 The repository includes a comprehensive documentation suite:
 
@@ -98,11 +110,10 @@ The repository includes a comprehensive documentation suite:
 - **[`DECISIONS.md`](./DECISIONS.md):** Architecture Decision Records (ADRs 01–05).
 - **[`DEPLOY.md`](./DEPLOY.md):** Clean-clone setup, PostgreSQL migration commands, and containerization.
 - **[`FINAL_QA.md`](./FINAL_QA.md):** Comprehensive test results, walkthroughs, and edge cases.
-- **[`IMPLEMENTATION_GAP_AUDIT.md`](./IMPLEMENTATION_GAP_AUDIT.md):** Master requirement-by-requirement gap audit.
 
 ---
 
-## 6. Technical Reality & Disclaimers
+## 7. Technical Reality & Disclaimers
 
 1. **Non-Banking Sandbox:** Payout reference numbers (e.g. `PAY-MAYURBHANJ-xxx`) are simulated for demonstration. Live DBT integration requires formal banking clearance from the Reserve Bank of India and state treasury.
 2. **Provisional Rates:** Procurement rates (e.g. Mahua at ₹42/kg) and shrinkage allowances (1.5%) are sourced from baseline guidelines and are clearly labelled illustrative in the UI.

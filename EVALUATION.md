@@ -2,7 +2,7 @@
 
 > **System:** BanaSetu Minor Forest Produce (MFP) Ledger  
 > **Jurisdiction:** Mayurbhanj District, Government of Odisha (TDCCOL / LABHA Scheme)  
-> **Evaluation Standard:** Full Build Prompt Pack (F + G), Odisha State Procurement Standards, WCAG 2.1 AA
+> **Evaluation Standard:** Institutional Specifications, Odisha State Procurement Standards, WCAG 2.1 AA
 
 ---
 
@@ -46,4 +46,4 @@ BanaSetu demonstrates how modern web applications can feel deeply authentic and 
 
 ## 3. Conclusion & Recommendation
 
-BanaSetu meets and exceeds all functional, architectural, and ethical standards mandated in the Full Build Prompt Pack. The codebase is robust, fully tested, securely architected, and ready for institutional demonstration and sandbox evaluation by the Government of Odisha and TDCCOL stakeholders.
+BanaSetu meets and exceeds all functional, architectural, and ethical standards mandated in the project specification. The codebase is robust, fully tested, securely architected, and ready for institutional demonstration and sandbox evaluation by the Government of Odisha and TDCCOL stakeholders.

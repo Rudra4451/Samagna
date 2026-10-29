@@ -546,55 +546,64 @@ export const DhatakiFlowerIcon: React.FC<ProductIconProps> = ({
 export function getProductImagePath(product: string): string {
   const norm = (product || '').toLowerCase();
 
-  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca')) {
-    return '/products/mahua.jpg';
-  }
-  if (norm.includes('sal') || norm.includes('shorea')) {
-    return '/products/sal-seeds.jpg';
-  }
-  if (norm.includes('kendu') || norm.includes('diospyros')) {
-    return '/products/kendu-leaves.jpg';
-  }
-  if (norm.includes('deseeded') || norm.includes('de-seeded')) {
+  // 1. Compound species with variants
+  if (norm.includes('deseeded') || norm.includes('de-seeded') || norm.includes('ମଞ୍ଜି ବିହୀନ')) {
     return '/products/tamarind-deseeded.jpg';
   }
-  if (norm.includes('tamarind') || norm.includes('tentuli')) {
+  if (norm.includes('tamarind') || norm.includes('tentuli') || norm.includes('ତେନ୍ତୁଳି')) {
     return '/products/tamarind-seeded.jpg';
   }
-  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('myrobalan')) {
-    return '/products/harida.jpg';
-  }
-  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('baheda')) {
+
+  // 2. Bahada must be checked BEFORE Harida because Bahada's catalog name is
+  // "Bahada Fruit (Belleric Myrobalan)", which would otherwise match generic "myrobalan".
+  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('belleric') || norm.includes('baheda') || norm.includes('ବାହାଡ଼ା')) {
     return '/products/bahada.jpg';
   }
-  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry')) {
+  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('chebulic') || norm.includes('ହରିଡ଼ା')) {
+    return '/products/harida.jpg';
+  }
+
+  // 3. Other distinct Minor Forest Produce species
+  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca') || norm.includes('ମହୁଲ')) {
+    return '/products/mahua.jpg';
+  }
+  // Use boundary check so "wholesale" / "sale" does not false-positive match "sal"
+  if (/\b(sal|shorea)\b/i.test(norm) || norm.includes('sal-seeds') || norm.includes('sal tree') || norm.includes('ଶାଳ')) {
+    return '/products/sal-seeds.jpg';
+  }
+  if (norm.includes('kendu') || norm.includes('diospyros') || norm.includes('କେନ୍ଦୁ')) {
+    return '/products/kendu-leaves.jpg';
+  }
+  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry') || norm.includes('ଅଁଳା')) {
     return '/products/amla.jpg';
   }
-  if (norm.includes('karanja') || norm.includes('pinnata')) {
+  if (norm.includes('karanja') || norm.includes('pinnata') || norm.includes('pongamia') || norm.includes('କରଞ୍ଜ')) {
     return '/products/karanja-seeds.jpg';
   }
-  if (norm.includes('kusum') || norm.includes('schleichera')) {
+  if (norm.includes('kusum') || norm.includes('schleichera') || norm.includes('କୁସୁମ')) {
     return '/products/kusum-seeds.jpg';
   }
-  if (norm.includes('neem') || norm.includes('azadirachta')) {
+  if (norm.includes('neem') || norm.includes('azadirachta') || norm.includes('ନିମ୍ବ')) {
     return '/products/neem-seeds.jpg';
   }
-  if (norm.includes('char') || norm.includes('chironji') || norm.includes('buchanania')) {
+  // Use boundary check so "discharge" / "character" does not false-positive match "char"
+  if (/\b(char|chironji)\b/i.test(norm) || norm.includes('char-seeds') || norm.includes('buchanania') || norm.includes('ଚାର')) {
     return '/products/char-seeds.jpg';
   }
-  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu')) {
+  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu') || norm.includes('ଝାଡ଼ୁ')) {
     return '/products/hill-broom.jpg';
   }
-  if (norm.includes('honey') || norm.includes('mahu') || norm.includes('apis')) {
+  if (norm.includes('honey') || norm.includes('apis') || norm.includes('ଜଙ୍ଗଲୀ ମହୁ') || norm.includes('ମହୁ')) {
     return '/products/wild-honey.jpg';
   }
-  if (norm.includes('lac') || norm.includes('kerria') || norm.includes('lakh')) {
+  // Use boundary check so "place" / "necklace" does not false-positive match "lac"
+  if (/\b(lac|lakh)\b/i.test(norm) || norm.includes('sticklac') || norm.includes('kerria') || norm.includes('ଲାଖ')) {
     return '/products/lac.jpg';
   }
-  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia')) {
+  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia') || norm.includes('ଶିକାକାଇ')) {
     return '/products/shikakai.jpg';
   }
-  if (norm.includes('dhataki') || norm.includes('woodfordia')) {
+  if (norm.includes('dhataki') || norm.includes('woodfordia') || norm.includes('ଧାତକୀ')) {
     return '/products/dhataki.jpg';
   }
 
@@ -611,55 +620,58 @@ export const ProductSymbol: React.FC<{ product: string; size?: number; className
 }) => {
   const norm = (product || '').toLowerCase();
 
-  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca')) {
-    return <MahuaFlowerIcon size={size} className={className} />;
-  }
-  if (norm.includes('sal') || norm.includes('shorea')) {
-    return <SalSeedIcon size={size} className={className} />;
-  }
-  if (norm.includes('kendu') || norm.includes('diospyros')) {
-    return <KenduLeafIcon size={size} className={className} />;
-  }
-  if (norm.includes('deseeded') || norm.includes('de-seeded')) {
+  if (norm.includes('deseeded') || norm.includes('de-seeded') || norm.includes('ମଞ୍ଜି ବିହୀନ')) {
     return <DeseededTamarindIcon size={size} className={className} />;
   }
-  if (norm.includes('tamarind') || norm.includes('tentuli')) {
+  if (norm.includes('tamarind') || norm.includes('tentuli') || norm.includes('ତେନ୍ତୁଳି')) {
     return <TamarindIcon size={size} className={className} />;
   }
-  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('myrobalan')) {
-    return <HaridaFruitIcon size={size} className={className} />;
-  }
-  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('baheda')) {
+
+  // Bahada checked before Harida
+  if (norm.includes('bahada') || norm.includes('bellirica') || norm.includes('belleric') || norm.includes('baheda') || norm.includes('ବାହାଡ଼ା')) {
     return <BahadaFruitIcon size={size} className={className} />;
   }
-  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry')) {
+  if (norm.includes('harida') || norm.includes('chebula') || norm.includes('chebulic') || norm.includes('ହରିଡ଼ା')) {
+    return <HaridaFruitIcon size={size} className={className} />;
+  }
+
+  if (norm.includes('mahua') || norm.includes('mahul') || norm.includes('madhuca') || norm.includes('ମହୁଲ')) {
+    return <MahuaFlowerIcon size={size} className={className} />;
+  }
+  if (/\b(sal|shorea)\b/i.test(norm) || norm.includes('sal-seeds') || norm.includes('sal tree') || norm.includes('ଶାଳ')) {
+    return <SalSeedIcon size={size} className={className} />;
+  }
+  if (norm.includes('kendu') || norm.includes('diospyros') || norm.includes('କେନ୍ଦୁ')) {
+    return <KenduLeafIcon size={size} className={className} />;
+  }
+  if (norm.includes('amla') || norm.includes('emblica') || norm.includes('gooseberry') || norm.includes('ଅଁଳା')) {
     return <AmlaFruitIcon size={size} className={className} />;
   }
-  if (norm.includes('karanja') || norm.includes('pinnata')) {
+  if (norm.includes('karanja') || norm.includes('pinnata') || norm.includes('pongamia') || norm.includes('କରଞ୍ଜ')) {
     return <KaranjaSeedIcon size={size} className={className} />;
   }
-  if (norm.includes('kusum') || norm.includes('schleichera')) {
+  if (norm.includes('kusum') || norm.includes('schleichera') || norm.includes('କୁସୁମ')) {
     return <KusumSeedIcon size={size} className={className} />;
   }
-  if (norm.includes('neem') || norm.includes('azadirachta')) {
+  if (norm.includes('neem') || norm.includes('azadirachta') || norm.includes('ନିମ୍ବ')) {
     return <NeemSeedIcon size={size} className={className} />;
   }
-  if (norm.includes('char') || norm.includes('chironji') || norm.includes('buchanania')) {
+  if (/\b(char|chironji)\b/i.test(norm) || norm.includes('char-seeds') || norm.includes('buchanania') || norm.includes('ଚାର')) {
     return <CharSeedIcon size={size} className={className} />;
   }
-  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu')) {
+  if (norm.includes('broom') || norm.includes('thysanolaena') || norm.includes('jhadu') || norm.includes('ଝାଡ଼ୁ')) {
     return <HillBroomIcon size={size} className={className} />;
   }
-  if (norm.includes('honey') || norm.includes('mahu') || norm.includes('apis')) {
+  if (norm.includes('honey') || norm.includes('apis') || norm.includes('ଜଙ୍ଗଲୀ ମହୁ') || norm.includes('ମହୁ')) {
     return <HoneyIcon size={size} className={className} />;
   }
-  if (norm.includes('lac') || norm.includes('kerria') || norm.includes('lakh')) {
+  if (/\b(lac|lakh)\b/i.test(norm) || norm.includes('sticklac') || norm.includes('kerria') || norm.includes('ଲାଖ')) {
     return <LacIcon size={size} className={className} />;
   }
-  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia')) {
+  if (norm.includes('shikakai') || norm.includes('concinna') || norm.includes('senegalia') || norm.includes('ଶିକାକାଇ')) {
     return <ShikakaiIcon size={size} className={className} />;
   }
-  if (norm.includes('dhataki') || norm.includes('woodfordia')) {
+  if (norm.includes('dhataki') || norm.includes('woodfordia') || norm.includes('ଧାତକୀ')) {
     return <DhatakiFlowerIcon size={size} className={className} />;
   }
 

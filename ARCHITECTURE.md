@@ -100,18 +100,18 @@ samagna/
 ├── public/
 │   └── uploads/                  # Uploaded photo evidence (local fallback)
 ├── scripts/
-│   ├── check-a11y.ts             # WCAG 2.1 AA automated audit
-│   ├── check-i18n.js             # Bilingual key parity validator
-│   ├── test-admin-f11.ts         # Admin & export test suite
-│   ├── test-auth-rbac.ts         # JWT & role permission suite
-│   ├── test-backend-f4-f15.ts    # Rate limiting & security suite
-│   ├── test-catalogue-g1.ts      # 17 MFP catalogue & geo suite
-│   ├── test-collection-f4.ts     # Intake weighment & tare suite
-│   ├── test-collector-f3.ts      # Tribal collector UX suite
-│   ├── test-database-pilot.ts    # Database persistence & safety test suite
-│   ├── test-flows-g4.ts          # Dead-button & route integrity suite
-│   ├── test-inventory-f5.ts      # Transit shrinkage & stock suite
-│   └── test-uploads-f5.ts        # Multipart upload & SHA-256 suite
+│   ├── check-a11y.ts                   # WCAG 2.1 AA automated audit
+│   ├── check-i18n.js                   # Bilingual key parity validator
+│   ├── test-admin-console.ts           # Admin & export test suite
+│   ├── test-auth-rbac.ts               # JWT & role permission suite
+│   ├── test-backend-security.ts        # Rate limiting & security suite
+│   ├── test-product-catalogue.ts       # 17 MFP catalogue & geo suite
+│   ├── test-collection-weighment.ts    # Intake weighment & tare suite
+│   ├── test-collector-interface.ts     # Tribal collector UX suite
+│   ├── test-database-pilot.ts          # Database persistence & safety test suite
+│   ├── test-route-flows.ts             # Dead-button & route integrity suite
+│   ├── test-inventory-shrinkage.ts     # Transit shrinkage & stock suite
+│   └── test-uploads-validation.ts      # Multipart upload & SHA-256 suite
 ├── src/
 │   ├── app/
 │   │   ├── admin/page.tsx        # Super-admin console (6 tabs)
