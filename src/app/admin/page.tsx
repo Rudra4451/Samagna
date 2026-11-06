@@ -27,10 +27,16 @@ import {
   RefreshCw,
   FileText,
   Share2,
+  TrendingUp,
+  Landmark,
+  Percent,
 } from 'lucide-react';
 import { downloadPdfBlob, sharePdf } from '@/lib/pdfClient';
+import { BusinessRevenueOverview } from '@/components/admin/BusinessRevenueOverview';
+import { GovernmentRoyaltySection } from '@/components/admin/GovernmentRoyaltySection';
+import { MarketplaceCommissionSection } from '@/components/admin/MarketplaceCommissionSection';
 
-type AdminTab = 'rates' | 'users' | 'conflicts' | 'audit' | 'exports' | 'health';
+type AdminTab = 'rates' | 'users' | 'business' | 'royalty' | 'commissions' | 'conflicts' | 'audit' | 'exports' | 'health';
 
 interface AdminUser {
   id: string;
@@ -479,6 +485,45 @@ export default function AdminConsolePage() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('business')}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+              activeTab === 'business'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            <TrendingUp size={15} />
+            <span>SAMAGNA Business Revenue</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('royalty')}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+              activeTab === 'royalty'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            <Landmark size={15} />
+            <span>Government Royalty</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('commissions')}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+              activeTab === 'commissions'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            <Percent size={15} />
+            <span>Buyer Commissions</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('conflicts')}
             className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'conflicts'
@@ -673,6 +718,21 @@ export default function AdminConsolePage() {
               </table>
             </div>
           </div>
+        )}
+
+        {/* TAB: SAMAGNA BUSINESS REVENUE */}
+        {activeTab === 'business' && (
+          <BusinessRevenueOverview />
+        )}
+
+        {/* TAB: GOVERNMENT ROYALTY */}
+        {activeTab === 'royalty' && (
+          <GovernmentRoyaltySection />
+        )}
+
+        {/* TAB: MARKETPLACE COMMISSIONS */}
+        {activeTab === 'commissions' && (
+          <MarketplaceCommissionSection />
         )}
 
         {/* TAB 3: CONFLICTS */}

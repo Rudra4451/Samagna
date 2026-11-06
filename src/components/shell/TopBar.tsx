@@ -11,7 +11,7 @@ import { useFontScale } from '../../lib/useFontScale';
 import { useOffline } from '../../lib/useOffline';
 import { SyncDrawer } from '../sync/SyncDrawer';
 import { ConflictDrawer } from '../sync/ConflictDrawer';
-import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck, ShoppingBag } from 'lucide-react';
 import { SamagnaLogo } from '../ui/SamagnaLogo';
 import { useAuthSession } from '../../lib/useAuthSession';
 
@@ -206,8 +206,17 @@ export const TopBar: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Language Toggle & Mobile Offline Toggle */}
+        {/* Right: Marketplace Link, Language Toggle & Mobile Offline Toggle */}
         <div className="flex items-center gap-2">
+          {/* Commercial Marketplace Link */}
+          <Link
+            href="/marketplace"
+            className="h-[32px] px-2.5 rounded-[4px] border border-accent/40 bg-accent/10 text-accent hover:bg-accent hover:text-white transition-colors text-[11px] font-mono font-bold flex items-center gap-1.5 select-none"
+            title="Commercial Forest Produce Marketplace (B2B & B2C)"
+          >
+            <ShoppingBag size={14} />
+            <span className="hidden sm:inline">Marketplace</span>
+          </Link>
           {/* In collector view, allow quick demo offline toggle in top bar */}
           {isCollectorView && (
             <button

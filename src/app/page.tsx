@@ -140,6 +140,9 @@ export default function MarketingHomePage() {
             <a href="#portals" className="hover:text-[#1F1A14] transition-colors">
               Field Portals
             </a>
+            <Link href="/marketplace" className="text-accent font-bold hover:underline">
+              Marketplace
+            </Link>
             <Link href="/demo" className="text-[#B24E2E] font-semibold hover:underline">
               Live Demo
             </Link>
@@ -187,6 +190,12 @@ export default function MarketingHomePage() {
                 className="px-5 py-2.5 bg-accent text-accent-ink text-xs font-mono font-semibold rounded-[3px] hover:bg-accent-hover transition-colors shadow-none"
               >
                 Launch Collector Portal
+              </Link>
+              <Link
+                href="/marketplace"
+                className="px-5 py-2.5 bg-surface text-accent border border-accent/40 text-xs font-mono font-semibold rounded-[3px] hover:bg-accent hover:text-white transition-colors"
+              >
+                Commercial Marketplace (B2B & B2C) →
               </Link>
               <a
                 href="#verify"
@@ -718,6 +727,23 @@ export default function MarketingHomePage() {
                 </div>
                 <p className="text-xs text-[#5E5245] mt-2 leading-relaxed">
                   Step-by-step evaluator tour covering intake, tagging, reweigh shrinkage, and audit verification.
+                </p>
+              </Link>
+
+              {/* Persona 7: Commercial Marketplace */}
+              <Link
+                href="/marketplace"
+                className="p-5 border border-accent rounded-[4px] bg-[#FFFFFF] hover:border-accent hover:bg-accent/5 transition-colors block text-left group no-underline sm:col-span-2 lg:col-span-3"
+              >
+                <div className="flex items-center justify-between text-xs font-mono text-accent mb-2">
+                  <span className="font-bold">COMMERCIAL MARKETPLACE CHANNEL (B2B & B2C)</span>
+                  <span className="font-bold group-hover:underline">Explore Marketplace →</span>
+                </div>
+                <div className="text-base font-serif font-bold text-[#1F1A14]">
+                  Direct-from-Forest Wholesale Consignments & Consumer Retail Store
+                </div>
+                <p className="text-xs text-[#5E5245] mt-2 leading-relaxed">
+                  Connecting pharmaceutical manufacturers, ayurvedic pharmacies, and consumer households directly to Baripada Central Depôt verified inventory. Complete batch QR provenance with guaranteed zero MSP deductions for tribal gatherers.
                 </p>
               </Link>
             </div>
