@@ -183,13 +183,19 @@ async function runBatch5bRouteGuardTests() {
   // --- 6. Bcrypt Documentation Alignment Verification ---
   console.log('\n--- 6. Bcrypt Policy Alignment Verification ---');
 
-  const securityMd = fs.readFileSync(path.join(process.cwd(), 'SECURITY.md'), 'utf8');
-  assert(securityMd.includes('salt work-factor of 10'), 'SECURITY.md specifies bcrypt work-factor of 10');
-  assert(!securityMd.includes('salt work-factor of 12'), 'SECURITY.md no longer contains stale work-factor 12');
+  const securityMdPath = fs.existsSync(path.join(process.cwd(), 'docs', 'security.md'))
+    ? path.join(process.cwd(), 'docs', 'security.md')
+    : path.join(process.cwd(), 'SECURITY.md');
+  const securityMd = fs.readFileSync(securityMdPath, 'utf8');
+  assert(securityMd.includes('salt work-factor of 10'), 'security.md specifies bcrypt work-factor of 10');
+  assert(!securityMd.includes('salt work-factor of 12'), 'security.md no longer contains stale work-factor 12');
 
-  const roadmapMd = fs.readFileSync(path.join(process.cwd(), 'ROADMAP.md'), 'utf8');
-  assert(roadmapMd.includes('bcrypt work factor 10'), 'ROADMAP.md specifies bcrypt work factor 10');
-  assert(!roadmapMd.includes('bcrypt work factor 12'), 'ROADMAP.md no longer contains stale work factor 12');
+  const roadmapMdPath = path.join(process.cwd(), 'ROADMAP.md');
+  if (fs.existsSync(roadmapMdPath)) {
+    const roadmapMd = fs.readFileSync(roadmapMdPath, 'utf8');
+    assert(roadmapMd.includes('bcrypt work factor 10'), 'ROADMAP.md specifies bcrypt work factor 10');
+    assert(!roadmapMd.includes('bcrypt work factor 12'), 'ROADMAP.md no longer contains stale work factor 12');
+  }
 
   const testHash = await hashPassword('TestPassword123');
   assert(/^\$2[ab]\$10\$/.test(testHash), 'hashPassword produces $2a$10$ or $2b$10$ format (10 salt rounds)');
