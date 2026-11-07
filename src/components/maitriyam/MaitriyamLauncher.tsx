@@ -457,7 +457,7 @@ export default function MaitriyamLauncher() {
       {/* Backdrop scrim on mobile when modal is open */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9998] sm:hidden animate-in fade-in duration-150"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9998] sm:hidden animate-in fade-in duration-150 print:hidden no-print"
           onClick={() => {
             stopSpeech();
             setIsAssistantSpeaking(false);
@@ -469,7 +469,7 @@ export default function MaitriyamLauncher() {
 
       {/* Floating Launcher Button (visible when modal is closed) */}
       {!isOpen && (
-        <div className="fixed bottom-4 right-4 z-[9999] print:hidden font-sans">
+        <div id="maitriyam-launcher" data-maitriyam-root className="fixed bottom-4 right-4 z-[9999] print:hidden no-print font-sans">
           <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-[#25351F] border border-[#2D4F1E]/50 p-1.5 backdrop-blur-sm">
             {/* Quick Voice Launch Button */}
             {voiceSupported && (
@@ -517,7 +517,8 @@ export default function MaitriyamLauncher() {
         <div
           role="dialog"
           aria-label="Maitriyam In-App Assistant"
-          className="fixed inset-x-3 bottom-3 top-16 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans"
+          data-maitriyam-modal
+          className="fixed inset-x-3 bottom-3 top-16 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans print:hidden no-print"
         >
           {/* Header */}
           <div className="px-4 py-3 bg-[#25351F] text-white flex items-center justify-between border-b border-[#2D4F1E] shrink-0">

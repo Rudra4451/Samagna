@@ -280,22 +280,102 @@ textarea,
   background: var(--ink-subtle);
 }
 
-/* Print CSS for Field Tags and Collector Receipts */
+/* ========================================================
+   COMPREHENSIVE PRINT & PDF EXPORT STYLESHEET
+   Supports:
+   - Official A5 Collector Receipts & Sack Tags (/collection/receipt & /collection/tag)
+   - Landing page & documentation export to PDF (Ctrl+P / Save as PDF)
+   - Institutional audit dossiers and reports
+   Fixes:
+   - Chromium Blink paged media bug where absolute-positioned Next.js fill images
+     escape the container and cover Page 1.
+   - Preserves high-contrast brand colors, borders, and card backgrounds.
+   - Hides floating chatbots, voice buttons, and sticky navigation chrome.
+   - Prevents awkward page breaks through cards and diagrams.
+   ======================================================== */
 @media print {
-  html, body {
-    background: #FFFFFF !important;
+  @page {
+    margin: 12mm 15mm 15mm 15mm;
+    size: auto;
+  }
+
+  /* Force browsers (Chrome/Blink/WebKit/Firefox) to retain exact background colors and borders */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body {
+    background: #FAF8F5 !important;
     color: #1F1A14 !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    width: 100% !important;
   }
 
-  /* Strip all shell chrome, topbars, nav, sidebars */
-  header,
+  /* Completely suppress floating interactive widgets, modals, sticky bars, chatbot */
+  [class*="print:hidden"],
+  .print\:hidden,
+  .no-print,
+  #maitriyam-launcher,
+  [data-maitriyam-root],
+  [data-maitriyam-modal],
+  div[class*="fixed bottom-"],
+  button[aria-label*="Maitriyam"],
+  button[aria-label*="Assistant"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Strip sidebars, interactive navigation bars, drawer menus */
   aside,
   nav,
-  footer,
-  .print\\:hidden,
-  .no-print {
+  .mobile-nav-panel,
+  button[aria-label="Toggle navigation menu"] {
+    display: none !important;
+  }
+
+  /* Clean header presentation in print: keep branding, hide interactive controls */
+  header {
+    position: static !important;
+    box-shadow: none !important;
+    background: #FFFAF2 !important;
+    border-bottom: 2px solid #25351F !important;
+    padding: 10px 0 !important;
+  }
+
+  header nav,
+  header button,
+  header a[href*="login"],
+  header a[href*="verify"],
+  header .hidden.md\:flex {
+    display: none !important;
+  }
+
+  /* Strip marketing footer links when printing document */
+  footer {
+    position: static !important;
+    background: #25351F !important;
+    color: #FFFAF2 !important;
+    border-top: 1px solid #D7D2C8 !important;
+    break-inside: avoid !important;
+  }
+
+  footer a[href^="http"],
+  footer form {
     display: none !important;
   }
 
@@ -304,6 +384,92 @@ textarea,
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
+  }
+
+  /* --------------------------------------------------------
+     CRITICAL FIX: Next.js <Image fill> paged media breakout.
+     In Chrome, Next.js inline absolute styling breaks out of
+     relative flex/grid containers across page boundaries,
+     attaching to the initial page box and blowing up over Page 1.
+     We force them static and bounded within their card container.
+     -------------------------------------------------------- */
+  img[data-nimg="fill"],
+  [data-nimg="fill"],
+  img[style*="position: absolute"],
+  img[style*="position:absolute"] {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 170px !important;
+    max-height: 170px !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+
+  div:has(> img[data-nimg="fill"]),
+  .relative:has(img),
+  [class*="relative"]:has(img) {
+    position: relative !important;
+    height: 170px !important;
+    max-height: 170px !important;
+    min-height: 140px !important;
+    overflow: hidden !important;
+    display: block !important;
+  }
+
+  /* Prevent page-break splits through cards, tables, diagrams, and hero plate */
+  article,
+  figure,
+  section,
+  tr,
+  .rounded-\[8px\],
+  .rounded-\[6px\],
+  .rounded-lg,
+  .border,
+  [class*="shadow-card"],
+  .grid > div {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Constrain SVGs from stretching across entire pages */
+  svg {
+    max-height: 180px !important;
+    break-inside: avoid !important;
+  }
+
+  /* Preserve multi-column grids in print */
+  .grid {
+    display: grid !important;
+  }
+
+  .grid-cols-1.md\:grid-cols-2,
+  .grid-cols-1.sm\:grid-cols-2,
+  .grid-cols-1.lg\:grid-cols-3,
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+
+  /* Hero interface preview card columns */
+  .md\:grid-cols-12 {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+
+  .md\:col-span-5 {
+    width: 45% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .md\:col-span-7 {
+    width: 55% !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Unlink interactive href URL decorations that print clutter */
+  a[href]:after {
+    content: none !important;
   }
 }
 

@@ -320,11 +320,11 @@ export default function PublicLandingPage() {
             </p>
 
             {/* Primary Action Buttons (Clean Sans-Serif, 44px+ Accessible Touch Height, Modern Radii) */}
-            <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 max-w-md mx-auto">
+            <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 max-w-xl mx-auto">
               <a
                 href="#operations"
                 onClick={(e) => handleSmoothScroll(e, 'operations')}
-                className="px-6 py-3.5 bg-[#2D4F1E] text-white text-sm font-sans font-semibold rounded-[6px] hover:bg-[#203a15] transition-all flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm active:scale-[0.98]"
+                className="whitespace-nowrap px-6 py-3.5 bg-[#2D4F1E] text-white text-sm font-sans font-semibold rounded-[6px] hover:bg-[#203a15] transition-all flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm active:scale-[0.98]"
               >
                 <Building2 size={16} className="text-[#E27D60]" />
                 <span>Explore Operations</span>
@@ -332,7 +332,7 @@ export default function PublicLandingPage() {
               </a>
               <Link
                 href="/trade"
-                className="px-6 py-3.5 bg-white text-[#1F1A14] border border-[#D7D2C8] text-sm font-sans font-semibold rounded-[6px] hover:bg-[#F5E6CC]/40 transition-all flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm active:scale-[0.98]"
+                className="whitespace-nowrap px-6 py-3.5 bg-white text-[#1F1A14] border border-[#D7D2C8] text-sm font-sans font-semibold rounded-[6px] hover:bg-[#F5E6CC]/40 transition-all flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm active:scale-[0.98]"
               >
                 <Briefcase size={16} className="text-[#2D4F1E]" />
                 <span>Explore Marketplace</span>
@@ -369,12 +369,12 @@ export default function PublicLandingPage() {
                 {/* Left (5 cols): Authentic Produce Photographic Plate */}
                 <div className="md:col-span-5 p-4 sm:p-6 bg-[#FFFAF2] flex flex-col justify-between">
                   <div className="space-y-3.5">
-                    <div className="relative h-44 sm:h-52 w-full rounded-[6px] overflow-hidden border border-[#D7D2C8] bg-cream/40 shadow-2xs">
+                    <div className="relative h-44 sm:h-52 w-full rounded-[6px] overflow-hidden border border-[#D7D2C8] bg-cream/40 shadow-2xs print:h-44 print:overflow-hidden">
                       <Image
                         src="/products/mahua.jpg"
                         alt="Wild Mahua Flowers gathered in Similipal Forest"
                         fill
-                        className="object-cover object-center"
+                        className="object-cover object-center print:!static print:!h-44 print:!w-full"
                         sizes="(max-width: 768px) 100vw, 40vw"
                         priority
                       />
@@ -978,12 +978,12 @@ export default function PublicLandingPage() {
                 >
                   <div>
                     {/* Authentic Photo */}
-                    <div className="relative h-48 w-full bg-[#F5E6CC]/40 overflow-hidden">
+                    <div className="relative h-48 w-full bg-[#F5E6CC]/40 overflow-hidden print:h-48 print:overflow-hidden">
                       <Image
                         src={item.imagePath}
                         alt={item.nameEnglish}
                         fill
-                        className="object-cover object-center transition-transform hover:scale-105 duration-300"
+                        className="object-cover object-center transition-transform hover:scale-105 duration-300 print:!static print:!h-48 print:!w-full"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                       <div className="absolute top-2.5 right-2.5 bg-[#25351F]/90 backdrop-blur-xs text-[#FFFAF2] font-sans font-semibold text-[11px] px-2.5 py-1 rounded-[4px] shadow-2xs">
