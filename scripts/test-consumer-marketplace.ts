@@ -109,7 +109,7 @@ async function runAllConsumerCommerceTests() {
       scientificName: 'Apis dorsata',
       category: 'WILD_HONEY',
       categoryLabel: 'Wild Honey',
-      heroImage: '/products/honey.jpg',
+      heroImage: '/products/wild-honey.jpg',
       galleryImages: [],
       tagline: 'Faulty Pricing',
       story: 'Story',

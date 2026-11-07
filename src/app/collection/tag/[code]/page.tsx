@@ -6,7 +6,7 @@ import { toPng } from 'html-to-image';
 import {
   DEMO_PRODUCT,
   DEMO_COLLECTORS,
-} from '../../../../demo/seed';
+} from '@/demo/seed';
 import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { SackTagArtifact, SackTagData } from '../../../../components/artifacts/SackTagArtifact';

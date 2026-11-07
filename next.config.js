@@ -48,7 +48,20 @@ const nextConfig = {
         destination: '/store',
         permanent: true,
       },
+      {
+        source: '/warehouse',
+        destination: '/inventory',
+        permanent: true,
+      },
+      {
+        source: '/manager',
+        destination: '/collection',
+        permanent: true,
+      },
     ];
+  },
+  images: {
+    formats: ['image/avif', 'image/webp'],
   },
   async headers() {
     return [

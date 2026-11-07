@@ -7,7 +7,7 @@ import {
   DEMO_PRODUCT,
   DEMO_COLLECTORS,
   DEMO_FACILITATOR,
-} from '../../../../demo/seed';
+} from '@/demo/seed';
 import { getDatabase } from '../../../../lib/db';
 import { Button } from '../../../../components/ui/Button';
 import { CollectionReceiptArtifact, CollectionReceiptData } from '../../../../components/artifacts/CollectionReceiptArtifact';

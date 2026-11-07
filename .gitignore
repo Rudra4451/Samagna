@@ -1,10 +1,10 @@
 # Dependencies
-node_modules
+node_modules/
 .pnp
 .pnp.js
 
 # Testing
-coverage
+coverage/
 
 # Next.js build output
 .next/
@@ -12,21 +12,28 @@ out/
 build/
 dist/
 
-# Misc
+# Misc & System
 .DS_Store
+Thumbs.db
 *.pem
 
-# Debug
+# Saved page artifacts
+*_files/
+*_files
+
+# Debug & Logs
+*.log
+*.log*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env files
-.env*.local
-.env
+# Environment files
+.env*
+!.env.example
 
 # Vercel
-.vercel
+.vercel/
 
 # TypeScript
 *.tsbuildinfo

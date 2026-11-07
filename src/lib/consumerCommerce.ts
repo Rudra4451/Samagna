@@ -169,8 +169,8 @@ export const SEED_CONSUMER_PRODUCTS: ConsumerProduct[] = [
     scientificName: 'Apis dorsata comb nectar',
     category: 'WILD_HONEY',
     categoryLabel: 'Wild Honey & Nectars',
-    heroImage: '/products/honey.jpg',
-    galleryImages: ['/products/honey.jpg', '/products/honey-detail.jpg'],
+    heroImage: '/products/wild-honey.jpg',
+    galleryImages: ['/products/wild-honey.jpg'],
     tagline: 'Raw, unpasteurized cliff honey harvested from the deep sal forest canopies of Similipal.',
     story: 'Harvested under nocturnal smoke repellents from towering cliff faces and sal crowns in the pristine buffer zones of Similipal Biosphere Reserve. Gathered with multi-generational tribal reverence preserving bee brood integrity.',
     sellerOrg: {
@@ -281,8 +281,8 @@ export const SEED_CONSUMER_PRODUCTS: ConsumerProduct[] = [
     scientificName: 'Buchanania lanzan',
     category: 'FOREST_SEEDS',
     categoryLabel: 'Forest Seeds & Nuts',
-    heroImage: '/products/chironji.jpg',
-    galleryImages: ['/products/chironji.jpg'],
+    heroImage: '/products/char-seeds.jpg',
+    galleryImages: ['/products/char-seeds.jpg'],
     tagline: 'Delicate, almond-flavoured wild char seeds collected from deciduous forest hills.',
     story: 'Wild Chironji trees grow naturally in the dry deciduous foothills of Mayurbhanj. Gatherers hand-pick the fallen fruit, wash off the outer pulp, and delicately crack the hard seed coats by hand.',
     sellerOrg: {
@@ -393,8 +393,8 @@ export const SEED_CONSUMER_PRODUCTS: ConsumerProduct[] = [
     scientificName: 'Apis dorsata high-altitude nectar',
     category: 'WILD_HONEY',
     categoryLabel: 'Wild Honey & Nectars',
-    heroImage: '/products/honey.jpg',
-    galleryImages: ['/products/honey.jpg'],
+    heroImage: '/products/wild-honey.jpg',
+    galleryImages: ['/products/wild-honey.jpg'],
     tagline: 'Ultra-rare dark forest honey with intense mineral depth. Harvested once a year.',
     story: 'Harvested exclusively from high-altitude ancient trees in the core biosphere zone during late autumn. Highly limited batch.',
     sellerOrg: {

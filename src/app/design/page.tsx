@@ -53,7 +53,7 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PhotoPlate } from '../../components/ui/PhotoPlate';
 import { AuditRow } from '../../components/ui/AuditRow';
-import { ManagerSidebar } from '../../components/ui/ManagerSidebar';
+import { ManagerSidebar } from '../../components/shell/ManagerSidebar';
 import {
   Check,
   Plus,
