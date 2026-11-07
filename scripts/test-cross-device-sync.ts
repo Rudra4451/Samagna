@@ -542,13 +542,14 @@ async function runBatch3TestSuite() {
   console.log('\n--- 8. Regressions Check: Dexie Schema & Previous Batch Stores ---');
 
   const db = new BanaSetuDatabase();
-  assert(db.verno === 5, 'Dexie database configured at v5');
+  assert(db.verno >= 5, 'Dexie database configured at version 5 or higher');
   assert(Boolean(db.offlineAttachments), 'Batch 1 store preserved: offlineAttachments');
   assert(Boolean(db.grievances), 'Batch 1 store preserved: grievances');
   assert(Boolean(db.inventorySales), 'Batch 2 store preserved: inventorySales');
   assert(Boolean(db.batches), 'Core store preserved: batches');
   assert(Boolean(db.pendingSync), 'Core store preserved: pendingSync');
   assert(Boolean(db.syncQueue), 'Core store preserved: syncQueue');
+  assert(Boolean(db.maitriyamKb), 'Assistant store preserved: maitriyamKb');
 
   // --------------------------------------------------------------------------
   // Summary

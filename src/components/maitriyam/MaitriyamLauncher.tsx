@@ -397,7 +397,11 @@ export default function MaitriyamLauncher() {
             }}
             className="p-2.5 bg-surface border-t border-rule flex items-center gap-2"
           >
+            <label htmlFor="maitriyam-chat-input" className="sr-only">
+              {locale === 'or' ? 'ପ୍ରଶ୍ନ ଲେଖନ୍ତୁ' : 'Ask a question'}
+            </label>
             <input
+              id="maitriyam-chat-input"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}

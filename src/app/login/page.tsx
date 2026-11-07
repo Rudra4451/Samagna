@@ -57,16 +57,14 @@ const TEST_PERSONAS: TestPersona[] = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const isProduction =
-    process.env.NODE_ENV === 'production' &&
-    process.env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS !== 'true';
 
-  const [username, setUsername] = useState(isProduction ? '' : 'patnaik.dpo');
-  const [password, setPassword] = useState(isProduction ? '' : 'Test@Pass123');
+  // Prototype Evaluation: Demo personas and default credentials are permanently visible
+  const [username, setUsername] = useState('patnaik.dpo');
+  const [password, setPassword] = useState('Test@Pass123');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const showDemoPersonas = !isProduction;
+  const showDemoPersonas = true;
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
