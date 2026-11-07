@@ -60,11 +60,11 @@ export const OrganisationContextBar: React.FC<OrganisationContextBarProps> = ({
             </span>
           </span>
 
-          <span className="font-semibold text-ink truncate max-w-[280px] sm:max-w-[360px]" title={activeOrganisationName || 'State Tribal Apex'}>
+          <span className="font-semibold text-ink truncate max-w-[150px] xs:max-w-[220px] sm:max-w-[360px]" title={activeOrganisationName || 'State Tribal Apex'}>
             {activeOrganisationName || 'Odisha Tribal Development & Forest Products Federation'}
           </span>
 
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-accent/10 text-accent font-semibold text-[10px] uppercase tracking-wider">
+          <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-accent/10 text-accent font-semibold text-[10px] uppercase tracking-wider">
             {categoryLabel}
           </span>
 

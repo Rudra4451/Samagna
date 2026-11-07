@@ -87,7 +87,7 @@ export default function InstitutionalOperationsPage() {
 
         {/* Supervisor Tab Switcher */}
         {isSupervisor && (
-          <div className="flex items-center gap-3 border-b border-forest/15 pb-2 text-xs font-mono" role="tablist">
+          <div className="flex items-center gap-3 border-b border-forest/15 pb-2 text-xs font-mono overflow-x-auto scrollbar-none" role="tablist">
             <button
               role="tab"
               aria-selected={supervisorTab === 'admin_sla'}

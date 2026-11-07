@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -185,8 +186,8 @@ export default function StoreCheckoutPage() {
             <span>Back to Basket</span>
           </Link>
 
-          <Link href="/store" className="font-serif text-lg font-bold text-[#1B4332]">
-            CHECKOUT PREPARATION
+          <Link href="/store" className="flex items-center">
+            <SamagnaLogo variant="forest" size="sm" />
           </Link>
 
           <div className="flex items-center space-x-1 text-xs text-stone-500">

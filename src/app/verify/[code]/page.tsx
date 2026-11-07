@@ -398,7 +398,7 @@ export default function PublicVerifyPage({ params }: VerifyPageProps) {
               <span>Chain-of-Custody Manifest</span>
             </h3>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 font-mono text-[12px]">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-x-4 gap-y-2.5 font-mono text-[12px]">
               <div>
                 <span className="text-ink-muted block text-[11px]">District / Block:</span>
                 <span className="text-ink font-semibold">{batchData?.block}, {batchData?.district}</span>

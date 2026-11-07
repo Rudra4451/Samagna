@@ -248,10 +248,10 @@ export default function RevenueOperationsPage() {
                   <Coins className="w-5 h-5 text-[#88D49E]" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-serif font-bold text-[#1B4332]">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-serif font-bold text-[#1B4332] text-balance">
                     Revenue & Commercial Reconciliation Desk
                   </h1>
-                  <p className="text-xs text-[#526D52]">
+                  <p className="text-xs text-[#526D52] mt-0.5 text-pretty">
                     Unified financial operations, institutional contracts, payment reconciliation & MSP protection ledger
                   </p>
                 </div>

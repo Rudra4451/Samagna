@@ -294,10 +294,10 @@ export default function DistributionNetworkPage() {
                 PILOT ENABLEMENT: 0.0% FEE
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight text-stone-900">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-semibold tracking-tight text-ink text-balance">
               B2B2C Partner Distribution Network
             </h1>
-            <p className="text-sm text-stone-600 max-w-3xl mt-1 leading-relaxed">
+            <p className="text-sm text-ink-muted max-w-3xl mt-1.5 leading-relaxed text-pretty">
               Federated external consumer channel syndication enabling verified tribal producer organisations, SHG federations,
               and ethical brands to distribute retail-ready packaged goods to external commercial outlets.
             </p>
@@ -336,7 +336,7 @@ export default function DistributionNetworkPage() {
         )}
 
         {/* Executive Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Distributed Volume</span>

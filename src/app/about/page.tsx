@@ -11,7 +11,7 @@ export default function AboutPilotPage() {
       {/* Top Bar */}
       <header className="border-b border-rule bg-surface px-4 sm:px-8 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <SamagnaLogo variant="light" size="sm" />
+          <SamagnaLogo variant="forest" size="sm" showTagline />
         </Link>
         <Link
           href="/"

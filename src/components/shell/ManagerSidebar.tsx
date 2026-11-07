@@ -39,6 +39,7 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
   const pathname = usePathname();
   const { isOffline, toggleOffline } = useAppStore();
   const [currentHash, setCurrentHash] = useState<string>('');
+  const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -79,8 +80,28 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
 
   return (
     <aside className="w-full md:w-[240px] shrink-0 md:min-h-[calc(100vh-80px)] flex flex-col bg-sidebar-bg text-sidebar-ink select-none border-b md:border-b-0 md:border-r border-sidebar-ink/15 shadow-none">
-      {/* Top of Sidebar: Samagna Logo */}
-      <div className="p-4 border-b border-sidebar-ink/15">
+      {/* Mobile Bar (< md): Compact desk header with toggle button */}
+      <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-sidebar-ink/15 bg-sidebar-bg">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-1.5 focus:outline-2 focus:outline-accent">
+            <SamagnaLogo variant="dark" size="sm" />
+          </Link>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-accent-tint bg-sidebar-ink/10 border border-sidebar-ink/20 px-1.5 py-0.5 rounded-[2px]">
+            {isCollection ? 'Mayurbhanj Collection' : 'Central Depôt Terminal'}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+          className="p-1.5 rounded-[4px] border border-sidebar-ink/20 text-sidebar-ink hover:bg-sidebar-ink/10 focus:outline-2 focus:outline-accent"
+          aria-label={isMobileExpanded ? 'Close desk menu' : 'Open desk menu'}
+        >
+          <Sliders size={16} strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {/* Desktop Top of Sidebar: Samagna Logo */}
+      <div className="hidden md:block p-4 border-b border-sidebar-ink/15">
         <Link href="/" className="block focus:outline-2 focus:outline-accent focus:outline-offset-0">
           <SamagnaLogo variant="dark" size="sm" showTagline />
         </Link>
@@ -90,7 +111,7 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 py-3 space-y-1">
+      <nav className={cn('flex-1 py-3 space-y-1', !isMobileExpanded && 'hidden md:block')}>
         <div className="px-4 pb-1 text-[10px] font-mono uppercase tracking-[0.06em] text-sidebar-ink/60">
           {isCollection ? 'Field Operations' : 'Depôt Operations'}
         </div>
@@ -177,7 +198,7 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
       </nav>
 
       {/* Footer: Demo Offline Switch & Manager Profile */}
-      <div className="p-3.5 border-t border-sidebar-ink/15 bg-sidebar-bg space-y-3">
+      <div className={cn('p-3.5 border-t border-sidebar-ink/15 bg-sidebar-bg space-y-3', !isMobileExpanded && 'hidden md:block')}>
         {/* Offline Switch for Demo */}
         <div className="flex items-center justify-between p-2 rounded-[4px] border border-sidebar-ink/15 bg-sidebar-bg">
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-sidebar-ink">

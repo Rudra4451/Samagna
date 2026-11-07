@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ConsumerProduct } from '@/lib/consumerCommerce';
 import { useCartStore } from '@/store/useCartStore';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 import {
   ShoppingBag,
   ShieldCheck,
@@ -122,8 +123,8 @@ export default function StoreProductDetailPage() {
             <span>Back to All Produce</span>
           </Link>
 
-          <Link href="/store" className="font-serif text-lg font-bold text-[#1B4332]">
-            SAMAGNA FOREST STORE
+          <Link href="/store" className="flex items-center">
+            <SamagnaLogo variant="forest" size="sm" />
           </Link>
 
           <Link href="/store/cart" className="relative p-2 text-stone-700 hover:text-[#1B4332]">
@@ -184,7 +185,7 @@ export default function StoreProductDetailPage() {
               <div className="text-xs font-mono text-stone-500 uppercase tracking-wider">
                 {product.harvestCluster} • {product.harvestSeason}
               </div>
-              <h1 className="mt-1 text-3xl sm:text-4xl font-serif font-bold text-stone-900 leading-tight">
+              <h1 className="mt-1 text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-stone-900 leading-tight text-balance">
                 {product.title}
               </h1>
 

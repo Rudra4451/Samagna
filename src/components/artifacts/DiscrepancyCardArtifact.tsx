@@ -56,47 +56,51 @@ export const DiscrepancyCardArtifact: React.FC<DiscrepancyCardProps> = ({
       </div>
 
       {/* Three Columns: "Recorded at collection" (100 kg), "Received at storage" (95 kg), "Difference" (5 kg, danger tabular) */}
-      <div className="grid grid-cols-3 gap-2.5 border border-rule rounded-[2px] p-3 bg-bg-sunken/40 text-center">
+      <div className="grid grid-cols-1 xs:grid-cols-3 gap-2.5 border border-rule rounded-[2px] p-3 bg-bg-sunken/40 text-center">
         <div className="space-y-0.5">
-          <span className="text-[11px] text-ink-muted uppercase block font-semibold">
+          <span className="text-[10px] xs:text-[11px] text-ink-muted uppercase block font-semibold">
             Recorded at collection
           </span>
-          <div className="font-heading text-[22px] font-bold tabular-nums text-ink leading-tight">
+          <div className="font-heading text-[18px] xs:text-[22px] font-bold tabular-nums text-ink leading-tight">
             {collectionKg.toFixed(1)}{' '}
-            <span className="text-[12px] font-sans font-normal text-ink-muted">kg</span>
+            <span className="text-[11px] xs:text-[12px] font-sans font-normal text-ink-muted">kg</span>
           </div>
         </div>
 
-        <div className="space-y-0.5 border-x border-rule px-1">
-          <span className="text-[11px] text-ink-muted uppercase block font-semibold">
+        <div className="space-y-0.5 border-y xs:border-y-0 xs:border-x border-rule py-1.5 xs:py-0 xs:px-1">
+          <span className="text-[10px] xs:text-[11px] text-ink-muted uppercase block font-semibold">
             Received at storage
           </span>
-          <div className="font-heading text-[22px] font-bold tabular-nums text-ink leading-tight">
+          <div className="font-heading text-[18px] xs:text-[22px] font-bold tabular-nums text-ink leading-tight">
             {receivedKg.toFixed(1)}{' '}
-            <span className="text-[12px] font-sans font-normal text-ink-muted">kg</span>
+            <span className="text-[11px] xs:text-[12px] font-sans font-normal text-ink-muted">kg</span>
           </div>
         </div>
 
         <div className="space-y-0.5">
-          <span className="text-[11px] text-ink-muted uppercase block font-semibold">
+          <span className="text-[10px] xs:text-[11px] text-ink-muted uppercase block font-semibold">
             Difference
           </span>
           {/* Difference in danger tabular */}
-          <div className="font-heading text-[22px] font-bold tabular-nums text-danger leading-tight">
+          <div className="font-heading text-[18px] xs:text-[22px] font-bold tabular-nums text-danger leading-tight">
             {differenceKg > 0 ? `−${differenceKg.toFixed(1)}` : `${Math.abs(differenceKg).toFixed(1)}`}{' '}
-            <span className="text-[12px] font-sans font-normal text-danger">kg</span>
+            <span className="text-[11px] xs:text-[12px] font-sans font-normal text-danger">kg</span>
           </div>
         </div>
       </div>
 
       {/* Small Panel with Tolerance and Acceptable vs Excess Loss */}
-      <div className="p-3 border border-rule bg-bg-sunken/30 rounded-[2px] space-y-1.5 text-[12px] font-mono">
-        <div className="flex justify-between items-baseline text-ink-muted">
-          <span>Configured tolerance: {configuredTolerancePercent}% ({productName}) · Illustrative benchmark (unverified policy)</span>
+      <div className="p-3 border border-rule bg-bg-sunken/30 rounded-[2px] space-y-1.5 text-[11px] xs:text-[12px] font-mono">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-baseline gap-1 text-ink-muted leading-relaxed">
+          <span>Configured tolerance: {configuredTolerancePercent}% ({productName})</span>
+          <span className="text-[10px] text-ink-subtle">Illustrative benchmark (unverified policy)</span>
         </div>
-        <div className="flex justify-between items-baseline pt-0.5 border-t border-rule/50">
-          <span className="text-ink">
-            Acceptable: <strong className="text-ink font-bold tabular-nums">{acceptableLossKg.toFixed(1)} kg</strong>. Excess: <strong className={cn('tabular-nums font-semibold', excessLossKg > 0 ? 'text-danger' : 'text-success')}>{excessLossKg > 0 ? `${excessLossKg.toFixed(1)} kg` : '0.0 kg'}</strong>.
+        <div className="flex flex-col xs:flex-row xs:justify-between items-start xs:items-baseline pt-1 border-t border-rule/50 gap-1 text-ink">
+          <span>
+            Acceptable: <strong className="text-ink font-bold tabular-nums">{acceptableLossKg.toFixed(1)} kg</strong>
+          </span>
+          <span>
+            Excess: <strong className={cn('tabular-nums font-semibold', excessLossKg > 0 ? 'text-danger' : 'text-success')}>{excessLossKg > 0 ? `${excessLossKg.toFixed(1)} kg` : '0.0 kg'}</strong>
           </span>
         </div>
       </div>

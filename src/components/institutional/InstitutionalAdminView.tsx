@@ -190,7 +190,7 @@ export const InstitutionalAdminView: React.FC<InstitutionalAdminViewProps> = ({ 
       </div>
 
       {/* Sub-Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-forest/15 pb-2 text-xs font-mono" role="tablist">
+      <div className="flex items-center gap-2 border-b border-forest/15 pb-2 text-xs font-mono overflow-x-auto scrollbar-none" role="tablist">
         <button
           role="tab"
           aria-selected={activeSubTab === 'profile'}

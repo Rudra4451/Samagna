@@ -48,8 +48,8 @@ export const CollectorTabBar: React.FC = () => {
             <Icon size={20} strokeWidth={1.5} className="mb-0.5 shrink-0" />
             <span
               className={cn(
-                'text-[15px] leading-tight font-medium',
-                language === 'OR' && 'font-odia text-[16px] leading-[1.6]'
+                'text-[12px] xs:text-[13px] sm:text-[14px] leading-tight font-medium truncate max-w-[72px] sm:max-w-none',
+                language === 'OR' && 'font-odia text-[13px] xs:text-[14px] leading-[1.3]'
               )}
             >
               {label}

@@ -7,6 +7,15 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    screens: {
+      xs: '375px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+    },
     extend: {
       colors: {
         bg: {
@@ -80,8 +89,8 @@ const config: Config = {
         mono: ['var(--font-mono)', 'IBM Plex Mono', 'monospace'],
         fraunces: ['Fraunces', 'serif'],
         manrope: ['Manrope', 'sans-serif'],
-        oswald: ['Oswald', 'var(--font-heading)', 'sans-serif'],
-        inter: ['Inter', 'var(--font-sans)', 'sans-serif'],
+        oswald: ['Fraunces', 'serif'],
+        inter: ['Manrope', 'sans-serif'],
       },
       fontSize: {
         'scale-12': ['12px', { lineHeight: '1.45' }],

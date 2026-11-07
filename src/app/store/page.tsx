@@ -26,6 +26,7 @@ import {
   Clock,
   User,
 } from 'lucide-react';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 
 export default function StoreHomePage() {
   const { items, addItem } = useCartStore();
@@ -111,20 +112,10 @@ export default function StoreHomePage() {
       )}
 
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <Link href="/store" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-full bg-[#1B4332] text-[#E8DCC4] flex items-center justify-center font-serif text-xl font-bold tracking-wider group-hover:bg-[#2D5A27] transition-colors">
-              S
-            </div>
-            <div>
-              <span className="font-serif text-2xl font-bold tracking-tight text-[#1B4332] block">
-                SAMAGNA
-              </span>
-              <span className="text-[10px] tracking-[0.2em] uppercase text-stone-500 block -mt-1 font-sans">
-                Forest Botanicals & Pure Produce
-              </span>
-            </div>
+      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-rule">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+          <Link href="/store" className="flex items-center gap-2 group" aria-label="Samagna Forest Store">
+            <SamagnaLogo variant="forest" size="md" showTagline />
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8 text-xs uppercase tracking-wider font-semibold text-stone-700">
@@ -222,7 +213,7 @@ export default function StoreHomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-6">
           {/* Category Filter Pills */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-none w-full md:w-auto">
             {[
               { id: 'ALL', label: 'All Products' },
               { id: 'WILD_HONEY', label: 'Wild Honey' },

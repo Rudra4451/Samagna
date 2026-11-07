@@ -213,10 +213,10 @@ export default function BusinessIntelligencePage() {
                 Statutory MSP Protected · Zero Collector Deductions
               </span>
             </div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-ink mt-1">
+            <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mt-1 text-balance">
               Operational BI &amp; Enterprise Traceability
             </h1>
-            <p className="text-xs sm:text-sm text-ink-subtle mt-1 max-w-3xl">
+            <p className="text-xs sm:text-sm text-ink-subtle mt-1.5 max-w-3xl text-pretty">
               Turn procurement, inventory, custody, milling, and commercial transactions into auditable operational intelligence.
               Every metric explicitly distinguishes <strong className="text-emerald-700">Actual Records</strong>, <strong className="text-amber-700">Estimates</strong>, and <strong className="text-rose-700">Missing Data</strong>.
             </p>

@@ -453,42 +453,62 @@ export default function MaitriyamLauncher() {
   if (isHidden || !enabled) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 print:hidden font-sans">
-      {/* Floating Launcher Button with Quick-Mic Voice Option */}
+    <>
+      {/* Backdrop scrim on mobile when modal is open */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9998] sm:hidden animate-in fade-in duration-150"
+          onClick={() => {
+            stopSpeech();
+            setIsAssistantSpeaking(false);
+            setIsOpen(false);
+          }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Floating Launcher Button (visible when modal is closed) */}
       {!isOpen && (
-        <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-forest p-1">
-          {/* Quick Voice Launch Button */}
-          {voiceSupported && (
+        <div className="fixed bottom-4 right-4 z-[9999] print:hidden font-sans">
+          <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-[#25351F] border border-[#2D4F1E]/50 p-1.5 backdrop-blur-sm">
+            {/* Quick Voice Launch Button */}
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(true);
+                  setVoiceMode(true);
+                  setTimeout(() => startListening(), 250);
+                }}
+                className="h-11 w-11 rounded-full bg-[#E27D60] hover:bg-[#d0684c] text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs"
+                title={locale === 'or' ? 'ଭଏସ୍ ସହାୟକ ଆରମ୍ଭ କରନ୍ତୁ' : 'Start Voice Assistant'}
+                aria-label="Start Voice Assistant"
+              >
+                <Mic size={18} />
+              </button>
+            )}
+
+            {/* Text/Chat Modal Open Button */}
             <button
               type="button"
-              onClick={() => {
-                setIsOpen(true);
-                setVoiceMode(true);
-                setTimeout(() => startListening(), 250);
-              }}
-              className="h-10 w-10 rounded-full bg-terracotta hover:bg-terracotta/90 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-              title={locale === 'or' ? 'ଭଏସ୍ ସହାୟକ ଆରମ୍ଭ କରନ୍ତୁ' : 'Start Voice Assistant'}
-              aria-label="Start Voice Assistant"
+              onClick={() => setIsOpen(true)}
+              className="h-11 px-4 rounded-full text-[#FFFAF2] hover:bg-[#2D4F1E] transition-all flex items-center gap-2.5 focus:outline-2 focus:outline-accent active:scale-95 group select-none"
+              aria-label="Open Maitriyam Guidance Assistant"
             >
-              <Mic size={18} />
+              <MessageSquare size={18} className="text-[#E27D60] group-hover:scale-110 transition-transform" />
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-sans font-bold tracking-normal leading-tight">
+                  {locale === 'or' ? 'ମୈତ୍ରିୟମ୍' : 'Maitriyam Assistant'}
+                </span>
+                <span className="text-[10px] text-[#F5E6CC]/70 font-sans leading-none hidden sm:inline">
+                  {locale === 'or' ? 'ସହାୟତା ଓ ଦର' : 'MSP & Guidance'}
+                </span>
+              </div>
+              {isOffline && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="Running in offline mode" />
+              )}
             </button>
-          )}
-
-          {/* Text/Chat Modal Open Button */}
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="h-10 px-3.5 rounded-full text-white hover:bg-forest-hover transition-all flex items-center gap-2 focus:outline-2 focus:outline-accent active:scale-95 group"
-            aria-label="Open Maitriyam Guidance Assistant"
-          >
-            <MessageSquare size={17} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-mono font-bold tracking-wide">
-              {locale === 'or' ? 'ମୈତ୍ରିୟମ୍' : 'Maitriyam'}
-            </span>
-            {isOffline && (
-              <span className="w-2 h-2 rounded-full bg-warning animate-pulse" title="Running in offline mode" />
-            )}
-          </button>
+          </div>
         </div>
       )}
 
@@ -497,28 +517,30 @@ export default function MaitriyamLauncher() {
         <div
           role="dialog"
           aria-label="Maitriyam In-App Assistant"
-          className="w-[92vw] sm:w-[410px] h-[560px] max-h-[88vh] bg-surface border border-rule rounded-[10px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-x-3 bottom-3 top-16 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans"
         >
           {/* Header */}
-          <div className="px-4 py-2.5 bg-forest text-white flex items-center justify-between border-b border-forest-hover shrink-0">
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={17} className="text-accent shrink-0" />
+          <div className="px-4 py-3 bg-[#25351F] text-white flex items-center justify-between border-b border-[#2D4F1E] shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-[#E27D60]/20 flex items-center justify-center border border-[#E27D60]/30 shrink-0">
+                <ShieldCheck size={18} className="text-[#E27D60]" />
+              </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-mono font-bold tracking-tight">
+                  <h3 className="text-xs font-sans font-bold tracking-tight text-[#FFFAF2]">
                     Maitriyam · ମୈତ୍ରିୟମ୍
                   </h3>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-white/15 text-white/90">
-                    Voice & Text v0.3
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-white/15 text-white/90">
+                    Voice &amp; Text
                   </span>
                 </div>
-                <span className="text-[10px] text-white/70 block leading-none mt-0.5">
+                <span className="text-[10px] text-[#F5E6CC]/70 block leading-none mt-0.5 font-sans">
                   Automated Guidance Assistant · Non-Affiliated
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {/* Voice Mode Toggle Button */}
               {voiceSupported && (
                 <button
@@ -534,15 +556,15 @@ export default function MaitriyamLauncher() {
                       setIsAssistantSpeaking(false);
                     }
                   }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-[4px] text-[11px] font-sans font-semibold transition-all flex items-center gap-1.5 ${
                     voiceMode
-                      ? 'bg-terracotta text-white shadow-xs'
+                      ? 'bg-[#E27D60] text-white shadow-xs'
                       : 'bg-white/10 hover:bg-white/20 text-white/90'
                   }`}
                   title="Toggle Hands-Free Voice Mode"
                   aria-label="Toggle Voice Mode"
                 >
-                  <Radio size={11} className={voiceMode ? 'animate-pulse' : ''} />
+                  <Radio size={12} className={voiceMode ? 'animate-pulse' : ''} />
                   <span>{voiceMode ? 'Voice ON' : 'Voice'}</span>
                 </button>
               )}
@@ -551,10 +573,10 @@ export default function MaitriyamLauncher() {
               <button
                 type="button"
                 onClick={() => setLocale(locale === 'en' ? 'or' : 'en')}
-                className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1 rounded-[4px] text-[11px] font-sans font-bold bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-1"
                 title="Switch Language (English / ଓଡ଼ିଆ)"
               >
-                <Languages size={11} />
+                <Languages size={12} />
                 <span>{locale === 'en' ? 'ଓଡ଼ିଆ' : 'EN'}</span>
               </button>
 
@@ -563,11 +585,11 @@ export default function MaitriyamLauncher() {
                 <button
                   type="button"
                   onClick={resetChat}
-                  className="p-1 rounded hover:bg-white/15 transition-colors text-white/80 hover:text-white"
+                  className="p-1.5 rounded-[4px] hover:bg-white/15 transition-colors text-white/80 hover:text-white"
                   title="Clear conversation"
                   aria-label="Clear conversation"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={15} />
                 </button>
               )}
 
@@ -579,10 +601,10 @@ export default function MaitriyamLauncher() {
                   setIsAssistantSpeaking(false);
                   setIsOpen(false);
                 }}
-                className="p-1 rounded hover:bg-white/15 transition-colors text-white"
+                className="p-1.5 rounded-[4px] hover:bg-white/15 transition-colors text-white"
                 aria-label="Close assistant"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
           </div>
@@ -948,13 +970,13 @@ export default function MaitriyamLauncher() {
                     ? 'Stop listening'
                     : 'Speak question aloud (Auto-submits)'
                 }
-                className={`h-8 w-8 rounded-[4px] flex items-center justify-center transition-all shrink-0 ${
+                className={`h-9 w-9 rounded-[4px] flex items-center justify-center transition-all shrink-0 ${
                   isListening
                     ? 'bg-terracotta text-white animate-pulse shadow-md ring-2 ring-terracotta/40'
                     : 'border border-rule hover:border-forest/60 bg-bg text-ink-muted hover:text-forest'
                 }`}
               >
-                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
               </button>
             )}
 
@@ -963,13 +985,14 @@ export default function MaitriyamLauncher() {
               type="submit"
               disabled={!input.trim() || isSending}
               aria-label="Send query"
-              className="h-8 px-3 rounded-[4px] bg-forest hover:bg-forest-hover disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 transition-colors shrink-0"
+              className="h-9 px-3.5 rounded-[4px] bg-forest hover:bg-forest-hover disabled:opacity-40 text-white text-xs font-sans font-semibold flex items-center gap-1.5 transition-colors shrink-0"
             >
+              <span>Send</span>
               <Send size={13} />
             </button>
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }

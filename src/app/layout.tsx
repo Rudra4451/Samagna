@@ -3,6 +3,8 @@ import './globals.css';
 import { BanaSetuProvider } from '../context/BanaSetuContext';
 import MaitriyamLauncher from '@/components/maitriyam/MaitriyamLauncher';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Samagna · ସମଗ୍ନ — From the Forest to the Marketplace',
   description: 'Verified minor forest produce procurement, transparent custodial tracking, and institutional B2B trade connecting tribal gatherers across Odisha directly to enterprise buyers.',

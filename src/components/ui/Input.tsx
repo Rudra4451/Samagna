@@ -29,7 +29,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           disabled={disabled}
           className={cn(
-            'flex h-[36px] w-full rounded-[4px] border bg-surface px-3 py-1.5 text-[14px] text-ink',
+            'flex h-[42px] sm:h-[36px] w-full rounded-[4px] border bg-surface px-3 py-1.5 text-[14px] text-ink',
             'placeholder:text-ink-subtle transition-colors shadow-none outline-none',
             hasError ? 'border-danger' : 'border-rule hover:border-ink-subtle',
             'focus:outline-2 focus:outline-accent focus:outline-offset-0 focus:border-accent',
@@ -74,7 +74,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         )}
         <div
           className={cn(
-            'flex h-[36px] w-full items-center rounded-[4px] border bg-surface px-3 transition-colors shadow-none',
+            'flex h-[42px] sm:h-[36px] w-full items-center rounded-[4px] border bg-surface px-3 transition-colors shadow-none',
             hasError ? 'border-danger' : 'border-rule hover:border-ink-subtle',
             'focus-within:outline-2 focus-within:outline-accent focus-within:outline-offset-0 focus-within:border-accent',
             disabled && 'bg-bg-sunken text-ink-muted cursor-not-allowed'
@@ -184,7 +184,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              'flex h-[36px] w-full appearance-none rounded-[4px] border bg-surface pl-3 pr-8 text-[14px] text-ink',
+              'flex h-[42px] sm:h-[36px] w-full appearance-none rounded-[4px] border bg-surface pl-3 pr-8 text-[14px] text-ink',
               'transition-colors shadow-none outline-none cursor-pointer',
               hasError ? 'border-danger' : 'border-rule hover:border-ink-subtle',
               'focus:outline-2 focus:outline-accent focus:outline-offset-0 focus:border-accent',

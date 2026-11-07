@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
+import { SamagnaLogo } from '@/components/ui/SamagnaLogo';
 import {
   ShoppingBag,
   Trash2,
@@ -55,8 +56,8 @@ export default function StoreCartPage() {
             <span>Continue Shopping</span>
           </Link>
 
-          <Link href="/store" className="font-serif text-lg font-bold text-[#1B4332]">
-            YOUR FOREST BASKET
+          <Link href="/store" className="flex items-center">
+            <SamagnaLogo variant="forest" size="sm" />
           </Link>
 
           <span className="text-xs text-stone-500 font-mono">
@@ -108,7 +109,7 @@ export default function StoreCartPage() {
                       <img
                         src={item.imagePath}
                         alt={item.productName}
-                        className="w-16 h-16 object-cover rounded bg-stone-100 border border-stone-200"
+                        className="w-16 h-16 shrink-0 object-cover rounded bg-stone-100 border border-stone-200"
                       />
                       <div>
                         <h4 className="font-serif font-bold text-stone-900 text-sm">

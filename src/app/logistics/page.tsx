@@ -207,10 +207,10 @@ export default function LogisticsNetworkPage() {
                 PILOT COORDINATION: 0.0% FEE
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-normal tracking-tight text-ink">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-semibold tracking-tight text-ink text-balance">
               Commercial Logistics & Fulfilment Network
             </h1>
-            <p className="text-[14px] text-ink-muted max-w-2xl mt-1 leading-relaxed">
+            <p className="text-[14px] text-ink-muted max-w-2xl mt-1.5 leading-relaxed text-pretty">
               Coordinates commercial transport of forest-produce consignments between collection points, state warehouses,
               processing facilities, and enterprise buyers with unbroken custody linkage.
             </p>

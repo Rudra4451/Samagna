@@ -227,10 +227,10 @@ export default function ProcessingNetworkPage() {
                 PILOT COORDINATION: 0.0% FEE
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-normal tracking-tight text-ink">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-semibold tracking-tight text-ink text-balance">
               Processing & Value-Addition Network
             </h1>
-            <p className="text-[14px] text-ink-muted max-w-2xl mt-1 leading-relaxed">
+            <p className="text-[14px] text-ink-muted max-w-2xl mt-1.5 leading-relaxed text-pretty">
               Coordinates agro-industrial processing facilities across Odisha forest clusters. Connects raw forest
               harvests with primary processing, deseeding, micro-filtration, and cryogenic pulverization units.
             </p>

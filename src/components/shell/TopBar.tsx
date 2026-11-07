@@ -11,7 +11,7 @@ import { useFontScale } from '../../lib/useFontScale';
 import { useOffline } from '../../lib/useOffline';
 import { SyncDrawer } from '../sync/SyncDrawer';
 import { ConflictDrawer } from '../sync/ConflictDrawer';
-import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck, ShoppingBag, BarChart3, LayoutGrid, Bell } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck, ShoppingBag, BarChart3, LayoutGrid, Bell, Menu, ShieldCheck } from 'lucide-react';
 import { SamagnaLogo } from '../ui/SamagnaLogo';
 import { useAuthSession } from '../../lib/useAuthSession';
 import { AppLauncherModal } from './AppLauncherModal';
@@ -60,6 +60,12 @@ export const TopBar: React.FC = () => {
 
   const [isSyncDrawerOpen, setIsSyncDrawerOpen] = useState(false);
   const [isConflictDrawerOpen, setIsConflictDrawerOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Sync role state from route across all 12 platform experiences
   useEffect(() => {
@@ -139,7 +145,7 @@ export const TopBar: React.FC = () => {
           </button>
 
           <div className="hidden sm:block h-4 w-px bg-rule" />
-          <div className="flex flex-col justify-center">
+          <div className="hidden lg:flex flex-col justify-center">
             <div className="flex items-center gap-1.5">
             <label
               htmlFor="demo-role-select"
@@ -261,8 +267,8 @@ export const TopBar: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Marketplace Link, Language Toggle & Mobile Offline Toggle */}
-        <div className="flex items-center gap-2">
+        {/* Right: Desktop Controls */}
+        <div className="hidden md:flex items-center gap-2">
           {/* Forest Store Link */}
           <Link
             href="/store"
@@ -369,7 +375,203 @@ export const TopBar: React.FC = () => {
             </span>
           </button>
         </div>
+
+        {/* Right: Mobile Compact Controls (< md) */}
+        <div className="md:hidden flex items-center gap-2">
+          {/* Notification bell on mobile */}
+          <button
+            type="button"
+            onClick={toggleNotificationDrawer}
+            className="relative h-[40px] w-[40px] rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink-muted hover:text-ink transition-colors flex items-center justify-center focus:outline-2 focus:outline-accent shadow-none active:scale-95"
+            title={language === 'OR' ? 'ସୂଚନା ଏବଂ ସତର୍କତା କେନ୍ଦ୍ର' : 'Unified Value-Chain Notifications'}
+            aria-label="Open notifications"
+          >
+            <Bell size={17} />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute 1 top-1 right-1 px-1 min-w-[15px] h-[15px] rounded-full bg-accent text-white font-mono text-[9px] font-bold flex items-center justify-center">
+                {unreadNotificationCount}
+              </span>
+            )}
+          </button>
+
+          {/* Mobile Navigation Drawer Toggle (Hamburger 3-line / X) */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="h-[40px] w-[40px] rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink hover:text-accent transition-all flex items-center justify-center focus:outline-2 focus:outline-accent shadow-none active:scale-95"
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Slide-Down Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-rule bg-surface px-4 py-4 space-y-3.5 shadow-md animate-in fade-in duration-150">
+          {/* Quick Home and Suite Launcher Buttons */}
+          <div className="grid grid-cols-2 gap-2 text-xs font-sans">
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="h-11 px-3 rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink flex items-center justify-center gap-2 font-semibold"
+            >
+              <span>← Public Home</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                toggleAppLauncher();
+              }}
+              className="h-11 px-3 rounded-[4px] border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent flex items-center justify-center gap-1.5 font-bold"
+            >
+              <LayoutGrid size={15} />
+              <span>12 Experiences</span>
+            </button>
+          </div>
+
+          {/* Role selector in mobile drawer */}
+          <div className="p-3 rounded-[4px] bg-bg-sunken border border-rule space-y-1.5">
+            <label
+              htmlFor="mobile-demo-role-select"
+              className="block text-[11px] font-sans font-semibold uppercase tracking-[0.06em] text-ink-muted"
+            >
+              {language === 'OR' ? 'ଭୂମିକା ପରିବର୍ତ୍ତନ (୧୦ ଅନୁଭୂତି):' : 'Active Role / Persona (10 Roles):'}
+            </label>
+            <div className="relative">
+              <select
+                id="mobile-demo-role-select"
+                value={activeRole}
+                onChange={(e) => {
+                  handleRoleChange(e);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={cn(
+                  'h-[40px] w-full appearance-none rounded-[4px] border border-rule bg-surface pl-3 pr-8 text-xs font-sans font-medium text-ink transition-colors',
+                  'hover:border-ink-subtle focus:outline-2 focus:outline-accent focus:outline-offset-0 cursor-pointer shadow-none',
+                  language === 'OR' && 'font-odia text-[13px]'
+                )}
+              >
+                <option value="collector">
+                  {language === 'OR' ? 'ସୁନୀତା ସୋରେନ (ଆଦିବାସୀ ସଂଗ୍ରାହକ)' : 'Sunita Soren (Tribal Collector)'}
+                </option>
+                <option value="facilitator">
+                  {language === 'OR' ? 'ସୁମିତ୍ରା ମାର୍ଣ୍ଡି (ଦଳ ସଂଯୋଜକ)' : 'Sumitra Marndi (SHG Lead)'}
+                </option>
+                <option value="collection_manager">
+                  {language === 'OR' ? 'ଆର. ମହାନ୍ତି (ସଂଗ୍ରହ ପରିଚାଳକ)' : 'R. Mohanty (Collection Manager)'}
+                </option>
+                <option value="inventory_manager">
+                  {language === 'OR' ? 'ଏସ. ଦାସ (ଗୋଦାମ ପରିଚାଳକ)' : 'S. Das (Warehouse Manager)'}
+                </option>
+                <option value="admin">
+                  {language === 'OR' ? 'ଏ. ପଟ୍ଟନାୟକ (ଜିଲ୍ଲା ଅଧିକାରୀ · B2G)' : 'A. Patnaik (District Admin · B2G)'}
+                </option>
+                <option value="b2b_buyer">
+                  {language === 'OR' ? 'ଡାବର ଇଣ୍ଡିଆ (ପାଇକାରୀ କ୍ରେତା · B2B)' : 'Dabur India (B2B Bulk Buyer)'}
+                </option>
+                <option value="processor">
+                  {language === 'OR' ? 'କୋରାପୁଟ ଡିସିଡିଂ (ପ୍ରକ୍ରିୟାକରଣ କେନ୍ଦ୍ର)' : 'Koraput Deseeding (Processor)'}
+                </option>
+                <option value="logistics">
+                  {language === 'OR' ? 'ଉତ୍କଳ ଲଜିଷ୍ଟିକ୍ସ (ପରିବହନକାରୀ)' : 'Utkal Freight (Logistics Carrier)'}
+                </option>
+                <option value="retail_partner">
+                  {language === 'OR' ? 'ଉତ୍କଳିକା ହସ୍ତତନ୍ତ (ଖୁଚୁରା ବିତରକ)' : 'Utkalika Crafts (Retail Partner)'}
+                </option>
+                <option value="finance_officer">
+                  {language === 'OR' ? 'ଆର୍ଥିକ ନିୟନ୍ତ୍ରକ (ରାଜସ୍ୱ ଓ ସମାଧାନ)' : 'Financial Comptroller (Revenue)'}
+                </option>
+              </select>
+              <ChevronDown
+                size={16}
+                strokeWidth={1.5}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted"
+              />
+            </div>
+          </div>
+
+          {/* Quick links & controls */}
+          <div className="grid grid-cols-3 gap-2 text-xs font-sans">
+            <Link
+              href="/store"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="h-11 px-2.5 rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink flex flex-col items-center justify-center gap-0.5 font-semibold text-[11px]"
+            >
+              <ShoppingBag size={14} className="text-accent" />
+              <span>Forest Store</span>
+            </Link>
+            <Link
+              href="/verify"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="h-11 px-2.5 rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink flex flex-col items-center justify-center gap-0.5 font-semibold text-[11px]"
+            >
+              <ShieldCheck size={14} className="text-accent" />
+              <span>Verify Batch</span>
+            </Link>
+            <Link
+              href="/reports"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="h-11 px-2.5 rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink flex flex-col items-center justify-center gap-0.5 font-semibold text-[11px]"
+            >
+              <BarChart3 size={14} className="text-accent" />
+              <span>BI Reports</span>
+            </Link>
+          </div>
+
+          {/* Language and Font Scale Row */}
+          <div className="flex items-center justify-between pt-2 border-t border-rule">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-sans text-ink-muted">Language:</span>
+              <div className="flex items-center border border-rule rounded-[4px] overflow-hidden bg-bg-sunken">
+                <button
+                  type="button"
+                  onClick={() => setLanguage('EN')}
+                  className={cn(
+                    'h-[34px] px-3 text-xs font-sans transition-colors border-r border-rule',
+                    language === 'EN' ? 'bg-surface text-ink font-bold' : 'text-ink-muted'
+                  )}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('OR')}
+                  className={cn(
+                    'h-[34px] px-3 text-xs transition-colors font-odia',
+                    language === 'OR' ? 'bg-surface text-ink font-bold' : 'text-ink-muted'
+                  )}
+                >
+                  ଓଡ଼ିଆ
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={cycleFontScale}
+              className="h-[34px] px-3 rounded-[4px] border border-rule bg-bg-sunken text-xs font-sans font-bold text-ink flex items-center gap-1"
+            >
+              <span>A+</span>
+              <span className="text-[11px] font-normal text-ink-subtle">({fontScale}px)</span>
+            </button>
+          </div>
+
+          {/* Logout Button on Mobile */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              logout('loggedout');
+            }}
+            className="w-full h-11 rounded-[4px] border border-danger/30 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors text-xs font-sans font-bold flex items-center justify-center gap-2"
+          >
+            <LogOut size={15} />
+            <span>{language === 'OR' ? 'ଲଗଆଉଟ୍ କରନ୍ତୁ' : 'Log Out of Ledger'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Persistent 32px Banner (Offline Signal / Prototype Disclaimer) */}
       <div className={cn(
