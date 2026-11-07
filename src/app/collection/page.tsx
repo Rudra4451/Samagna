@@ -1683,6 +1683,10 @@ export default function CollectionManagerPage() {
 
             {/* Table Container with Sticky Header & First Column (Rules 4, 5, 8, 9, 10) */}
             <div id="pickup-queue-table" className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
+              <div className="md:hidden px-3 py-1.5 bg-bg-sunken border-b border-rule text-[11px] font-mono text-ink-muted flex items-center justify-between select-none">
+                <span>← Swipe table horizontally for full fields →</span>
+                <span>{filteredItems.length} lots</span>
+              </div>
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <Table className="w-full border-collapse">
                   <TableHeader>

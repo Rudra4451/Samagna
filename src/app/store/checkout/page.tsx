@@ -218,6 +218,7 @@ export default function StoreCheckoutPage() {
                   <label className="block font-semibold text-stone-700 mb-1">Full Name</label>
                   <input
                     type="text"
+                    autoComplete="name"
                     value={formData.customerName}
                     onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-300 rounded p-2.5 text-stone-800"
@@ -228,6 +229,8 @@ export default function StoreCheckoutPage() {
                   <label className="block font-semibold text-stone-700 mb-1">Phone Number (SMS Tracking)</label>
                   <input
                     type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
                     value={formData.customerPhone}
                     onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-300 rounded p-2.5 text-stone-800"
@@ -240,6 +243,8 @@ export default function StoreCheckoutPage() {
                 <label className="block font-semibold text-stone-700 mb-1">Email Address (Order Dossier)</label>
                 <input
                   type="email"
+                  autoComplete="email"
+                  inputMode="email"
                   value={formData.customerEmail}
                   onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-300 rounded p-2.5 text-stone-800"
@@ -251,6 +256,7 @@ export default function StoreCheckoutPage() {
                 <label className="block font-semibold text-stone-700 mb-1">Street Address / Landmark</label>
                 <input
                   type="text"
+                  autoComplete="street-address"
                   value={formData.street}
                   onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-300 rounded p-2.5 text-stone-800"
@@ -263,6 +269,7 @@ export default function StoreCheckoutPage() {
                   <label className="block font-semibold text-stone-700 mb-1">City</label>
                   <input
                     type="text"
+                    autoComplete="address-level2"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-300 rounded p-2 text-stone-800"
@@ -283,6 +290,7 @@ export default function StoreCheckoutPage() {
                   <label className="block font-semibold text-stone-700 mb-1">State</label>
                   <input
                     type="text"
+                    autoComplete="address-level1"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-300 rounded p-2 text-stone-800"
@@ -293,6 +301,9 @@ export default function StoreCheckoutPage() {
                   <label className="block font-semibold text-stone-700 mb-1">Postal Pincode</label>
                   <input
                     type="text"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={formData.pincode}
                     onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-300 rounded p-2 text-stone-800 font-mono"

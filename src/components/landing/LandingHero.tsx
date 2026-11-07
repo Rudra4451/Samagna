@@ -196,9 +196,9 @@ export const LandingHero: React.FC = () => {
         {/* 3. ANIMATED STAT COUNTERS */}
         <div
           ref={statsRef}
-          className="mt-14 sm:mt-20 w-full max-w-5xl rounded-[12px] border border-white/15 bg-white/5 backdrop-blur-md p-6 sm:p-8 shadow-card"
+          className="mt-12 sm:mt-20 w-full max-w-5xl rounded-[12px] border border-white/15 bg-white/5 backdrop-blur-md p-4 sm:p-6 lg:p-8 shadow-card"
         >
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {STATS.map((stat, idx) => (
               <div
                 key={stat.label}

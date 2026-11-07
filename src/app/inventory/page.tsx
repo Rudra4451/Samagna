@@ -2145,6 +2145,10 @@ export default function InventoryManagerPage() {
             "BATCHES" TABLE (Sticky Header, Sticky First Column, Density, Inline Edit)
            ======================================================== */}
         <div className="border border-rule rounded-[4px] bg-surface overflow-hidden shadow-none">
+          <div className="md:hidden px-3 py-1.5 bg-bg-sunken border-b border-rule text-[11px] font-mono text-ink-muted flex items-center justify-between select-none">
+            <span>← Swipe table horizontally for full fields →</span>
+            <span>{filteredBatches.length} lots</span>
+          </div>
           <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <Table className="w-full border-collapse">
               <TableHeader>

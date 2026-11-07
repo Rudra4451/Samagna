@@ -227,6 +227,23 @@ export default function StoreCartPage() {
             </div>
           </div>
         )}
+
+        {/* Mobile Sticky Checkout Bar (Rule 5 & Phase 4 Standard) */}
+        {!loading && items.length > 0 && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-3 shadow-lg flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-mono text-stone-500 uppercase">Total Payable</div>
+              <div className="font-serif font-bold text-stone-900 text-lg">₹{totalPayable}</div>
+            </div>
+            <Link
+              href="/store/checkout"
+              className="touch-target px-6 py-2.5 bg-[#1B4332] text-white text-xs font-bold uppercase tracking-wider rounded-[6px] hover:bg-[#2D5A27] transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+            >
+              <span>Checkout</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );
