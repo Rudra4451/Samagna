@@ -109,8 +109,12 @@ export default function StoreOrdersPage() {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md w-full">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+          <label htmlFor="store-order-search" className="sr-only">
+            Search orders, batch codes, and digital invoices
+          </label>
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
           <input
+            id="store-order-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
