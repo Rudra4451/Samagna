@@ -1,0 +1,224 @@
+[
+  {
+    "id": "faq-samagna-overview",
+    "intent": "samagna_overview",
+    "locale": "or",
+    "questions": [
+      "ସମଗ୍ନ କ'ଣ?",
+      "ଏହି ଆପ୍ କିପରି କାମ କରେ?",
+      "ସମଗ୍ନ ବିଷୟରେ କୁହନ୍ତୁ",
+      "ବନସେତୁ କ'ଣ?",
+      "Samagna kana?"
+    ],
+    "answer": "ସମଗ୍ନ (ବା ବନସେତୁ) ହେଉଛି ଲଘୁ ବନଜାତ ଦ୍ରବ୍ୟ (MFP) ର ଡିଜିଟାଲ୍ ସଂଗ୍ରହ ଓ ଯାଞ୍ଚ ପରିଚାଳନା ବ୍ୟବସ୍ଥା। ଏହା ଆଦିବାସୀ ସଂଗ୍ରାହକ, ମହିଳା ସ୍ୱୟଂ ସହାୟକ ଗୋଷ୍ଠୀ (SHG), ସଂଗ୍ରହ କେନ୍ଦ୍ର ଓ ଗୋଦାମ ମଧ୍ୟରେ ସଠିକ୍ ଓଜନ ଏବଂ ଉଚିତ ମୂଲ୍ୟ ସୁନିଶ୍ଚିତ କରେ।",
+    "sourceRef": "/about#project-mission",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Samagna Governance Team",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-pilot-status",
+    "intent": "pilot_status",
+    "locale": "or",
+    "questions": [
+      "ଏହା ସରକାରୀ ଆପ୍ କି?",
+      "ଓଡ଼ିଶା ସରକାରଙ୍କ ଆପ୍ କି?",
+      "ଟଙ୍କା ପ୍ରକୃତ କି ସିମୁଲେଟେଡ୍?",
+      "ପାଇଲଟ୍ ସିଷ୍ଟମ୍ କ'ଣ?"
+    ],
+    "answer": "ସମଗ୍ନ ହେଉଛି ଏକ ସ୍ୱାଧୀନ ଡିଜିଟାଲ୍ ପାଇଲଟ୍ ପ୍ରଦର୍ଶନ ବ୍ୟବସ୍ଥା। ଏହା ଓଡ଼ିଶା ସରକାରଙ୍କ ସରକାରୀ ସଂସ୍ଥା ନୁହେଁ। ଏଥିରେ ଦେଖାଯାଉଥିବା ସମସ୍ତ ଡିବିଟି (DBT) ଓ ଅର୍ଥ ପଇଠ ପାଇଲଟ୍ ପରୀକ୍ଷଣ ପାଇଁ ଅନୁକରଣ (ସିମୁଲେଟେଡ୍) ଅଟେ।",
+    "sourceRef": "/about#pilot-status",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Legal & Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-rate-formula",
+    "intent": "rate_formula",
+    "locale": "or",
+    "questions": [
+      "ମୋ ପ୍ରାପ୍ୟ କିପରି ହିସାବ ହୁଏ?",
+      "ଦର ସୂତ୍ର କ'ଣ?",
+      "ଓଜନର ମୂଲ୍ୟ କିପରି ନିର୍ଦ୍ଧାରଣ ହୁଏ?",
+      "payment formula kana?"
+    ],
+    "answer": "ସଂଗ୍ରାହକଙ୍କ ପ୍ରାପ୍ୟ ସୂତ୍ର: ପ୍ରମାଣିତ ନିଟ୍ ଓଜନ (ମୋଟ ଓଜନ ବିୟୋଗ ଖାଲି ବସ୍ତା ଓଜନ) ଗୁଣନ ପ୍ରତି କିଲୋଗ୍ରାମ ଅନୁମୋଦିତ ସର୍ବନିମ୍ନ ସହାୟକ ମୂଲ୍ୟ (MSP)। ସହାୟକ କୌଣସି ଅନୁମାନିକ ହିସାବ କରେ ନାହିଁ; ଦୟାକରି ଆପଣଙ୍କ ରସିଦ ଦେଖନ୍ତୁ।",
+    "sourceRef": "TRIFED Operational Guidelines Sec 4.2",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["collector", "facilitator", "collection", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Pricing Desk",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-msp-protection",
+    "intent": "msp_protection",
+    "locale": "or",
+    "questions": [
+      "ସଂଗ୍ରାହକଙ୍କ ଟଙ୍କାରୁ କମିଶନ କଟାଯାଏ କି?",
+      "ମୋ MSP ସୁରକ୍ଷିତ କି?",
+      "୧୦୦% ଟଙ୍କା ମିଳିବ କି?",
+      "commission katibani ta?"
+    ],
+    "answer": "ନାହିଁ। ପ୍ଲାଟଫର୍ମ ଫି ବା କମିଶନ ସଂଗ୍ରାହକଙ୍କ ପ୍ରାପ୍ୟରୁ କେବେ କଟାଯାଏ ନାହିଁ। ଆଦିବାସୀ ସଂଗ୍ରାହକ ନିଜର ସରକାରୀ ନିର୍ଦ୍ଧାରିତ ସମ୍ପୂର୍ଣ୍ଣ ୧୦୦% MSP ପାଆନ୍ତି।",
+    "sourceRef": "/about#msp-protection",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Statutory Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-qr-verification",
+    "intent": "qr_verification",
+    "locale": "or",
+    "questions": [
+      "କ୍ୟୁଆର (QR) କୋଡ୍ କିପରି ଯାଞ୍ଚ ହୁଏ?",
+      "ବସ୍ତା କ୍ୟୁଆର ସ୍କାନ୍ କଲେ କ'ଣ ମିଳେ?",
+      "QR code kipari scan kariba?"
+    ],
+    "answer": "ପ୍ରତ୍ୟେକ ଯାଞ୍ଚିତ ବସ୍ତାରେ ଏକ ସ୍ୱତନ୍ତ୍ର QR କୋଡ୍ ଥାଏ। ଏହାକୁ ସ୍କାନ୍ କଲେ ଜିଲ୍ଲା, ସଂଗ୍ରହ କେନ୍ଦ୍ର, ଆର୍ଦ୍ରତା ଶତକଡ଼ା ଓ ଯାତାୟାତ ଯାଞ୍ଚ ତଥ୍ୟ ମିଳେ, କିନ୍ତୁ ସଂଗ୍ରାହକଙ୍କ ବ୍ୟକ୍ତିଗତ ପରିଚୟ ସୁରକ୍ଷିତ ରହେ।",
+    "sourceRef": "/verify",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Traceability Lead",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-gross-tare-net",
+    "intent": "gross_tare_net",
+    "locale": "or",
+    "questions": [
+      "ଗ୍ରସ୍, ଟେୟାର୍ ଓ ନିଟ୍ ଓଜନ କ'ଣ?",
+      "ବସ୍ତା ଓଜନ କାହିଁକି ବାଦ୍ ଦିଆଯାଏ?",
+      "net weight kana?"
+    ],
+    "answer": "ଗ୍ରସ୍ ଓଜନ ହେଉଛି ଫସଲ ସହିତ ବସ୍ତାର ମୋଟ ଓଜନ। ଟେୟାର୍ (Tare) ହେଉଛି ଖାଲି ବସ୍ତାର ଓଜନ। ଗ୍ରସ୍ ରୁ ଟେୟାର୍ ବିୟୋଗ କଲେ ପ୍ରକୃତ ନିଟ୍ ଉତ୍ପାଦ ଓଜନ ମିଳେ, ଯାହାର ମୂଲ୍ୟ ସଂଗ୍ରାହକଙ୍କୁ ମିଳେ।",
+    "sourceRef": "Legal Metrology Field Protocol (Odisha)",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Operations Directorate",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-offline-sync",
+    "intent": "offline_sync",
+    "locale": "or",
+    "questions": [
+      "ଇଣ୍ଟରନେଟ୍ ନଥିଲେ ଆପ୍ ଚାଲିବ କି?",
+      "ଅଫଲାଇନ୍ ସିଙ୍କ୍ କିପରି ହୁଏ?",
+      "network nathile kana heba?"
+    ],
+    "answer": "ହଁ, ସମଗ୍ନ ସମ୍ପୂର୍ଣ୍ଣ ଅଫଲାଇନ୍ କାମ କରେ। ତଥ୍ୟ ଫୋନରେ ସୁରକ୍ଷିତ ଭାବେ ରହିଥାଏ ଏବଂ ଇଣ୍ଟରନେଟ୍ ଆସିବା ପରେ କେନ୍ଦ୍ରୀୟ ଲେଜର ସହିତ ଆପେ ଆପେ ସିଙ୍କ୍ ହୋଇଯାଏ।",
+    "sourceRef": "/settings/sync",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection", "inventory"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Edge Technology Lead",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-sync-diagnostics",
+    "intent": "sync_diagnostics",
+    "locale": "or",
+    "questions": [
+      "ତଥ୍ୟ ସିଙ୍କ୍ କାହିଁକି ହେଉନାହିଁ?",
+      "ଡାଟା ଅପଲୋଡ୍ ଅଟକି ରହିଛି କାହିଁକି?",
+      "data sync heuni?"
+    ],
+    "answer": "ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ନଥିଲେ କିମ୍ବା ସେସନ୍ ସମାପ୍ତ ହୋଇଥିଲେ ତଥ୍ୟ ଅପେକ୍ଷାରେ ରହେ। ସ୍କ୍ରିନ୍ ର ଉପରେ ଥିବା 'Sync' ବଟନ୍ ଦବାଇ ଆପଣ ପେଣ୍ଡିଂ ଥିବା ତଥ୍ୟ ଦେଖି ସିଙ୍କ୍ କରିପାରିବେ।",
+    "sourceRef": "/settings/sync#diagnostics",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Field Operations",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-conflicts",
+    "intent": "sync_conflicts",
+    "locale": "or",
+    "questions": [
+      "ସିଙ୍କ୍ ଦ୍ୱନ୍ଦ୍ୱ (Conflict) କ'ଣ?",
+      "ରେକର୍ଡ ବିବାଦ କାହିଁକି ହୁଏ?",
+      "conflict kana?"
+    ],
+    "answer": "ଯଦି ଗୋଟିଏ ରେକର୍ଡ ଦୁଇଟି ସ୍ଥାନରେ ଭିନ୍ନ ଭାବେ ବଦଳାଯାଏ ବା ଓଜନରେ ଫରକ ଆସେ, ତେବେ ତାହା କନଫ୍ଲିକ୍ଟ ହୁଏ। ଏହା ଫୋନରେ ସୁରକ୍ଷିତ ରହି ସୁପରଭାଇଜର ଯାଞ୍ଚ ପାଇଁ ପଠାଯାଏ।",
+    "sourceRef": "/inventory#discrepancies",
+    "roles": ["COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["collection", "inventory", "admin"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Audit & Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-photo-upload",
+    "intent": "photo_upload",
+    "locale": "or",
+    "questions": [
+      "ଫଟୋ କିପରି ଅପଲୋଡ୍ କରିବି?",
+      "କଣ୍ଟା ଓଜନ ଫଟୋ କିପରି ଉଠାଇବେ?",
+      "photo upload kipari kariba?"
+    ],
+    "answer": "ଓଜନ ପୃଷ୍ଠାରେ ଥିବା କ୍ୟାମେରା ବଟନ୍ ଟ୍ୟାପ୍ କରି ଡିଜିଟାଲ୍ ସ୍କେଲ୍ ଏବଂ ଫସଲର ଫଟୋ ଉଠାନ୍ତୁ। ଅଫଲାଇନ୍ ଥିଲେ ମଧ୍ୟ ଫଟୋ ଫୋନରେ ରହିବ ଏବଂ ନେଟୱର୍କ ଆସିଲେ ଅପଲୋଡ୍ ହେବ।",
+    "sourceRef": "/collection#evidence",
+    "roles": ["SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["facilitator", "collection"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Quality Assurance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-contact-facilitator",
+    "intent": "contact_facilitator",
+    "locale": "or",
+    "questions": [
+      "ମୋ ଏସଏଚଜି (SHG) ଦିଦିଙ୍କୁ କିପରି ଯୋଗାଯୋଗ କରିବି?",
+      "ସହାୟକ କାହାକୁ ପଚାରିବି?",
+      "SHG lead ku kemiti contact karibi?"
+    ],
+    "answer": "ଆପଣଙ୍କ ନାମପଞ୍ଜୀକୃତ SHG ଦଳନେତ୍ରୀ ଆପଣଙ୍କ ଗ୍ରାମ ସଂଗ୍ରହ କେନ୍ଦ୍ରରେ ସାହାଯ୍ୟ କରନ୍ତି। ଆପଣଙ୍କ ସଂଗ୍ରାହକ ପ୍ରୋଫାଇଲ୍ ଟ୍ୟାବ୍ ରେ ତାଙ୍କ ବିବରଣୀ ଉପଲବ୍ଧ ଅଛି।",
+    "sourceRef": "/collector#profile",
+    "roles": ["COLLECTOR"],
+    "surfaces": ["collector"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Community Outreach",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-rates-offline",
+    "intent": "rates_offline",
+    "locale": "or",
+    "questions": [
+      "ଆଜିର ମହୁଆ ଦର କେତେ?",
+      "ଦର କୁହନ୍ତୁ",
+      "ଅଫଲାଇନରେ ଦର ଜଣାପଡିବ କି?",
+      "rate kete?"
+    ],
+    "answer": "ସହାୟକ କେବଳ ଅନଲାଇନ୍ ଥିବାବେଳେ ପ୍ରମାଣିତ ଦର କହିପାରିବ। ଅଫଲାଇନ୍ ଥିବାବେଳେ ଦୟାକରି ଆପଣଙ୍କ ଶେଷ ରସିଦ ଦେଖନ୍ତୁ ବା ଡ୍ୟାସବୋର୍ଡରେ ଥିବା ସାଇନ୍ସ ଦର ତାଲିକା ଦେଖନ୍ତୁ।",
+    "sourceRef": "/rates",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Pricing Desk",
+    "updatedAt": "2026-11-07"
+  }
+]

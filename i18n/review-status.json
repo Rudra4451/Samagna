@@ -1,0 +1,12 @@
+{
+  "unreviewedLocales": ["or"],
+  "manifest": {
+    "or": {
+      "language": "Odia",
+      "status": "PENDING_HUMAN_REVIEW",
+      "reviewedBy": null,
+      "reviewedAt": null,
+      "warning": "Every Odia operational entry ships with reviewed: false until a human Odia reviewer signs off. UI displays an Odia translation pending review badge."
+    }
+  }
+}

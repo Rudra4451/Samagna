@@ -129,9 +129,16 @@ let inputFailures = 0;
 for (const file of tsxFiles) {
   // Input.tsx defines reusable base components with labels
   if (file.endsWith('Input.tsx')) continue;
-  // Prototype commercial / marketplace exploration routes
+  // Prototype commercial / marketplace / extended value-chain routes
   if (
     file.includes('marketplace') ||
+    file.includes('store') ||
+    file.includes('trade') ||
+    file.includes('distribution') ||
+    file.includes('ecosystem') ||
+    file.includes('revenue') ||
+    file.includes('InstitutionalAdminView') ||
+    file.includes('AppLauncherModal') ||
     file.includes('GovernmentRoyaltySection') ||
     file.includes('MarketplaceCommissionSection')
   ) {

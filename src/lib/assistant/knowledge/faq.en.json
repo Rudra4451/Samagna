@@ -1,0 +1,242 @@
+[
+  {
+    "id": "faq-samagna-overview",
+    "intent": "samagna_overview",
+    "locale": "en",
+    "questions": [
+      "What is Samagna?",
+      "What is this application?",
+      "Tell me about Samagna",
+      "What does this software do?",
+      "Who built Samagna?"
+    ],
+    "answer": "Samagna (also known as BanaSetu) is a digital procurement and batch traceability ledger for minor forest produce. It connects primary tribal collectors, self-help groups, aggregation centres, and warehouses with verified weighment and fair pricing records.",
+    "sourceRef": "/about#project-mission",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Samagna Governance Team",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-pilot-status",
+    "intent": "pilot_status",
+    "locale": "en",
+    "questions": [
+      "Is Samagna a government app?",
+      "Are you official government?",
+      "Is this affiliated with Government of Odisha?",
+      "Is this a pilot or production system?",
+      "Are payments real or simulated?"
+    ],
+    "answer": "Samagna is an independent digital demonstration platform and is not an official government agency. All payments, DBT disbursements, and royalty figures shown in this environment are simulated pilot demonstrations.",
+    "sourceRef": "/about#pilot-status",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Legal & Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-rate-formula",
+    "intent": "rate_formula",
+    "locale": "en",
+    "questions": [
+      "How is my payout calculated?",
+      "What is the rate formula?",
+      "How do you calculate collector payment?",
+      "How is money calculated for my produce?",
+      "Show payment formula"
+    ],
+    "answer": "Collector payments are calculated as: Net Weight (Certified Gross minus Tare) multiplied by the Approved Minimum Support Price (MSP) rate per kilogram. The assistant never computes custom figures; check your latest receipt for exact numbers.",
+    "sourceRef": "TRIFED Operational Guidelines Sec 4.2",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["collector", "facilitator", "collection", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Pricing Desk",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-msp-protection",
+    "intent": "msp_protection",
+    "locale": "en",
+    "questions": [
+      "Are platform fees deducted from collectors?",
+      "Is commission taken from my MSP?",
+      "Does collector get 100% MSP?",
+      "Can government royalty reduce collector payment?",
+      "Is my payment protected?"
+    ],
+    "answer": "No. Platform fees, buyer commissions, and government service royalties are strictly institutional charges and are never deducted from primary gatherers. Forest collectors receive 100% of their statutory MSP entitlement.",
+    "sourceRef": "/about#msp-protection",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Statutory Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-qr-verification",
+    "intent": "qr_verification",
+    "locale": "en",
+    "questions": [
+      "How does QR verification work?",
+      "What does the batch QR code show?",
+      "How to verify produce origin?",
+      "Can public verify sacks?",
+      "What is printed on the sack tag?"
+    ],
+    "answer": "Every verified batch receives a unique QR code linked to its provenance record. Scanning it reveals the origin district, aggregation centre, moisture percentage, and custody checkpoints while protecting gatherer personal data.",
+    "sourceRef": "/verify",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["public", "collector", "facilitator", "collection", "inventory", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Traceability Lead",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-gross-tare-net",
+    "intent": "gross_tare_net",
+    "locale": "en",
+    "questions": [
+      "What is gross weight and tare weight?",
+      "Explain tare weight",
+      "Why is tare deducted?",
+      "What does net weight mean?",
+      "How is bag weight deducted?"
+    ],
+    "answer": "Gross weight is the total weight of the produce plus sack. Tare weight is the empty weight of the container (typically 0.1 kg to 1.5 kg). Net weight is Gross minus Tare, representing the actual certified produce being purchased.",
+    "sourceRef": "Legal Metrology Field Protocol (Odisha)",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Operations Directorate",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-offline-sync",
+    "intent": "offline_sync",
+    "locale": "en",
+    "questions": [
+      "How does offline sync work?",
+      "Can I use Samagna without internet?",
+      "What happens when there is no network?",
+      "Why is my data queued?",
+      "How to sync records when online?"
+    ],
+    "answer": "Samagna works offline using a local encrypted database. Weighment receipts and pickup requests save to your device immediately and sync automatically to the central registry when network connectivity is restored.",
+    "sourceRef": "/settings/sync",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection", "inventory"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Edge Technology Lead",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-sync-diagnostics",
+    "intent": "sync_diagnostics",
+    "locale": "en",
+    "questions": [
+      "Why is my data not syncing?",
+      "My records are not uploading",
+      "Why is sync queue stuck?",
+      "Check my sync status",
+      "Sync diagnostics"
+    ],
+    "answer": "Unsent records remain queued if network connectivity is absent or the server session has expired. Check the Sync Status drawer at the top of your screen to inspect pending items and trigger manual synchronization.",
+    "sourceRef": "/settings/sync#diagnostics",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Field Operations",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-conflicts",
+    "intent": "sync_conflicts",
+    "locale": "en",
+    "questions": [
+      "What does a sync conflict mean?",
+      "Why is my record flagged as conflict?",
+      "How are discrepancies resolved?",
+      "Who handles conflicts?",
+      "What is discrepancy review?"
+    ],
+    "answer": "A sync conflict occurs if a batch record was modified by another officer or quarantined due to moisture/weight variance. Conflicted items are safely preserved on your device and flagged for District Supervisor review.",
+    "sourceRef": "/inventory#discrepancies",
+    "roles": ["COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["collection", "inventory", "admin"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Audit & Compliance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-photo-upload",
+    "intent": "photo_upload",
+    "locale": "en",
+    "questions": [
+      "How to upload evidence photo?",
+      "How do I take photo of scale readout?",
+      "Can I take photo offline?",
+      "Why is photo required?",
+      "Evidence photograph upload"
+    ],
+    "answer": "Tap the Camera button on the weighment screen to photograph the produce and electronic scale readout. Photos captured offline are compressed and stored locally, then uploaded when connectivity is restored.",
+    "sourceRef": "/collection#evidence",
+    "roles": ["SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["facilitator", "collection"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Quality Assurance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-contact-facilitator",
+    "intent": "contact_facilitator",
+    "locale": "en",
+    "questions": [
+      "How do I contact my SHG facilitator?",
+      "Where is my SHG lead?",
+      "Who helps collectors with weighment?",
+      "Find local facilitator",
+      "I need help from SHG"
+    ],
+    "answer": "Your registered SHG facilitator assists with pickup requests and initial bagging at your village aggregation point. You can view your designated facilitator under your Collector profile tab.",
+    "sourceRef": "/collector#profile",
+    "roles": ["COLLECTOR"],
+    "surfaces": ["collector"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Community Outreach",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-rates-offline",
+    "intent": "rates_offline",
+    "locale": "en",
+    "questions": [
+      "What are today rates?",
+      "Show me rates",
+      "Can you give current prices offline?",
+      "How much is Mahua today?",
+      "What is honey price?"
+    ],
+    "answer": "The assistant can confirm current rates only when online. When offline, please consult your latest printed receipt or open the cached Rates tab on your dashboard for the latest synchronized rate card.",
+    "sourceRef": "/rates",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER"],
+    "surfaces": ["collector", "facilitator", "collection"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Pricing Desk",
+    "updatedAt": "2026-11-07"
+  }
+]

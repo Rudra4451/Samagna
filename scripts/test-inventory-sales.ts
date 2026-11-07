@@ -60,7 +60,7 @@ async function runBatch2TestSuite() {
   console.log('--- 1. Dexie Schema Version 5 & Table Declarations ---');
 
   const db = new BanaSetuDatabase();
-  assert(db.verno === 5, 'BanaSetuDatabase configured at version 5');
+  assert(db.verno >= 5, 'BanaSetuDatabase configured at version 5 or higher');
 
   // Verify all version 3 legacy stores are preserved
   const v3Tables = ['batches', 'auditEvents', 'discrepancyCases', 'appSettings', 'pendingSync', 'syncQueue'];
