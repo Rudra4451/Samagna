@@ -67,10 +67,15 @@ function DemoHubContent() {
               This orchestration surface is designed exclusively for the 3-minute stage presentation. It requires explicit evaluator activation.
             </p>
           </div>
-          <div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link href="/demo?demo=1">
-              <Button variant="primary" className="h-[40px] px-5">
+              <Button variant="primary" className="h-[44px] px-6 text-sm">
                 Launch Stage Demo (?demo=1)
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="secondary" className="h-[44px] px-6 text-sm">
+                View 12-Role Persona Directory
               </Button>
             </Link>
           </div>

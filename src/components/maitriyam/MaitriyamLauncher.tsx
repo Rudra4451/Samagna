@@ -478,10 +478,12 @@ export default function MaitriyamLauncher() {
           id="maitriyam-launcher"
           data-maitriyam-root
           className={`fixed ${
-            surface === 'collector' ? 'bottom-20 sm:bottom-5' : 'bottom-4 sm:bottom-5'
-          } right-3 sm:right-5 z-[9999] print:hidden no-print font-sans`}
+            surface === 'collector' || pathname.startsWith('/store/cart') || pathname.startsWith('/store/checkout')
+              ? 'bottom-20 sm:bottom-6'
+              : 'bottom-4 sm:bottom-6'
+          } right-3 sm:right-6 z-[75] print:hidden no-print font-sans`}
         >
-          <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-[#25351F] border border-[#2D4F1E]/50 p-1.5 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-canopy border border-forest/50 p-1.5 backdrop-blur-sm">
             {/* Quick Voice Launch Button */}
             {voiceSupported && (
               <button
@@ -491,7 +493,7 @@ export default function MaitriyamLauncher() {
                   setVoiceMode(true);
                   setTimeout(() => startListening(), 250);
                 }}
-                className="h-11 w-11 rounded-full bg-[#E27D60] hover:bg-[#d0684c] text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs"
+                className="h-11 w-11 rounded-full bg-terracotta hover:bg-terracotta-hover text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs"
                 title={locale === 'or' ? 'ଭଏସ୍ ସହାୟକ ଆରମ୍ଭ କରନ୍ତୁ' : 'Start Voice Assistant'}
                 aria-label="Start Voice Assistant"
               >
@@ -503,15 +505,15 @@ export default function MaitriyamLauncher() {
             <button
               type="button"
               onClick={() => setIsOpen(true)}
-              className="h-11 px-4 rounded-full text-[#FFFAF2] hover:bg-[#2D4F1E] transition-all flex items-center gap-2.5 focus:outline-2 focus:outline-accent active:scale-95 group select-none"
+              className="h-11 px-4 rounded-full text-warm-white hover:bg-forest/60 transition-all flex items-center gap-2.5 focus:outline-2 focus:outline-accent active:scale-95 group select-none"
               aria-label="Open Maitriyam Guidance Assistant"
             >
-              <MessageSquare size={18} className="text-[#E27D60] group-hover:scale-110 transition-transform" />
+              <MessageSquare size={18} className="text-terracotta group-hover:scale-110 transition-transform" />
               <div className="flex flex-col text-left">
                 <span className="text-xs font-sans font-bold tracking-normal leading-tight">
                   {locale === 'or' ? 'ମୈତ୍ରିୟମ୍' : 'Maitriyam Assistant'}
                 </span>
-                <span className="text-[10px] text-[#F5E6CC]/70 font-sans leading-none hidden sm:inline">
+                <span className="text-xs text-cream/80 font-sans leading-none hidden sm:inline">
                   {locale === 'or' ? 'ସହାୟତା ଓ ଦର' : 'MSP & Guidance'}
                 </span>
               </div>
@@ -529,7 +531,7 @@ export default function MaitriyamLauncher() {
           role="dialog"
           aria-label="Maitriyam In-App Assistant"
           data-maitriyam-modal
-          className="fixed inset-x-2 bottom-2 top-14 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden font-sans print:hidden no-print"
+          className="fixed inset-x-2 bottom-2 top-14 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[580px] sm:max-h-[85dvh] z-[80] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden font-sans print:hidden no-print"
         >
           {/* Header */}
           <div className="px-4 py-3 bg-[#25351F] text-white flex items-center justify-between border-b border-[#2D4F1E] shrink-0">
