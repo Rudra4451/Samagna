@@ -483,7 +483,7 @@ export default function MaitriyamLauncher() {
               : 'bottom-4 sm:bottom-6'
           } right-3 sm:right-6 z-[75] print:hidden no-print font-sans`}
         >
-          <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-canopy border border-forest/50 p-1.5 backdrop-blur-sm min-h-[48px]">
+          <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-canopy border border-forest/50 p-1 backdrop-blur-sm min-h-[48px]">
             {/* Quick Voice Launch Button */}
             {voiceSupported && (
               <button
@@ -493,7 +493,7 @@ export default function MaitriyamLauncher() {
                   setVoiceMode(true);
                   setTimeout(() => startListening(), 250);
                 }}
-                className="h-[44px] w-[44px] min-h-[44px] min-w-[44px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs touch-target"
+                className="h-[44px] w-[44px] min-h-[44px] min-w-[44px] rounded-full bg-terracotta hover:bg-terracotta-hover text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs touch-target shrink-0"
                 title={locale === 'or' ? 'ଭଏସ୍ ସହାୟକ ଆରମ୍ଭ କରନ୍ତୁ' : 'Start Voice Assistant'}
                 aria-label="Start Voice Assistant"
               >
@@ -505,7 +505,7 @@ export default function MaitriyamLauncher() {
             <button
               type="button"
               onClick={() => setIsOpen(true)}
-              className="h-[44px] min-h-[44px] px-4 rounded-full text-warm-white hover:bg-forest/60 transition-all flex items-center gap-2.5 focus:outline-2 focus:outline-accent active:scale-95 group select-none touch-target"
+              className="h-[44px] min-h-[44px] px-4 rounded-full text-warm-white hover:bg-forest/60 transition-all flex items-center gap-2.5 focus:outline-2 focus:outline-accent active:scale-95 group select-none touch-target shrink-0"
               aria-label="Open Maitriyam Guidance Assistant"
             >
               <MessageSquare size={18} className="text-terracotta group-hover:scale-110 transition-transform" />
