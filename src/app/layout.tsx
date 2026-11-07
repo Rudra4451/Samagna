@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { BanaSetuProvider } from '../context/BanaSetuContext';
+import MaitriyamLauncher from '@/components/maitriyam/MaitriyamLauncher';
 
 export const metadata: Metadata = {
   title: 'Samagna · ସମଗ୍ନ — From the Forest to the Marketplace',
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-bg text-ink font-sans selection:bg-cream selection:text-forest">
         <BanaSetuProvider>
           {children}
+          <MaitriyamLauncher />
         </BanaSetuProvider>
       </body>
     </html>

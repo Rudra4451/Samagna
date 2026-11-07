@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSessionFromRequest } from '@/lib/server/auth';
+import { getSession } from '@/lib/server/auth';
 import { checkRateLimit } from '@/lib/server/rateLimit';
 import { matchKnowledgeBase } from '@/lib/assistant/matcher';
 import { maskAllPii } from '@/lib/server/mask';
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Authentication & Session Scoping
-  const session = await getSessionFromRequest(req);
+  const session = await getSession(req);
   if (!session) {
     return NextResponse.json(
       { error: 'UNAUTHORIZED', message: 'Session authentication required.' },
