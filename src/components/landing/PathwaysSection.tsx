@@ -89,7 +89,7 @@ export const PathwaysSection: React.FC = () => {
                   </div>
                   <span className="text-sm font-sans text-ink">
                     <strong>Non-Accusatory Shrinkage Triage:</strong> Separates natural transit moisture evaporation
-                    from theft without retroactive gatherer deductions.
+                    from transit loss without retroactive gatherer deductions.
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
