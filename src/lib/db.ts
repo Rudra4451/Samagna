@@ -119,6 +119,9 @@ export class BanaSetuDatabase extends Dexie {
   offlineAttachments!: Table<OfflineAttachment, string>;
   grievances!: Table<LocalGrievanceRecord, string>;
   inventorySales!: Table<InventorySaleRecord, string>;
+  maitriyamKb!: Table<{ id: string; intent: string; locale: string; entryJson: string; version: string; updatedAt: string }, string>;
+  maitriyamMeta!: Table<{ key: string; value: string; updatedAt: string }, string>;
+  maitriyamOutbox!: Table<{ id: string; userId: string; role: string; surface: string; question: string; locale: string; idempotencyKey: string; state: 'QUEUED' | 'REPLAYED'; createdAt: string }, string>;
 
   constructor() {
     super('BanaSetuLedgerDB');
@@ -136,6 +139,11 @@ export class BanaSetuDatabase extends Dexie {
     });
     this.version(5).stores({
       inventorySales: 'id, saleReference, produceName, depotId, syncState, createdAt, idempotencyKey',
+    });
+    this.version(6).stores({
+      maitriyamKb: 'id, intent, locale, version',
+      maitriyamMeta: 'key',
+      maitriyamOutbox: 'id, userId, role, surface, idempotencyKey, state, createdAt',
     });
   }
 }
@@ -163,6 +171,9 @@ export const db = {
   get offlineAttachments() { return getDatabase().offlineAttachments; },
   get grievances() { return getDatabase().grievances; },
   get inventorySales() { return getDatabase().inventorySales; },
+  get maitriyamKb() { return getDatabase().maitriyamKb; },
+  get maitriyamMeta() { return getDatabase().maitriyamMeta; },
+  get maitriyamOutbox() { return getDatabase().maitriyamOutbox; },
 };
 
 export async function seedInitialData(forceReset: boolean = false): Promise<void> {
