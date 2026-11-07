@@ -314,7 +314,7 @@ export const MarketplaceCommissionSection: React.FC = () => {
               {orders.map((o) => (
                 <tr key={o.id} className="hover:bg-bg-sunken/40">
                   <td className="p-3 font-bold text-ink">
-                    <Link href={`/marketplace/orders/${o.orderNumber}`} className="hover:underline">
+                    <Link href={`/store/orders/${o.orderNumber}`} className="hover:underline">
                       {o.orderNumber}
                     </Link>
                   </td>
@@ -355,7 +355,7 @@ export const MarketplaceCommissionSection: React.FC = () => {
                   </td>
                   <td className="p-3 text-right">
                     <Link
-                      href={`/marketplace/orders/${o.orderNumber}`}
+                      href={`/store/orders/${o.orderNumber}`}
                       className="text-accent hover:underline text-[11px] font-sans font-semibold"
                     >
                       Invoice →

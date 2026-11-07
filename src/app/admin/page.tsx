@@ -30,13 +30,15 @@ import {
   TrendingUp,
   Landmark,
   Percent,
+  Building2,
 } from 'lucide-react';
 import { downloadPdfBlob, sharePdf } from '@/lib/pdfClient';
 import { BusinessRevenueOverview } from '@/components/admin/BusinessRevenueOverview';
 import { GovernmentRoyaltySection } from '@/components/admin/GovernmentRoyaltySection';
 import { MarketplaceCommissionSection } from '@/components/admin/MarketplaceCommissionSection';
+import { InstitutionalAdminView } from '@/components/institutional/InstitutionalAdminView';
 
-type AdminTab = 'rates' | 'users' | 'business' | 'royalty' | 'commissions' | 'conflicts' | 'audit' | 'exports' | 'health';
+type AdminTab = 'rates' | 'users' | 'institutional' | 'business' | 'royalty' | 'commissions' | 'conflicts' | 'audit' | 'exports' | 'health';
 
 interface AdminUser {
   id: string;
@@ -485,6 +487,19 @@ export default function AdminConsolePage() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('institutional')}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+              activeTab === 'institutional'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            <Building2 size={15} />
+            <span>Institutional Operations & SLA</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('business')}
             className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'business'
@@ -718,6 +733,11 @@ export default function AdminConsolePage() {
               </table>
             </div>
           </div>
+        )}
+
+        {/* TAB: INSTITUTIONAL OPERATIONS & SLA */}
+        {activeTab === 'institutional' && currentUser && (
+          <InstitutionalAdminView currentUser={currentUser} />
         )}
 
         {/* TAB: SAMAGNA BUSINESS REVENUE */}

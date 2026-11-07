@@ -14,7 +14,7 @@ export default function TermsPage() {
       <header className="border-b border-rule bg-surface sticky top-0 z-30 shadow-none">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 focus:outline-2 focus:outline-accent">
-            <SamagnaLogo variant="light" size="sm" showTagline />
+            <SamagnaLogo variant="forest" size="sm" showTagline />
           </Link>
           <div className="flex items-center gap-4 text-[12px] font-mono">
             <Link href="/" className="text-ink-muted hover:text-ink transition-colors">

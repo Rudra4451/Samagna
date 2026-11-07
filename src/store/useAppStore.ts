@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 
-export type DemoRole = 'collector' | 'collection_manager' | 'inventory_manager' | 'facilitator' | 'admin';
+export type DemoRole =
+  | 'collector'
+  | 'collection_manager'
+  | 'inventory_manager'
+  | 'facilitator'
+  | 'admin'
+  | 'b2b_buyer'
+  | 'processor'
+  | 'logistics'
+  | 'retail_partner'
+  | 'finance_officer';
 export type AppLanguage = 'EN' | 'OR';
 export type CollectorTab = 'home' | 'prices' | 'requests' | 'help';
 
@@ -46,6 +56,24 @@ interface AppState {
   // Collector Tab State
   activeCollectorTab: CollectorTab;
   setActiveCollectorTab: (tab: CollectorTab) => void;
+
+  // Multi-Experience Organisation Context
+  activeOrganisationId: string | null;
+  activeOrganisationName: string | null;
+  activeOrganisationCategory: string | null;
+  setActiveOrganisation: (id: string | null, name: string | null, category?: string | null) => void;
+
+  // Unified Notification System
+  unreadNotificationCount: number;
+  setUnreadNotificationCount: (count: number) => void;
+  isNotificationDrawerOpen: boolean;
+  setIsNotificationDrawerOpen: (open: boolean) => void;
+  toggleNotificationDrawer: () => void;
+
+  // Multi-Experience App Launcher
+  isAppLauncherOpen: boolean;
+  setIsAppLauncherOpen: (open: boolean) => void;
+  toggleAppLauncher: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -104,4 +132,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       activeCollectorTab: tab,
     }),
+
+  // Multi-Experience Organisation Context (Defaults to TDPB Apex Federation)
+  activeOrganisationId: 'org-tdpb-01',
+  activeOrganisationName: 'Odisha Tribal Development & Forest Products Federation',
+  activeOrganisationCategory: 'institutional',
+  setActiveOrganisation: (id, name, category) =>
+    set({
+      activeOrganisationId: id,
+      activeOrganisationName: name,
+      activeOrganisationCategory: category || null,
+    }),
+
+  // Unified Notification System
+  unreadNotificationCount: 4,
+  setUnreadNotificationCount: (count) => set({ unreadNotificationCount: count }),
+  isNotificationDrawerOpen: false,
+  setIsNotificationDrawerOpen: (open) => set({ isNotificationDrawerOpen: open }),
+  toggleNotificationDrawer: () => set((state) => ({ isNotificationDrawerOpen: !state.isNotificationDrawerOpen })),
+
+  // Multi-Experience App Launcher
+  isAppLauncherOpen: false,
+  setIsAppLauncherOpen: (open) => set({ isAppLauncherOpen: open }),
+  toggleAppLauncher: () => set((state) => ({ isAppLauncherOpen: !state.isAppLauncherOpen })),
 }));

@@ -11,9 +11,11 @@ import { useFontScale } from '../../lib/useFontScale';
 import { useOffline } from '../../lib/useOffline';
 import { SyncDrawer } from '../sync/SyncDrawer';
 import { ConflictDrawer } from '../sync/ConflictDrawer';
-import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck, ShoppingBag } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, X, ChevronDown, Type, LogOut, UserCheck, ShoppingBag, BarChart3, LayoutGrid, Bell } from 'lucide-react';
 import { SamagnaLogo } from '../ui/SamagnaLogo';
 import { useAuthSession } from '../../lib/useAuthSession';
+import { AppLauncherModal } from './AppLauncherModal';
+import { NotificationDrawer } from './NotificationDrawer';
 
 export const TopBar: React.FC = () => {
   const router = useRouter();
@@ -29,6 +31,9 @@ export const TopBar: React.FC = () => {
     setActiveRole,
     language,
     setLanguage,
+    unreadNotificationCount,
+    toggleNotificationDrawer,
+    toggleAppLauncher,
   } = useAppStore();
 
   const { fontScale, cycleFontScale } = useFontScale();
@@ -56,18 +61,28 @@ export const TopBar: React.FC = () => {
   const [isSyncDrawerOpen, setIsSyncDrawerOpen] = useState(false);
   const [isConflictDrawerOpen, setIsConflictDrawerOpen] = useState(false);
 
-  // Sync role state from route
+  // Sync role state from route across all 12 platform experiences
   useEffect(() => {
     if (pathname.startsWith('/collector') && activeRole !== 'collector') {
       setActiveRole('collector');
     } else if (pathname.startsWith('/collection') && activeRole !== 'collection_manager') {
       setActiveRole('collection_manager');
-    } else if (pathname.startsWith('/inventory') && activeRole !== 'inventory_manager') {
+    } else if ((pathname.startsWith('/inventory') || pathname.startsWith('/warehouse')) && activeRole !== 'inventory_manager') {
       setActiveRole('inventory_manager');
     } else if (pathname.startsWith('/facilitator') && activeRole !== 'facilitator') {
       setActiveRole('facilitator');
-    } else if (pathname.startsWith('/admin') && activeRole !== 'admin') {
+    } else if ((pathname.startsWith('/institutional') || pathname.startsWith('/admin')) && activeRole !== 'admin') {
       setActiveRole('admin');
+    } else if (pathname.startsWith('/trade') && activeRole !== 'b2b_buyer') {
+      setActiveRole('b2b_buyer');
+    } else if (pathname.startsWith('/processing') && activeRole !== 'processor') {
+      setActiveRole('processor');
+    } else if (pathname.startsWith('/logistics') && activeRole !== 'logistics') {
+      setActiveRole('logistics');
+    } else if (pathname.startsWith('/distribution') && activeRole !== 'retail_partner') {
+      setActiveRole('retail_partner');
+    } else if ((pathname.startsWith('/revenue') || pathname.startsWith('/ecosystem') || pathname.startsWith('/reports')) && activeRole !== 'finance_officer') {
+      setActiveRole('finance_officer');
     }
   }, [pathname, activeRole, setActiveRole]);
 
@@ -83,7 +98,17 @@ export const TopBar: React.FC = () => {
     } else if (newRole === 'facilitator') {
       router.push('/facilitator');
     } else if (newRole === 'admin') {
-      router.push('/admin');
+      router.push('/institutional');
+    } else if (newRole === 'b2b_buyer') {
+      router.push('/trade');
+    } else if (newRole === 'processor') {
+      router.push('/processing');
+    } else if (newRole === 'logistics') {
+      router.push('/logistics');
+    } else if (newRole === 'retail_partner') {
+      router.push('/distribution');
+    } else if (newRole === 'finance_officer') {
+      router.push('/revenue');
     }
   };
 
@@ -93,11 +118,26 @@ export const TopBar: React.FC = () => {
     <header className="sticky top-0 z-40 w-full flex flex-col border-b border-rule bg-surface select-none shadow-none">
       {/* Top Bar Row */}
       <div className="flex h-[48px] items-center justify-between px-4 sm:px-6 gap-2">
-        {/* Left: Brand Logo & Role Switcher */}
+        {/* Left: Brand Logo, Suite Launcher & Role Switcher */}
         <div className="flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-1.5 focus:outline-2 focus:outline-accent">
-            <SamagnaLogo variant="light" size="sm" />
+            <SamagnaLogo variant="forest" size="sm" />
           </Link>
+
+          {/* Samagna Multi-Experience Suite Launcher Button */}
+          <button
+            type="button"
+            onClick={toggleAppLauncher}
+            className="h-[28px] px-2 rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink hover:text-accent transition-colors flex items-center gap-1.5 focus:outline-2 focus:outline-accent shadow-none"
+            title={language === 'OR' ? 'ସମଗ୍ରା ସୁଇଟ୍ ଲଞ୍ଚର୍ (୧୨ଟି ଅନୁଭୂତି)' : 'Samagna Suite Launcher (12 Experiences)'}
+            aria-label="Open Samagna Multi-Experience Suite Launcher"
+          >
+            <LayoutGrid size={14} className="text-accent" />
+            <span className="font-mono text-[11px] font-bold hidden md:inline">
+              {language === 'OR' ? 'ସୁଇଟ୍' : 'Suite'}
+            </span>
+          </button>
+
           <div className="hidden sm:block h-4 w-px bg-rule" />
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-1.5">
@@ -114,7 +154,7 @@ export const TopBar: React.FC = () => {
                 onChange={handleRoleChange}
                 aria-label="Role switcher"
                 className={cn(
-                  'h-[28px] appearance-none rounded-[4px] border border-rule bg-surface pl-2 pr-6 text-[12px] font-medium text-ink transition-colors',
+                  'h-[28px] max-w-[110px] sm:max-w-[170px] md:max-w-[220px] truncate appearance-none rounded-[4px] border border-rule bg-surface pl-2 pr-6 text-[12px] font-medium text-ink transition-colors',
                   'hover:border-ink-subtle focus:outline-2 focus:outline-accent focus:outline-offset-0 cursor-pointer shadow-none',
                   language === 'OR' && 'font-odia text-[13px]'
                 )}
@@ -132,7 +172,22 @@ export const TopBar: React.FC = () => {
                   {language === 'OR' ? 'ସୁମିତ୍ରା ମାର୍ଣ୍ଡି (ଦଳ ସଂଯୋଜକ)' : 'Sumitra Marndi (SHG Lead)'}
                 </option>
                 <option value="admin">
-                  {language === 'OR' ? 'ଏ. ପଟ୍ଟନାୟକ (ଜିଲ୍ଲା ଅଧିକାରୀ)' : 'A. Patnaik (District Admin)'}
+                  {language === 'OR' ? 'ଏ. ପଟ୍ଟନାୟକ (ଜିଲ୍ଲା ଅଧିକାରୀ · B2G)' : 'A. Patnaik (District Admin · B2G)'}
+                </option>
+                <option value="b2b_buyer">
+                  {language === 'OR' ? 'ଡାବର ଇଣ୍ଡିଆ (ପାଇକାରୀ କ୍ରେତା · B2B)' : 'Dabur India (B2B Bulk Buyer)'}
+                </option>
+                <option value="processor">
+                  {language === 'OR' ? 'କୋରାପୁଟ ଡିସିଡିଂ (ପ୍ରକ୍ରିୟାକରଣ କେନ୍ଦ୍ର)' : 'Koraput Deseeding (Processor)'}
+                </option>
+                <option value="logistics">
+                  {language === 'OR' ? 'ଉତ୍କଳ ଲଜିଷ୍ଟିକ୍ସ (ପରିବହନକାରୀ)' : 'Utkal Freight (Logistics Carrier)'}
+                </option>
+                <option value="retail_partner">
+                  {language === 'OR' ? 'ଉତ୍କଳିକା ହସ୍ତତନ୍ତ (ଖୁଚୁରା ବିତରକ)' : 'Utkalika Crafts (Retail Partner)'}
+                </option>
+                <option value="finance_officer">
+                  {language === 'OR' ? 'ଆର୍ଥିକ ନିୟନ୍ତ୍ରକ (ରାଜସ୍ୱ ଓ ସମାଧାନ)' : 'Financial Comptroller (Revenue)'}
                 </option>
               </select>
               <ChevronDown
@@ -208,15 +263,40 @@ export const TopBar: React.FC = () => {
 
         {/* Right: Marketplace Link, Language Toggle & Mobile Offline Toggle */}
         <div className="flex items-center gap-2">
-          {/* Commercial Marketplace Link */}
+          {/* Forest Store Link */}
           <Link
-            href="/marketplace"
+            href="/store"
             className="h-[32px] px-2.5 rounded-[4px] border border-accent/40 bg-accent/10 text-accent hover:bg-accent hover:text-white transition-colors text-[11px] font-mono font-bold flex items-center gap-1.5 select-none"
-            title="Commercial Forest Produce Marketplace (B2B & B2C)"
+            title="Forest Store (Direct Consumer & Wholesale)"
           >
             <ShoppingBag size={14} />
-            <span className="hidden sm:inline">Marketplace</span>
+            <span className="hidden sm:inline">Store</span>
           </Link>
+          {/* Business Intelligence & Traceability Reports */}
+          <Link
+            href="/reports"
+            className="h-[32px] px-2.5 rounded-[4px] border border-rule bg-bg-sunken text-ink-muted hover:border-accent hover:text-accent transition-colors text-[11px] font-mono font-medium flex items-center gap-1.5 select-none"
+            title="Operational Business Intelligence & Traceability Reporting"
+          >
+            <BarChart3 size={14} />
+            <span className="hidden md:inline">BI &amp; Reports</span>
+          </Link>
+
+          {/* Unified Value-Chain Notification Center Bell */}
+          <button
+            type="button"
+            onClick={toggleNotificationDrawer}
+            className="relative h-[32px] w-[32px] rounded-[4px] border border-rule bg-bg-sunken hover:bg-surface text-ink-muted hover:text-ink transition-colors flex items-center justify-center focus:outline-2 focus:outline-accent shadow-none"
+            title={language === 'OR' ? 'ସୂଚନା ଏବଂ ସତର୍କତା କେନ୍ଦ୍ର' : 'Unified Value-Chain Notifications'}
+            aria-label="Open notifications"
+          >
+            <Bell size={15} />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-accent text-white font-mono text-[9px] font-bold flex items-center justify-center">
+                {unreadNotificationCount}
+              </span>
+            )}
+          </button>
           {/* In collector view, allow quick demo offline toggle in top bar */}
           {isCollectorView && (
             <button
@@ -240,7 +320,7 @@ export const TopBar: React.FC = () => {
             title={`Cycle base font size: 16px → 18px → 20px (Current: ${fontScale}px)`}
             aria-label={`Cycle font size, current ${fontScale} pixels`}
             className={cn(
-              'h-[32px] px-2 rounded-[4px] border border-rule bg-bg-sunken text-[12px] font-mono font-bold text-ink transition-colors select-none flex items-center gap-1',
+              'hidden sm:flex h-[32px] px-2 rounded-[4px] border border-rule bg-bg-sunken text-[12px] font-mono font-bold text-ink transition-colors select-none items-center gap-1',
               'hover:border-ink-subtle hover:bg-surface active:bg-bg-sunken focus:outline-2 focus:outline-accent focus:outline-offset-0'
             )}
           >
@@ -343,6 +423,12 @@ export const TopBar: React.FC = () => {
         onKeepServer={resolveConflictKeepServer}
         onMerge={resolveConflictMerge}
       />
+
+      {/* Samagna Multi-Experience Suite Launcher Modal */}
+      <AppLauncherModal />
+
+      {/* Unified Value-Chain Notification Center Drawer */}
+      <NotificationDrawer />
     </header>
   );
 };

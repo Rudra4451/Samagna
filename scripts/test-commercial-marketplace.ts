@@ -67,7 +67,7 @@ async function runCommercialBusinessModelTests() {
   const commissionCode = fs.readFileSync(commissionComponentPath, 'utf8');
   check(commissionCode.includes('ZERO DEDUCTION COLLECTOR GUARANTEE'), 'Commission section guarantees 100% MSP payout to primary gatherers');
 
-  const invoicePagePath = path.join(process.cwd(), 'src/app/marketplace/orders/[id]/page.tsx');
+  const invoicePagePath = path.join(process.cwd(), 'src/app/store/orders/[id]/page.tsx');
   const invoiceCode = fs.readFileSync(invoicePagePath, 'utf8');
   check(invoiceCode.includes('Collector Disbursed Net (100% MSP)'), 'Commercial invoices itemize 100% collector MSP entitlement');
 

@@ -87,16 +87,15 @@ The marketplace does **not** maintain a separate or detached inventory system. I
 
 | Route | Role / Audience | Description |
 |---|---|---|
-| `/marketplace` | General Buyers | Unified commercial entry point with B2B/B2C filter toggles. |
-| `/marketplace/b2b` | Bulk Enterprises | Wholesale catalogue with MOQ matrix and RFQ triggers. |
-| `/marketplace/b2c` | Consumers | Direct-to-consumer store with packaged weights and cart. |
-| `/marketplace/product/[slug]` | All Buyers | Detailed lot provenance, certified moisture data, and dual checkout modes. |
-| `/marketplace/rfq` | Enterprises | Enterprise quotation portal with depôt quote acceptance. |
-| `/marketplace/cart` | All Buyers | Shopping cart with transparent commission fee breakdowns. |
-| `/marketplace/checkout` | All Buyers | Demo commercial payment gateway with GST/PAN verification. |
-| `/marketplace/orders` | All Buyers | Order history and fulfillment roster. |
-| `/marketplace/orders/[id]` | All Buyers | Official printable commercial tax invoice with QR batch verification link. |
-| `/marketplace/register` | All Buyers | Corporate GSTIN and retail customer verification onboarding. |
+| `/store` | Consumers | Direct-to-consumer store with packaged weights, cart, and verified provenance. |
+| `/trade` | Bulk Enterprises | Wholesale catalogue with MOQ matrix, RFQ triggers, and purchase orders. |
+| `/store/[slug]` | Consumers | Detailed lot provenance, certified moisture data, and retail cart checkout. |
+| `/store/cart` | Consumers | Shopping cart with transparent commission fee breakdowns. |
+| `/store/checkout` | Consumers | Payment gateway with delivery address validation. |
+| `/store/orders` | All Buyers | Order history and fulfillment roster. |
+| `/store/orders/[id]` | All Buyers | Official printable commercial tax invoice with QR batch verification link. |
+| `/store/account` | Consumers | Customer profile, order history, live tracking, and return/grievances. |
+| `/ecosystem` | Organisations | Corporate onboarding, GSTIN verification, and membership management. |
 | `/admin` | Administrators | Features **Business Revenue**, **Government Royalty**, and **Buyer Commissions** tabs. |
 
 ---

@@ -86,7 +86,7 @@ async function runTests() {
     transitWaybillId: 'WAY-2024-KRN-402',
     qualityGrade: 'Grade A - Properly Dried',
     dateStr: '14 Mar 2025',
-    verificationUrl: 'https://banasetu.odisha.gov.in/verify/BS-402',
+    verificationUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://banasetu.odisha.gov.in'}/verify/BS-402`,
     standardPackaging: '50kg Jute Gunny Bag',
     maxMoisturePercent: 12.0,
     shrinkageTolerancePercent: 1.5,

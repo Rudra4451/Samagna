@@ -295,7 +295,7 @@ export default function PublicVerifyPage({ params }: VerifyPageProps) {
         {/* Navigation & Trust Banner */}
         <header className="flex items-center justify-between border-b border-rule pb-3 print:border-b-2">
           <Link href="/" className="flex items-center gap-2 focus:outline-2 focus:outline-accent">
-            <SamagnaLogo variant="light" size="sm" showTagline />
+            <SamagnaLogo variant="forest" size="md" showTagline />
           </Link>
           <div className="flex items-center gap-2 print:hidden">
             <button

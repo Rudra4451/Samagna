@@ -3,8 +3,21 @@ import './globals.css';
 import { BanaSetuProvider } from '../context/BanaSetuContext';
 
 export const metadata: Metadata = {
-  title: 'Samagna · ସମଗ୍ନ — Forest, People, Prosperity',
-  description: 'Transparent. Traceable. Together. Minor Forest Produce (MFP) procurement and custody ledger for tribal primary collectors in Odisha.',
+  title: 'Samagna · ସମଗ୍ନ — From the Forest to the Marketplace',
+  description: 'Verified minor forest produce procurement, transparent custodial tracking, and institutional B2B trade connecting tribal gatherers across Odisha directly to enterprise buyers.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
+  openGraph: {
+    title: 'Samagna · ସମଗ୍ନ — Value-Chain Platform for Minor Forest Produce',
+    description: 'Procurement, custody tracking, and enterprise B2B trade under TDCCOL statutory protections.',
+    url: 'https://samagna.gov.in',
+    siteName: 'Samagna Platform',
+    locale: 'en_IN',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -14,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="bg-bg text-ink antialiased">
-      <body className="min-h-screen bg-bg text-ink font-body selection:bg-bg-sunken selection:text-ink">
+      <body className="min-h-screen bg-bg text-ink font-sans selection:bg-cream selection:text-forest">
         <BanaSetuProvider>
           {children}
         </BanaSetuProvider>

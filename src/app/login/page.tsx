@@ -57,11 +57,16 @@ const TEST_PERSONAS: TestPersona[] = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('patnaik.dpo');
-  const [password, setPassword] = useState('Test@Pass123');
+  const isProduction =
+    process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PUBLIC_ALLOW_DEMO_ACCOUNTS !== 'true';
+
+  const [username, setUsername] = useState(isProduction ? '' : 'patnaik.dpo');
+  const [password, setPassword] = useState(isProduction ? '' : 'Test@Pass123');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const showDemoPersonas = !isProduction;
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,7 +128,7 @@ export default function LoginPage() {
       {/* Top Ledger Header */}
       <header className="max-w-[440px] w-full mx-auto pt-4 flex items-center justify-between border-b border-rule pb-3">
         <Link href="/" className="flex items-center gap-2 focus:outline-2 focus:outline-accent">
-          <SamagnaLogo variant="light" size="sm" showTagline />
+          <SamagnaLogo variant="forest" size="md" showTagline />
         </Link>
         <div className="text-right">
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-bg-sunken border border-rule text-ink-muted">
@@ -215,44 +220,46 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Quick Evaluator / Demo Persona Switcher */}
-          <div className="pt-4 border-t border-rule space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-ink-muted">
-                1-Click Evaluator Personas
-              </span>
-              <span className="text-[10px] text-ink-subtle font-mono">
-                Pre-seeded · Test@Pass123
-              </span>
-            </div>
+          {/* Quick Evaluator / Demo Persona Switcher (Development & Explicit Demo Opt-in Only) */}
+          {showDemoPersonas && (
+            <div className="pt-4 border-t border-rule space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-ink-muted">
+                  1-Click Evaluator Personas
+                </span>
+                <span className="text-[10px] text-ink-subtle font-mono">
+                  Pre-seeded · Test@Pass123
+                </span>
+              </div>
 
-            <div className="space-y-1.5">
-              {TEST_PERSONAS.map((p) => (
-                <button
-                  key={p.username}
-                  type="button"
-                  onClick={() => {
-                    setUsername(p.username);
-                    setPassword('Test@Pass123');
-                    handleLogin(p.username, 'Test@Pass123', p.destination);
-                  }}
-                  className="w-full text-left p-2.5 rounded-[3px] border border-rule hover:border-ink bg-bg-sunken hover:bg-surface transition-colors flex items-center justify-between group"
-                >
-                  <div>
-                    <div className="text-[12px] font-semibold text-ink group-hover:text-accent flex items-center gap-1.5">
-                      <span>{p.name}</span>
+              <div className="space-y-1.5">
+                {TEST_PERSONAS.map((p) => (
+                  <button
+                    key={p.username}
+                    type="button"
+                    onClick={() => {
+                      setUsername(p.username);
+                      setPassword('Test@Pass123');
+                      handleLogin(p.username, 'Test@Pass123', p.destination);
+                    }}
+                    className="w-full text-left p-2.5 rounded-[3px] border border-rule hover:border-ink bg-bg-sunken hover:bg-surface transition-colors flex items-center justify-between group"
+                  >
+                    <div>
+                      <div className="text-[12px] font-semibold text-ink group-hover:text-accent flex items-center gap-1.5">
+                        <span>{p.name}</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-ink-muted">
+                        {p.role} · {p.roleOdia}
+                      </div>
                     </div>
-                    <div className="text-[10px] font-mono text-ink-muted">
-                      {p.role} · {p.roleOdia}
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-mono text-ink-subtle group-hover:text-accent">
-                    Log in →
-                  </span>
-                </button>
-              ))}
+                    <span className="text-[11px] font-mono text-ink-subtle group-hover:text-accent">
+                      Log in →
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 

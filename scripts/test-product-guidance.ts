@@ -29,12 +29,14 @@ import {
 } from '../src/lib/productGuidance';
 import { createSessionToken } from '../src/lib/server/auth';
 
-if (fs.existsSync(path.join(process.cwd(), '.env.local'))) {
-  const envContent = fs.readFileSync(path.join(process.cwd(), '.env.local'), 'utf-8');
-  for (const line of envContent.split('\n')) {
-    const match = line.match(/^([A-Z_]+)=["']?([^"'\r\n]+)["']?/);
-    if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2];
+for (const envFile of ['.env', '.env.local']) {
+  if (fs.existsSync(path.join(process.cwd(), envFile))) {
+    const envContent = fs.readFileSync(path.join(process.cwd(), envFile), 'utf-8');
+    for (const line of envContent.split('\n')) {
+      const match = line.match(/^([A-Z_]+)=["']?([^"'\r\n]+)["']?/);
+      if (match && !process.env[match[1]]) {
+        process.env[match[1]] = match[2];
+      }
     }
   }
 }
@@ -358,8 +360,36 @@ async function runTests() {
       `Unauthenticated /inventory redirects to login (Status: ${unauthInventory.status})`
     );
 
+    // Login helper to obtain authentic session from running server
+    const getSessionCookie = async (username: string, fallbackPayload: any): Promise<string> => {
+      try {
+        const loginRes = await new Promise<string>((resolve) => {
+          const lReq = http.request(
+            {
+              hostname: 'localhost',
+              port: 3000,
+              path: '/api/auth/login',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            },
+            (lRes) => {
+              const rawCookies = lRes.headers['set-cookie'];
+              const cookieStr = Array.isArray(rawCookies) ? rawCookies.join('; ') : (rawCookies || '');
+              const match = cookieStr.match(/banasetu_session=([^;]+)/);
+              resolve(match ? match[1] : '');
+            }
+          );
+          lReq.on('error', () => resolve(''));
+          lReq.write(JSON.stringify({ username, password: 'Test@Pass123' }));
+          lReq.end();
+        });
+        if (loginRes) return loginRes;
+      } catch {}
+      return createSessionToken(fallbackPayload);
+    }
+
     // 6.2 Authenticated Collector session accessing /collector
-    const collectorToken = await createSessionToken({
+    const collectorToken = await getSessionCookie('sunita.soren', {
       userId: 'test-user-collector-01',
       username: 'collector_sunita',
       role: 'COLLECTOR',
@@ -379,7 +409,7 @@ async function runTests() {
     );
 
     // 6.3 Authenticated Collection Manager session accessing /collection
-    const collectionManagerToken = await createSessionToken({
+    const collectionManagerToken = await getSessionCookie('manager.mohanty', {
       userId: 'test-user-cm-01',
       username: 'manager_karanjia',
       role: 'COLLECTION_MANAGER',
@@ -399,7 +429,7 @@ async function runTests() {
     );
 
     // 6.4 Authenticated Warehouse Manager session accessing /inventory
-    const warehouseManagerToken = await createSessionToken({
+    const warehouseManagerToken = await getSessionCookie('sdas.baripada', {
       userId: 'test-user-im-01',
       username: 'manager_baripada',
       role: 'WAREHOUSE_MANAGER',

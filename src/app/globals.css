@@ -1,37 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+Oriya:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Samagna Field Ledger Design System Tokens (Restored Terracotta Orange & Warm White) */
-  --bg: #FAF6EE; /* Warm parchment / near-white subtle canvas */
-  --bg-sunken: #F2EBDD; /* Warm recessed neutral */
-  --surface: #FFFFFF; /* Pure crisp white surface */
-  --ink: #1F1A14; /* Warm deep charcoal (>14:1 contrast on #FAF6EE) */
-  --ink-muted: #5E5245; /* Measured >7:1 contrast on #FAF6EE and #FFFFFF */
-  --ink-subtle: #6B5E50; /* Measured >5.4:1 contrast on #FAF6EE and #FFFFFF */
-  --rule: #E4DBC9; /* Warm subtle dividing border */
-  --accent: #B24E2E; /* Primary Terracotta Orange: primary actions, active nav, focus ring */
-  --accent-hover: #9E3E20; /* Deepened terracotta for interactive hover */
-  --accent-tint: #FBECE5; /* Soft warm terracotta wash for active chips and badges */
-  --accent-ink: #FFFFFF; /* High-contrast white text on terracotta */
+  /* ========================================================
+     SAMAGNA PREMIUM DESIGN SYSTEM TOKENS (PHASE 1 PALETTE)
+     ======================================================== */
+  
+  /* Primary Foundation Palette */
+  --color-forest: #2D4F1E;        /* Forest Green: Primary brand, major CTAs, navigation */
+  --color-deep-forest: #25351F;   /* Deep Forest: Heavy dark sections, sidebar background */
+  --color-cream: #F5E6CC;         /* Warm Cream: Main editorial background, parchment sections */
+  --color-terracotta: #E27D60;    /* Terracotta: Warm natural accents, badges, highlights */
+  --color-terracotta-deep: #B84E34; /* Deep Terracotta: High-contrast text on cream/white (>4.5:1) */
+  --color-charcoal: #4A4A4A;      /* Charcoal: Secondary text, dark accents */
+  --color-charcoal-deep: #1F1A14; /* Deep Charcoal: Primary body text (>12:1 on cream & white) */
+  
+  /* Supporting Palette */
+  --color-warm-white: #FFFAF2;    /* Warm White: Clean organic canvas */
+  --color-sand: #E9DDC9;          /* Muted Sand: Subdued secondary surface, table zebra, input bg */
+  --color-soft-border: #D7D2C8;   /* Soft Border: Hairline dividers, tactile cards */
 
-  /* Semantic Status Tokens (Kept strictly separate from brand accent) */
-  --success: #2E5C2D; /* Forest Green: strictly verified/matched status */
-  --warning: #854C0E; /* Earthen Amber: transit shrinkage/caution status */
-  --danger: #8E2F26;  /* Crimson Red: quarantined/discrepancy status */
-  --info: #234252;    /* Slate Blue: auditable log notices */
+  /* Semantic Design Tokens (Phase 1 Specification) */
+  --color-primary: #2D4F1E;
+  --color-primary-hover: #25351F;
+  --color-primary-foreground: #FFFFFF;
+  --color-background: #FFFAF2;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #E9DDC9;
+  --color-text: #1F1A14;
+  --color-text-muted: #4A4A4A;
+  --color-border: #D7D2C8;
+  --color-accent: #E27D60;
+  --color-accent-foreground: #FFFFFF;
+  --color-success: #2E5C2D;
+  --color-warning: #854C0E;
+  --color-danger: #8E2F26;
+  --color-info: #234252;
+  --color-focus: #E27D60;
 
-  /* Sidebar Tokens (Dark warm charcoal navigation desk) */
-  --sidebar-bg: #1F1A14;
-  --sidebar-ink: #F2EBDD;
-  --sidebar-rule: rgba(242, 235, 221, 0.15);
+  /* Aliased System Tokens for Backwards Compatibility */
+  --bg: #FFFAF2;
+  --bg-cream: #F5E6CC;
+  --bg-sunken: #E9DDC9;
+  --surface: #FFFFFF;
+  --ink: #1F1A14;
+  --ink-muted: #4A4A4A;
+  --ink-subtle: #6B655B;
+  --rule: #D7D2C8;
 
-  /* Bulletproof cross-platform font stacks (Windows, Android, iOS, macOS) */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', 'Oriya Sangam MN', sans-serif;
-  --font-heading: var(--font-sans);
-  --font-odia: 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', 'Oriya Sangam MN', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  /* Primary Brand Action Tokens */
+  --forest: #2D4F1E;
+  --forest-hover: #25351F;
+  --forest-ink: #FFFFFF;
+
+  --leaf: #2D4F1E;
+  --leaf-hover: #25351F;
+  --leaf-tint: #F4F8F0;
+  --leaf-ink: #2D4F1E;
+
+  --accent: #2D4F1E;
+  --accent-hover: #25351F;
+  --accent-tint: #F4F8F0;
+  --accent-ink: #FFFFFF;
+
+  /* Semantic Status Tokens */
+  --success: #2E5C2D;
+  --warning: #854C0E;
+  --danger: #8E2F26;
+  --info: #234252;
+
+  /* Sidebar Tokens */
+  --sidebar-bg: #25351F;
+  --sidebar-ink: #F5E6CC;
+  --sidebar-rule: rgba(245, 230, 204, 0.16);
+
+  /* Typography Stacks (Phase 2 Specification) */
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Fraunces', 'Manrope', Georgia, serif;
+  --font-odia: 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* Global resets for ledger aesthetic */
@@ -75,36 +127,34 @@ input[type="number"],
   line-height: 1.55 !important;
 }
 
-/* Clean, structured sans-serif headings replacing eccentric display serif */
+/* Headings: Fraunces display typography for editorial warmth */
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-heading);
   font-weight: 600;
   line-height: 1.25;
   color: var(--ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
-/* Focus styles: accent terracotta ring 2px, 2px offset, never suppressed */
+/* Focus styles: Terracotta ring 2px, 2px offset, never suppressed */
 :focus-visible {
-  outline: 2px solid var(--accent) !important;
+  outline: 2px solid var(--color-focus) !important;
   outline-offset: 2px !important;
 }
 
-/* Sidebar focus visibility: high contrast light border on dark background */
+/* Sidebar focus visibility: high contrast warm cream on deep forest background */
 aside :focus-visible,
 .sidebar :focus-visible,
 [data-sidebar] :focus-visible {
-  outline: 2px solid #F2EBDD !important;
+  outline: 2px solid #F5E6CC !important;
   outline-offset: 2px !important;
 }
 
 /* ========================================================
-   PROMPT 15: THE FOUR ALLOWED MOTION PATTERNS (CSS TRANSITIONS ONLY)
+   SUBTLE MICRO-INTERACTIONS (CSS TRANSITIONS ONLY)
    ======================================================== */
 
-/* Pattern 1a: Drawer Slide-In & Out
-   translateX(100%) -> 0 in 180ms cubic-bezier(0.16, 1, 0.3, 1).
-   Close is 140ms reverse. No opacity crossfade. */
+/* Drawer Slide-In & Out */
 .motion-drawer-slide {
   transform: translateX(100%);
   transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -121,9 +171,7 @@ aside :focus-visible,
   transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Pattern 1b: Sheet Slide-In & Out
-   translateY(100%) -> 0 in 180ms cubic-bezier(0.16, 1, 0.3, 1).
-   Close is 140ms reverse. No opacity crossfade. */
+/* Sheet Slide-In & Out */
 .motion-sheet-slide {
   transform: translateY(100%);
   transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -140,16 +188,12 @@ aside :focus-visible,
   transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Pattern 2: Status Badge Crossfade
-   120ms colour crossfade on background and text only when state changes.
-   No scale, no bounce. */
+/* Status Badge Crossfade */
 .motion-badge-crossfade {
   transition: background-color 120ms linear, color 120ms linear, border-color 120ms linear;
 }
 
-/* Pattern 3: Toast Enter / Exit
-   Bottom slide 150ms ease-out on enter, 120ms ease-in on exit.
-   Max one toast at a time; new toasts replace rather than stack. */
+/* Toast Enter / Exit */
 .motion-toast-slide {
   transform: translateY(100%);
   opacity: 0;
@@ -167,9 +211,7 @@ aside :focus-visible,
   transition: transform 120ms ease-in, opacity 120ms ease-in;
 }
 
-/* Pattern 4: Audit Timeline Live Event
-   100ms opacity fade on entry. Only for live events created during current session.
-   Historical events never animate. */
+/* Audit Timeline Live Event */
 .motion-audit-live {
   opacity: 1;
   transition: opacity 100ms linear;
@@ -212,7 +254,7 @@ aside :focus-visible,
   }
 }
 
-/* Strict Hard Rules: No box shadows */
+/* Strict Hard Rules: No heavy drop shadows */
 button,
 input,
 select,
@@ -264,4 +306,3 @@ textarea,
     border: none !important;
   }
 }
-

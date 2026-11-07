@@ -1,7 +1,20 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 
-export type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent';
+export type StatusVariant =
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'neutral'
+  | 'accent'
+  | 'draft'
+  | 'pending'
+  | 'submitted'
+  | 'verified'
+  | 'rejected'
+  | 'failed'
+  | 'attention';
 
 export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: StatusVariant;
@@ -9,14 +22,14 @@ export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> 
 }
 
 /**
- * Prompt 12 Colour Independence Specification:
+ * Phase 3 & Prompt 12 Colour Independence Specification:
  * - A 2px left border in the status colour.
  * - A short shape/symbol preceding the label:
- *   ● for success / available
+ *   ● for success / verified / available
  *   ◆ for warning / pending / in-review
- *   ▲ for danger / discrepancy / quarantined
- *   ■ for info / collected
- *   ○ for neutral / forecast / simulated
+ *   ▲ for danger / discrepancy / quarantined / rejected / failed / requires attention
+ *   ■ for info / submitted / collected
+ *   ○ for neutral / draft / forecast / simulated
  *   ★ for accent
  * Does not rely on colour alone.
  */
@@ -25,7 +38,15 @@ const variantConfig: Record<StatusVariant, { symbol: string; classes: string }> 
     symbol: '●',
     classes: 'border-success/40 border-l-2 border-l-success bg-success/8 text-success',
   },
+  verified: {
+    symbol: '●',
+    classes: 'border-success/40 border-l-2 border-l-success bg-success/8 text-success',
+  },
   warning: {
+    symbol: '◆',
+    classes: 'border-warning/40 border-l-2 border-l-warning bg-warning/8 text-warning',
+  },
+  pending: {
     symbol: '◆',
     classes: 'border-warning/40 border-l-2 border-l-warning bg-warning/8 text-warning',
   },
@@ -33,11 +54,31 @@ const variantConfig: Record<StatusVariant, { symbol: string; classes: string }> 
     symbol: '▲',
     classes: 'border-danger/40 border-l-2 border-l-danger bg-danger/8 text-danger',
   },
+  rejected: {
+    symbol: '▲',
+    classes: 'border-danger/40 border-l-2 border-l-danger bg-danger/8 text-danger',
+  },
+  failed: {
+    symbol: '▲',
+    classes: 'border-danger/40 border-l-2 border-l-danger bg-danger/8 text-danger',
+  },
+  attention: {
+    symbol: '▲',
+    classes: 'border-danger/40 border-l-2 border-l-danger bg-danger/8 text-danger',
+  },
   info: {
     symbol: '■',
     classes: 'border-info/40 border-l-2 border-l-info bg-info/8 text-info',
   },
+  submitted: {
+    symbol: '■',
+    classes: 'border-info/40 border-l-2 border-l-info bg-info/8 text-info',
+  },
   neutral: {
+    symbol: '○',
+    classes: 'border-rule border-l-2 border-l-ink-muted bg-bg-sunken text-ink-muted',
+  },
+  draft: {
     symbol: '○',
     classes: 'border-rule border-l-2 border-l-ink-muted bg-bg-sunken text-ink-muted',
   },

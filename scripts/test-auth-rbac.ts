@@ -5,8 +5,7 @@
 
 (process.env as any).NODE_ENV = 'test';
 process.env.ALLOW_DEMO_ACCOUNTS = 'true';
-process.env.AUTH_SECRET =
-  process.env.AUTH_SECRET || 'test-auth-secret-for-banasetu-test-suite-minimum-32-chars';
+process.env.AUTH_SECRET = 'test-auth-secret-for-banasetu-test-suite-minimum-32-chars';
 
 import {
   authenticateCredentials,

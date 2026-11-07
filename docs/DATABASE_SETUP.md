@@ -19,7 +19,7 @@ Based on the repository's configuration in `package.json` and `prisma/schema.pri
 | **npm** | `9.x` or `10.x` | Package manager |
 | **PostgreSQL** | `15.x` or `16.x` | Relational database (Local or Supabase) |
 | **Prisma ORM** | `^5.21.1` | Type-safe database client and migrations |
-| **Next.js** | `14.2.15` | App Router web application |
+| **Next.js** | `14.2.35` (Patched) | App Router web application |
 
 ---
 

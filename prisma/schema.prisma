@@ -422,3 +422,1272 @@ model InventorySale {
   @@index([dispatchedAt])
 }
 
+
+
+// ==========================================
+// Phase 2: Institutional Operations & SLAs
+// ==========================================
+
+model Organisation {
+  id                    String                   @id // "ORG-TDCCOL-OR"
+  code                  String                   @unique // "TDCCOL-OR"
+  legalName             String
+  displayName           String
+  orgType               String                   @default("STATE_AGENCY")
+  registrationNumber    String?
+  statutoryOrderRef     String?
+  verificationStatus    String                   @default("PILOT_VERIFIED")
+  verificationNotes     String?
+  isDemonstrationPilot  Boolean                  @default(true)
+  nodalOfficer          String
+  nodalDesignation      String
+  contactEmail          String
+  contactPhone          String
+  officeAddress         String
+  state                 String                   @default("Odisha")
+  districtsJson         String                   @default("[\"Mayurbhanj\"]")
+  blocksJson            String                   @default("[\"Karanjia\",\"Baripada\"]")
+  centerIdsJson         String                   @default("[\"CEN-01\"]")
+  depotIdsJson          String                   @default("[\"BRP-01\"]")
+  allowableShrinkage    Float                    @default(1.5)
+  rateAuthorityRef      String                   @default("TDCCOL MSP Baseline 2024-25")
+  quarantineThresholdDays Int                    @default(3)
+  offlineSyncGraceHours Int                      @default(72)
+  dbtAutoVerification   Boolean                  @default(true)
+  assignedAdminsJson    String                   @default("[\"patnaik.dpo\"]")
+  permissionsJson       String                   @default("[\"INSTITUTIONAL_ADMIN\"]")
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  contracts             InstitutionalServiceContract[]
+  invoices              InstitutionalInvoice[]
+
+  @@index([orgType])
+  @@index([verificationStatus])
+}
+
+model InstitutionalServiceContract {
+  id                    String                   @id // "CTR-2025-001"
+  contractNumber        String                   @unique // "CTR-TDCCOL-2025-01"
+  organisationId        String
+  organisation          Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  scopeOfWork           String
+  commencementDate      DateTime
+  expiryDate            DateTime
+  annualPlatformLicense Float
+  setupOnboardingFee    Float
+  annualSlaMaintenanceFee Float
+  totalContractValue    Float
+  currency              String                   @default("INR")
+  status                String                   @default("ACTIVE")
+  renewalReviewDate     DateTime
+  renewalNoticeSent     Boolean                  @default(false)
+  proposedNextTerm      String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  deliverables          InstitutionalDeliverable[]
+  invoices              InstitutionalInvoice[]
+
+  @@index([organisationId])
+  @@index([status])
+}
+
+model InstitutionalDeliverable {
+  id                    String                   @id
+  contractId            String
+  contract              InstitutionalServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  code                  String
+  title                 String
+  description           String
+  milestoneDate         DateTime
+  status                String                   @default("IN_PROGRESS")
+  acceptanceCriteria    String
+  completedAt           DateTime?
+
+  @@index([contractId])
+}
+
+model InstitutionalInvoice {
+  id                    String                   @id
+  invoiceNumber         String                   @unique
+  contractId            String
+  contract              InstitutionalServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  organisationId        String
+  organisation          Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  milestoneRef          String
+  invoiceDate           DateTime
+  dueDate               DateTime
+  totalFeeAmount        Float
+  paidAmount            Float                    @default(0.0)
+  outstandingAmount     Float
+  status                String                   @default("DRAFT")
+  reconciliationStatus  String                   @default("PENDING_RECONCILIATION")
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  payments              InstitutionalPaymentReference[]
+
+  @@index([contractId])
+  @@index([organisationId])
+  @@index([status])
+}
+
+model InstitutionalPaymentReference {
+  id                    String                   @id
+  invoiceId             String
+  invoice               InstitutionalInvoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  treasuryChallanNo     String?
+  bankUtr               String?
+  paymentDate           DateTime
+  amount                Float
+  remitterEntity        String
+  reconciliationTimestamp DateTime               @default(now())
+  notes                 String?
+
+  @@index([invoiceId])
+  @@index([bankUtr])
+  @@index([treasuryChallanNo])
+}
+
+// ==========================================
+// Phase 3: B2B Bulk Trade Platform
+// ==========================================
+
+enum TradeOrgType {
+  MANUFACTURER
+  BULK_BUYER
+  WHOLESALER
+  PROCESSOR
+  PRODUCER_ORGANISATION
+  AUTHORISED_SUPPLIER
+  STATE_AGENCY
+}
+
+enum TradeVerificationStatus {
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  VERIFIED_ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum RfqLifecycleStatus {
+  SUBMITTED
+  SELLER_REVIEW
+  QUOTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  PO_CREATED
+}
+
+enum PurchaseOrderStatus {
+  ISSUED
+  CONFIRMED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model TradeBusinessProfile {
+  id                    String                   @id // e.g. "BUS-ORG-001"
+  companyName           String
+  tradeName             String?
+  businessType          TradeOrgType             @default(BULK_BUYER)
+  registrationNumber    String                   // CIN / LLPIN / Society Reg
+  gstin                 String?
+  pan                   String
+  fssaiLicense          String?
+  ayushLicense          String?
+  verificationStatus    TradeVerificationStatus  @default(PENDING_VERIFICATION)
+  verificationNotes     String?
+  registeredAddress     String
+  city                  String
+  district              String
+  state                 String
+  pincode               String
+  authorizedContactName String
+  contactEmail          String
+  contactPhone          String
+  bankName              String?
+  bankBranch            String?
+  accountNumberEnding   String?                  // Masked to last 4
+  ifscCode              String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  listings              TradeListing[]           @relation("SellerListings")
+  rfqsCreated           TradeRfq[]               @relation("BuyerRfqs")
+  quotationsSubmitted   TradeQuotation[]         @relation("SellerQuotations")
+  purchaseOrdersAsBuyer TradePurchaseOrder[]     @relation("BuyerPurchaseOrders")
+  purchaseOrdersAsSeller TradePurchaseOrder[]    @relation("SellerPurchaseOrders")
+
+  @@index([businessType])
+  @@index([verificationStatus])
+  @@index([gstin])
+  @@index([pan])
+}
+
+model TradeListing {
+  id                         String              @id // e.g. "LIST-MAHUA-2025-01"
+  sellerOrgId                String
+  sellerOrg                  TradeBusinessProfile @relation("SellerListings", fields: [sellerOrgId], references: [id], onDelete: Cascade)
+  produceSlug                String              // e.g. "mahua", "sal-seeds"
+  produceName                String
+  scientificName             String?
+  qualityGrade               String              // e.g. "Grade 1 / Premium", "FAQ"
+  totalLotQuantityKg         Float
+  allocatedQuantityKg        Float               @default(0.0)
+  availableQuantityKg        Float
+  minimumOrderQuantityKg     Float               @default(50.0)
+  indicativePricePerKg       Float
+  depotFacilityId            String              // e.g. "BRP-01"
+  storageBayLocation         String?             // e.g. "Bay 01-B"
+  warehouseBatchRef          String              // Physical warehouse batch e.g. "BS-402", "BS-400"
+  lotSaleAuthorizationRef    String              // Formal DPO release e.g. "AUTH-DPO-2025-001"
+  authorizingOfficer         String              // e.g. "patnaik.dpo"
+  isStatutoryClearanceVerified Boolean           @default(false)
+  availabilityStartDate      DateTime            @default(now())
+  availabilityEndDate        DateTime
+  isActive                   Boolean             @default(true)
+  labReportUrl               String?
+  inspectionCertificateRef   String?
+  packagingDescription       String              @default("50kg Jute Gunny Bag (Double Stitched)")
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+
+  rfqs                       TradeRfq[]
+  quotations                 TradeQuotation[]
+  allocationLocks            TradeAllocationLock[]
+
+  @@index([sellerOrgId])
+  @@index([produceSlug])
+  @@index([depotFacilityId])
+  @@index([isActive])
+}
+
+model TradeRfq {
+  id                    String               @id // e.g. "RFQ-2025-001"
+  rfqNumber             String               @unique // e.g. "RFQ-B2B-2025-001"
+  buyerOrgId            String
+  buyerOrg              TradeBusinessProfile @relation("BuyerRfqs", fields: [buyerOrgId], references: [id], onDelete: Cascade)
+  listingId             String?
+  listing               TradeListing?        @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  produceSlug           String
+  produceName           String
+  requestedGrade        String
+  requestedQuantityKg   Float
+  deliveryLocation      String
+  targetDeliveryDate    DateTime
+  packagingRequirements String?
+  buyerNotes            String?
+  status                RfqLifecycleStatus   @default(SUBMITTED)
+  rejectionReason       String?
+  cancellationReason    String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  quotations            TradeQuotation[]
+  purchaseOrder         TradePurchaseOrder?
+
+  @@index([buyerOrgId])
+  @@index([status])
+  @@index([rfqNumber])
+}
+
+model TradeQuotation {
+  id                    String               @id // e.g. "QUOT-2025-001"
+  quotationNumber       String               @unique // e.g. "QUOT-B2B-2025-001"
+  rfqId                 String
+  rfq                   TradeRfq             @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sellerOrgId           String
+  sellerOrg             TradeBusinessProfile @relation("SellerQuotations", fields: [sellerOrgId], references: [id], onDelete: Cascade)
+  listingId             String?
+  listing               TradeListing?        @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  quotedPricePerKg      Float
+  minimumOrderQuantityKg Float
+  quotedTotalAmount     Float
+  deliveryTimelineDays  Int                  @default(7)
+  deliveryTerms         String               @default("Ex-Depot Baripada Central Terminal (BRP-01)")
+  paymentTerms          String               @default("Corporate NEFT / RTGS against Delivery Inspection")
+  validUntil            DateTime
+  sellerRemarks         String?
+  isAccepted            Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  allocationLock        TradeAllocationLock?
+  purchaseOrder         TradePurchaseOrder?
+
+  @@index([rfqId])
+  @@index([sellerOrgId])
+  @@index([quotationNumber])
+}
+
+model TradeAllocationLock {
+  id                    String               @id // e.g. "LOCK-001"
+  listingId             String
+  listing               TradeListing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  quotationId           String?              @unique
+  quotation             TradeQuotation?      @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  reservedQuantityKg    Float
+  lockExpiresAt         DateTime
+  isCommitted           Boolean              @default(false)
+  isReleased            Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+
+  @@index([listingId])
+  @@index([lockExpiresAt])
+}
+
+model TradePurchaseOrder {
+  id                    String               @id // e.g. "PO-2025-001"
+  poNumber              String               @unique // e.g. "PO-B2B-2025-001"
+  buyerOrgId            String
+  buyerOrg              TradeBusinessProfile @relation("BuyerPurchaseOrders", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  sellerOrgId           String
+  sellerOrg             TradeBusinessProfile @relation("SellerPurchaseOrders", fields: [sellerOrgId], references: [id], onDelete: Restrict)
+  rfqId                 String               @unique
+  rfq                   TradeRfq             @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  quotationId           String               @unique
+  quotation             TradeQuotation       @relation(fields: [quotationId], references: [id], onDelete: Restrict)
+  produceName           String
+  scientificName        String?
+  qualityGrade          String
+  quantityKg            Float
+  agreedPricePerKg      Float
+  totalOrderAmount      Float
+  deliveryTerms         String
+  deliveryAddress       String
+  expectedDeliveryDate  DateTime
+  status                PurchaseOrderStatus  @default(ISSUED)
+  eWaybillNumber        String?
+  qualityInspectionCertRef String?
+  auditHistoryJson      String               @default("[]") // Append-only audit trail
+  platformServiceFeeRate Float               @default(0.0) // Prepared for future commercial fee; 0.0 in pilot
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([buyerOrgId])
+  @@index([sellerOrgId])
+  @@index([poNumber])
+  @@index([status])
+}
+
+// ==========================================
+// Phase 4: Processing & Value-Addition Network
+// ==========================================
+
+enum FacilityVerificationStatus {
+  PENDING_INSPECTION
+  VERIFIED_OPERATIONAL
+  UNDER_MAINTENANCE
+  SUSPENDED
+}
+
+enum ProcessingRequestStatus {
+  SUBMITTED
+  MATCHED
+  UNDER_FACILITY_REVIEW
+  ACCEPTED
+  REJECTED
+  JOB_SCHEDULED
+  CANCELLED
+}
+
+enum ProcessingJobStatus {
+  SCHEDULED
+  INPUT_STAGED
+  IN_PROCESS
+  OUTPUT_INSPECTION
+  COMPLETED_VERIFIED
+  REJECTED_DISCREPANCY
+}
+
+model ProcessingFacility {
+  id                             String                     @id // e.g. "FAC-MAYUR-HONEY-01"
+  code                           String                     @unique // e.g. "FAC-KRN-01"
+  name                           String
+  operatorOrgId                  String
+  operatorOrgName                String
+  locationAddress                String
+  district                       String
+  state                          String                     @default("Odisha")
+  pincode                        String
+  processingCapabilities         String
+  supportedCategories            String
+  machineryEquipment             String
+  dailyCapacityKg                Float
+  operatingAvailability          String                     @default("MON_TO_SAT_8AM_6PM")
+  minimumBatchKg                 Float                      @default(50.0)
+  indicativeProcessingChargePerKg Float                     @default(10.0)
+  verificationStatus             FacilityVerificationStatus @default(VERIFIED_OPERATIONAL)
+  isActive                       Boolean                    @default(true)
+  createdAt                      DateTime                   @default(now())
+  updatedAt                      DateTime                   @updatedAt
+
+  requests                       ProcessingRequest[]
+  jobs                           ProcessingJob[]
+
+  @@index([district])
+  @@index([verificationStatus])
+  @@index([isActive])
+}
+
+model ProcessingRequest {
+  id                       String                  @id // e.g. "REQ-PROC-2025-001"
+  requestNumber            String                  @unique // e.g. "REQ-PROC-2025-001"
+  requestingOrgId          String
+  requestingOrgName        String
+  targetFacilityId         String?
+  targetFacility           ProcessingFacility?     @relation(fields: [targetFacilityId], references: [id], onDelete: SetNull)
+  inputProduceSlug         String
+  inputProduceName         String
+  inputQuantityKg          Float
+  requiredOutputName       String
+  desiredQualitySpecs      String
+  expectedYieldPercent     Float                   @default(85.0)
+  expectedOutputQuantityKg Float
+  facilityRequirements     String?
+  preferredStartDate       DateTime
+  preferredCompletionDate  DateTime
+  deliveryRequirements     String
+  status                   ProcessingRequestStatus @default(SUBMITTED)
+  rejectionReason          String?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+
+  job                      ProcessingJob?
+
+  @@index([requestingOrgId])
+  @@index([status])
+  @@index([inputProduceSlug])
+}
+
+model ProcessingJob {
+  id                       String              @id // e.g. "JOB-PROC-2025-001"
+  jobCode                  String              @unique // e.g. "JOB-PROC-2025-001"
+  requestId                String              @unique
+  request                  ProcessingRequest   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  facilityId               String
+  facility                 ProcessingFacility  @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  inputLotRef              String              // Parent raw lot ID (e.g. "BS-402", "LIST-MAHUA-2025-01")
+  inputProduceName         String
+  inputQuantityKg          Float
+  outputProduceName        String
+  outputLotRef             String              // Traceable output lot ID (e.g. "LOT-VAL-HONEY-2025-01")
+  outputQuantityKg         Float?              // Actual recorded yield
+  processingLossKg         Float?              // Recorded shrinkage/loss
+  byProductQuantityKg      Float?              // Recovered wax, seeds, etc.
+  byProductDescription     String?
+  actualYieldPercent       Float?
+  startDate                DateTime
+  targetCompletionDate     DateTime
+  actualCompletionDate     DateTime?
+  qualityInspectionRef     String?             // e.g. "QC-FAC-2025-088"
+  qualityInspectionNotes   String?
+  status                   ProcessingJobStatus @default(SCHEDULED)
+  supportingDocumentsJson  String              @default("[]")
+  auditHistoryJson         String              @default("[]") // Append-only audit trail
+  coordinationFeeRate      Float               @default(0.0) // 0.0 in pilot
+  coordinationFeeInr       Float               @default(0.0)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+
+  @@index([facilityId])
+  @@index([inputLotRef])
+  @@index([outputLotRef])
+  @@index([status])
+}
+
+// ==========================================
+// Phase 5: Logistics & Fulfilment Network
+// ==========================================
+
+enum LogisticsProviderType {
+  STATE_COOPERATIVE_FLEET
+  REGISTERED_COMMERCIAL_CARRIER
+  AGGREGATION_SHG_TRANSPORT
+  THIRD_PARTY_LOGISTICS
+}
+
+enum ShipmentStatus {
+  CREATED
+  ASSIGNED
+  PICKUP_CONFIRMED
+  DISPATCHED_IN_TRANSIT
+  DELIVERED_CONFIRMED
+  DELIVERED_PARTIAL
+  DELIVERY_FAILED
+  CANCELLED
+}
+
+enum ShipmentExceptionType {
+  NONE
+  TRANSIT_DELAY
+  EN_ROUTE_DAMAGE
+  QUANTITY_DISCREPANCY
+  SEAL_TAMPERED
+  WEATHER_DISRUPTION
+  VEHICLE_BREAKDOWN
+}
+
+model LogisticsProvider {
+  id                  String                @id // e.g. "LOG-OR-COOP-01"
+  code                String                @unique // e.g. "CARRIER-OD-01"
+  name                String
+  carrierType         LogisticsProviderType @default(STATE_COOPERATIVE_FLEET)
+  registrationNumber  String
+  gstin               String?
+  pan                 String
+  contactPerson       String
+  contactPhone        String
+  contactEmail        String
+  fleetSize           Int                   @default(5)
+  supportedDistricts  String                // e.g. "Mayurbhanj, Keonjhar, Balasore"
+  operatingRatePerKm  Float                 @default(35.0)
+  isVerified          Boolean               @default(true)
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  shipments           CommercialShipment[]
+
+  @@index([carrierType])
+  @@index([isActive])
+}
+
+model CommercialShipment {
+  id                          String                @id // e.g. "SHP-2025-001"
+  shipmentNumber              String                @unique // e.g. "SHP-MAYUR-2025-001"
+  waybillNumber               String?               // e.g. "EWB-2110-8849-3012"
+  carrierId                   String
+  carrier                     LogisticsProvider     @relation(fields: [carrierId], references: [id], onDelete: Restrict)
+  vehicleNumber               String                // e.g. "OD-11-A-4402"
+  driverName                  String
+  driverPhone                 String
+  driverLicenseNumber         String?
+  sourceType                  String                // "PURCHASE_ORDER" | "PROCESSING_JOB" | "WAREHOUSE_TRANSFER"
+  sourceReferenceId           String                // References PO, Job, or Batch
+  lotReference                String                // e.g. "BS-402", "LIST-MAHUA-2025-01"
+  produceName                 String
+  dispatchedQuantityKg        Float
+  receivedQuantityKg          Float?
+  quantityVarianceKg          Float?                @default(0.0)
+  discrepancyReason           String?
+  originFacilityId            String
+  originFacilityName          String
+  originAddress               String
+  destinationFacilityId       String?
+  destinationFacilityName     String
+  destinationAddress          String
+  sealTagIds                  String                // e.g. "SEAL-BRP-991, SEAL-BRP-992"
+  tarpaulinSecured            Boolean               @default(true)
+  status                      ShipmentStatus        @default(CREATED)
+  pickupConfirmedAt           DateTime?
+  dispatchedAt                DateTime?
+  estimatedArrivalDate        DateTime
+  actualDeliveryDate          DateTime?
+  exceptionType               ShipmentExceptionType @default(NONE)
+  exceptionNotes              String?
+  damageReportedKg            Float?                @default(0.0)
+  delayHours                  Int?                  @default(0)
+  proofOfDeliveryDocRef       String?               // e.g. "POD-SHP-2025-001.pdf"
+  deliverySignedBy            String?
+  supportingDocumentsJson     String                @default("[]")
+  distanceKm                  Float                 @default(120.0)
+  freightCostInr              Float
+  logisticsCoordinationFeeRate Float                @default(0.0) // Inactive 0.0 in pilot
+  logisticsCoordinationFeeInr Float                 @default(0.0)
+  auditHistoryJson            String                @default("[]")
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+
+  @@index([carrierId])
+  @@index([sourceReferenceId])
+  @@index([lotReference])
+  @@index([status])
+  @@index([shipmentNumber])
+}
+
+
+// ==========================================
+// Phase 6: B2B2C Partner Distribution Network
+// ==========================================
+
+enum PartnerOrgType {
+  PRODUCER_ORGANISATION
+  SHG_FEDERATION
+  CONSUMER_BRAND
+  RETAIL_DISTRIBUTOR
+  INSTITUTIONAL_RESELLER
+}
+
+enum PartnerVerificationStatus {
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  VERIFIED_ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum DistributionProductTier {
+  RAW_PRODUCE
+  PROCESSED_BULK
+  RETAIL_READY_PACKAGED
+}
+
+enum DistributionChannelType {
+  EXTERNAL_RETAIL_PARTNER
+  PARTNER_OWNED_STORE
+  INSTITUTIONAL_BUYER
+  APPROVED_RESELLER_NETWORK
+}
+
+enum PackagingType {
+  GLASS_JAR
+  STANDUP_POUCH
+  CORRUGATED_BOX
+  TIN_CANISTER
+  COMPOSITE_DRUM
+}
+
+enum OrderReferralStatus {
+  RECORDED
+  CONFIRMED_FULFILLED
+  RETURNED_CANCELLED
+  SETTLED
+}
+
+enum SalesReconciliationStatus {
+  PENDING_RECONCILIATION
+  RECONCILED_SETTLED
+  DISCREPANCY_FLAGGED
+}
+
+enum PartnerSubscriptionTier {
+  COMMUNITY_PILOT
+  GROWTH_PARTNER
+  ENTERPRISE_NETWORK
+}
+
+model DistributionPartnerProfile {
+  id                    String                    @id // e.g. "PRT-ORG-001"
+  code                  String                    @unique // e.g. "PRT-MAYUR-01"
+  organisationName      String
+  partnerType           PartnerOrgType            @default(PRODUCER_ORGANISATION)
+  registrationNumber    String
+  gstin                 String?
+  pan                   String
+  fssaiLicenseNumber    String?
+  primaryContactPerson  String
+  contactPhone          String
+  contactEmail          String
+  headquartersAddress   String
+  operatingDistricts    String                    @default("[\"Mayurbhanj\"]")
+  verificationStatus    PartnerVerificationStatus @default(PENDING_VERIFICATION)
+  isVerified            Boolean                   @default(false)
+  isActive              Boolean                   @default(false)
+  subscriptionTier      PartnerSubscriptionTier   @default(COMMUNITY_PILOT)
+  subscriptionFeeInr    Float                     @default(0.0)
+  enablementFeeRate     Float                     @default(0.0) // 0.0% in pilot
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  brands                DistributionBrand[]
+  products              RetailProductSku[]
+  channels              DistributionChannel[]
+  referrals             OrderReferralRecord[]
+  reconciliations       PartnerSalesReconciliation[]
+
+  @@index([partnerType])
+  @@index([verificationStatus])
+  @@index([isVerified])
+}
+
+model DistributionBrand {
+  id                    String                    @id // e.g. "BRD-001"
+  brandCode             String                    @unique // e.g. "BRD-MAYUR-WILD"
+  partnerId             String
+  partner               DistributionPartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  brandName             String
+  originDistrict        String
+  brandStory            String
+  ethosStatement        String
+  logoUrl               String?
+  primaryColorHex       String?                   @default("#2D5A27")
+  contactEmail          String
+  websiteUrl            String?
+  isActive              Boolean                   @default(true)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  products              RetailProductSku[]
+
+  @@index([partnerId])
+  @@index([brandCode])
+}
+
+model RetailProductSku {
+  id                         String                    @id // e.g. "SKU-HONEY-500G-01"
+  skuCode                    String                    @unique // e.g. "SKU-MW-HONEY-500G"
+  barcode                    String?                   // EAN-13 / GTIN
+  brandId                    String
+  brand                      DistributionBrand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  partnerId                  String
+  partner                    DistributionPartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  productTitle               String
+  productTier                DistributionProductTier   @default(RETAIL_READY_PACKAGED)
+  category                   String
+  botanicalName              String?
+  netQuantity                String                    // e.g. "500 g"
+  netWeightGrams             Float                     // 500.0
+  casePackSize               Int                       @default(12)
+  packagingType              PackagingType             @default(GLASS_JAR)
+  packagingMaterial          String
+  shelfLifeMonths            Int                       @default(18)
+  ingredients                String
+  storageInstructions        String
+  originCluster              String
+  communityProvenance        String
+  harvestSeason              String
+  traditionalHarvestPractice String
+  wholesalePriceUnitInr      Float
+  wholesalePriceCaseInr      Float
+  retailPriceMrpInr          Float
+  minOrderQuantityUnits      Int                       @default(12)
+  inventoryOnHandUnits       Int                       @default(0)
+  inventoryAllocatedUnits    Int                       @default(0)
+  inventoryAvailableUnits    Int                       @default(0)
+  sourceLotReference         String                    // References physical lot or processing job
+  fssaiDeclaration           String?
+  certificationsJson         String                    @default("[]") // Verified evidence only
+  isEvidenceVerified         Boolean                   @default(false)
+  verificationNotes          String?
+  isPublished                Boolean                   @default(true)
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([brandId])
+  @@index([partnerId])
+  @@index([productTier])
+  @@index([sourceLotReference])
+  @@index([skuCode])
+}
+
+model DistributionChannel {
+  id                         String                    @id // e.g. "CHN-001"
+  channelCode                String                    @unique // e.g. "CHN-RETAIL-01"
+  channelName                String
+  channelType                DistributionChannelType   @default(EXTERNAL_RETAIL_PARTNER)
+  partnerId                  String
+  partner                    DistributionPartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  channelPartnerName         String                    // e.g. "Utkalika State Handloom & Handicrafts Emporium"
+  contractAgreementRef       String                    // e.g. "AGR-UTKAL-2025-09"
+  retailerMarginPercent      Float                     @default(20.0) // 20.0%
+  platformEnablementFeeRate  Float                     @default(0.0)  // 0.0% in pilot
+  settlementTerms            String                    @default("Net-30 days post delivery confirmation")
+  targetAudience             String
+  catalogueFeedUrl           String?
+  isActive                   Boolean                   @default(true)
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  referrals                  OrderReferralRecord[]
+  reconciliations            PartnerSalesReconciliation[]
+
+  @@index([partnerId])
+  @@index([channelType])
+  @@index([channelCode])
+}
+
+model OrderReferralRecord {
+  id                         String                    @id // e.g. "REF-ORD-2025-001"
+  referralCode               String                    @unique // e.g. "REF-SIMIL-2025-01"
+  channelId                  String
+  channel                    DistributionChannel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  partnerId                  String
+  partner                    DistributionPartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  externalOrderNumber        String                    // External retailer or store order number
+  customerIdentifier         String                    // Anonymized identifier e.g. "STORE-BBSR-04"
+  orderDate                  DateTime                  @default(now())
+  lineItemsJson              String                    @default("[]") // [{ skuCode, title, quantity, unitWholesaleInr, totalInr }]
+  totalUnits                 Int
+  grossOrderValueInr         Float
+  channelMarginAmountInr     Float
+  platformEnablementFeeInr   Float                     @default(0.0)
+  netPartnerPayableInr       Float
+  status                     OrderReferralStatus       @default(RECORDED)
+  fulfilmentNotes            String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([channelId])
+  @@index([partnerId])
+  @@index([status])
+  @@index([referralCode])
+}
+
+model PartnerSalesReconciliation {
+  id                             String                    @id // e.g. "REC-2025-01"
+  reconciliationNumber           String                    @unique // e.g. "REC-B2B2C-2025-001"
+  channelId                      String
+  channel                        DistributionChannel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  partnerId                      String
+  partner                        DistributionPartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  billingPeriodStart             DateTime
+  billingPeriodEnd               DateTime
+  totalReferralsCount            Int
+  totalUnitsSold                 Int
+  grossMerchandiseValueInr       Float
+  channelMarginDeductionsInr     Float
+  platformEnablementFeesInr      Float                     @default(0.0)
+  netRemittancePayableInr        Float
+  physicalInventoryDrawdownUnits Int
+  inventoryVarianceUnits         Int                       @default(0)
+  status                         SalesReconciliationStatus @default(PENDING_RECONCILIATION)
+  settlementReference            String?
+  discrepancyNotes               String?
+  reconciledAt                   DateTime?
+  reconciledBy                   String?
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime                  @updatedAt
+
+  @@index([channelId])
+  @@index([partnerId])
+  @@index([status])
+  @@index([reconciliationNumber])
+}
+
+
+// ==========================================
+// Phase 7: Samagna Consumer Marketplace
+// ==========================================
+
+enum ConsumerOrderStatus {
+  ORDER_PLACED_CONFIRMED
+  PROCESSING_PACKED
+  DISPATCHED_IN_TRANSIT
+  DELIVERED_CONFIRMED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURNED_REFUNDED
+}
+
+enum ConsumerGrievanceType {
+  DAMAGED_IN_TRANSIT
+  SEAL_BROKEN
+  QUALITY_DEFECT
+  WRONG_ITEM_RECEIVED
+  DELIVERY_DELAY
+  OTHER
+}
+
+enum ConsumerGrievanceStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  REPLACEMENT_APPROVED
+  REFUND_APPROVED
+  REJECTED
+  RESOLVED
+}
+
+model ConsumerOrder {
+  id                         String                    @id // e.g. "ORD-CUID"
+  orderNumber                String                    @unique // e.g. "ORD-SMG-2025-0012"
+  customerName               String
+  customerEmail              String
+  customerPhone              String
+  shippingAddress            String
+  city                       String
+  district                   String
+  state                      String
+  pincode                    String
+  totalItemsCount            Int
+  subtotalInr                Float
+  shippingFeeInr             Float                     @default(0.0)
+  discountInr                Float                     @default(0.0)
+  totalPayableInr            Float
+  paymentMethod              String                    @default("DEMO_COMMERCIAL_GATEWAY")
+  paymentStatus              String                    @default("PAID_DEMO")
+  orderStatus                ConsumerOrderStatus       @default(ORDER_PLACED_CONFIRMED)
+  primaryLotReference        String                    // Primary traceability lot
+  lineItemsJson              String                    @default("[]") // [{ skuCode, title, quantity, unitPriceInr, totalInr, lotReference }]
+  trackingConsignmentRef     String?                   // Link to logistics waybill
+  cancellationReason         String?
+  cancelledAt                DateTime?
+  deliveredAt                DateTime?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  grievances                 ConsumerGrievance[]
+
+  @@index([customerEmail])
+  @@index([orderStatus])
+  @@index([orderNumber])
+  @@index([primaryLotReference])
+}
+
+model ConsumerGrievance {
+  id                         String                    @id // e.g. "GRV-CUID"
+  ticketNumber               String                    @unique // e.g. "GRV-2025-001"
+  orderId                    String
+  order                      ConsumerOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerEmail              String
+  grievanceType              ConsumerGrievanceType     @default(DAMAGED_IN_TRANSIT)
+  description                String
+  evidenceDocUrl             String?
+  status                     ConsumerGrievanceStatus   @default(SUBMITTED)
+  resolutionNotes            String?
+  resolvedAt                 DateTime?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([orderId])
+  @@index([ticketNumber])
+  @@index([status])
+}
+
+// ==========================================
+// Phase 8: Revenue and Commercial Reconciliation
+// ==========================================
+
+enum CommercialInvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+  DISPUTED
+}
+
+enum FinancialReconciliationStatus {
+  UNRECONCILED
+  PARTIALLY_RECONCILED
+  FULLY_RECONCILED
+  DISCREPANCY_FLAGGED
+  DISPUTED
+}
+
+enum CommercialSettlementStatus {
+  PENDING_APPROVAL
+  APPROVED
+  SETTLED
+  BLOCKED_DISPUTE
+  CANCELLED
+}
+
+model CommercialInvoice {
+  id                         String                    @id // e.g. "INV-SMG-2025-0001"
+  invoiceNumber              String                    @unique
+  organisationId             String
+  organisationName           String
+  contractId                 String?
+  orderReference             String?
+  invoiceType                String                    @default("INSTITUTIONAL_CONTRACT")
+  invoiceDate                DateTime
+  dueDate                    DateTime
+  subtotalInr                Float
+  taxInr                     Float                     @default(0.0)
+  totalAmountInr             Float
+  paidAmountInr              Float                     @default(0.0)
+  outstandingAmountInr       Float
+  currency                   String                    @default("INR")
+  status                     CommercialInvoiceStatus   @default(ISSUED)
+  reconciliationStatus       FinancialReconciliationStatus @default(UNRECONCILED)
+  approvedBy                 String                    // INVARIANT: Mandatory commercial charge approver
+  approvalTimestamp          DateTime                  @default(now())
+  approvalNotes              String?
+  cancellationReason         String?
+  disputeReason              String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  lines                      CommercialInvoiceLine[]
+  payments                   FinancialPaymentReference[]
+
+  @@index([organisationId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model CommercialInvoiceLine {
+  id                         String                    @id
+  invoiceId                  String
+  invoice                    CommercialInvoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  lineNumber                 Int
+  chargeCategory             String
+  description                String
+  quantity                   Float
+  unitOfMeasure              String
+  unitPriceInr               Float
+  amountInr                  Float
+  sourceReferenceType        String?
+  sourceReferenceId          String?
+
+  @@index([invoiceId])
+}
+
+model ConfigurableFeeSchedule {
+  id                         String                    @id // e.g. "FEE-PILOT-2025"
+  code                       String                    @unique
+  name                       String
+  domain                     String
+  structure                  String
+  ratePercent                Float                     @default(0.0)
+  fixedAmountInr             Float                     @default(0.0)
+  minimumChargeInr           Float                     @default(0.0)
+  capAmountInr               Float?
+  effectiveFrom              DateTime
+  effectiveTo                DateTime?
+  isApprovedTerms            Boolean                   @default(false)
+  approvedBy                 String
+  collectorExempt            Boolean                   @default(true) // INVARIANT: Collector access remains free
+  mspProtectionClause        Boolean                   @default(true) // INVARIANT: MSP cannot be reduced
+  notes                      String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([code])
+}
+
+model FinancialPaymentReference {
+  id                         String                    @id
+  referenceCode              String                    @unique
+  invoiceId                  String?
+  invoice                    CommercialInvoice?        @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  orderReference             String?
+  instrumentType             String
+  instrumentNumber           String
+  isSimulated                Boolean                   @default(false) // INVARIANT: Flag simulated references
+  simulationDisclaimer       String
+  remitterEntity             String
+  remitterBankBranch         String?
+  amountInr                  Float
+  paymentDate                DateTime
+  verificationStatus         String                    @default("PENDING_VERIFICATION")
+  verifiedBy                 String?
+  verifiedAt                 DateTime?
+  rejectionReason            String?
+  notes                      String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([invoiceId])
+  @@index([instrumentNumber])
+}
+
+model CommercialSettlement {
+  id                         String                    @id // e.g. "SETTL-SMG-2025-001"
+  settlementNumber           String                    @unique
+  idempotencyKey             String                    @unique // INVARIANT: Prevents duplicate settlement records
+  payeeOrgId                 String
+  payeeOrgName               String
+  payeeType                  String
+  settlementType             String
+  sourceReference            String
+  grossAmountInr             Float
+  deductionsInr              Float                     @default(0.0) // INVARIANT: Zero deductions from MSP!
+  netPayableInr              Float
+  currency                   String                    @default("INR")
+  status                     CommercialSettlementStatus @default(PENDING_APPROVAL)
+  approvedBy                 String?
+  approvalTimestamp          DateTime?
+  disbursementBankRef        String?
+  disbursedAt                DateTime?
+  cancellationReason         String?
+  notes                      String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  @@index([payeeOrgId])
+  @@index([idempotencyKey])
+  @@index([status])
+}
+
+model FinancialReconciliation {
+  id                         String                    @id
+  reconciliationCode         String                    @unique
+  invoiceId                  String?
+  orderReference             String?
+  settlementId               String?
+  paymentReferenceId         String
+  expectedInr                Float
+  receivedInr                Float
+  varianceInr                Float
+  status                     FinancialReconciliationStatus @default(UNRECONCILED)
+  discrepancyType            String?
+  discrepancyNotes           String?
+  reconciledBy               String
+  reconciledAt               DateTime                  @default(now())
+
+  @@index([reconciliationCode])
+  @@index([invoiceId])
+}
+
+model FinancialAdjustment {
+  id                         String                    @id
+  adjustmentNumber           String                    @unique
+  targetInvoiceId            String?
+  targetOrderId              String?
+  adjustmentType             String
+  direction                  String
+  amountInr                  Float
+  reason                     String
+  approvedBy                 String                    // INVARIANT: Mandatory approver
+  approvedAt                 DateTime                  @default(now())
+  status                     String                    @default("APPLIED")
+  notes                      String?
+  createdAt                  DateTime                  @default(now())
+
+  @@index([adjustmentNumber])
+  @@index([targetInvoiceId])
+}
+
+model FinancialAuditTrail {
+  id                         String                    @id
+  entityType                 String
+  entityId                   String
+  action                     String
+  actor                      String
+  previousStateJson          String?
+  newStateJson               String?
+  notes                      String?
+  timestamp                  DateTime                  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
+// ==========================================
+// Phase 9: Ecosystem and Organisation Management
+// ==========================================
+
+enum EcosystemOrgCategory {
+  INSTITUTIONAL_ORGANISATION
+  PRODUCER_ORGANISATION
+  SHG_FEDERATION
+  SUPPLIER
+  BULK_BUYER
+  MANUFACTURER
+  PROCESSING_FACILITY
+  LOGISTICS_PROVIDER
+  RETAIL_PARTNER
+}
+
+enum EcosystemVerificationStatus {
+  DRAFT_REGISTRATION
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  VERIFIED_ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum OrgMemberRole {
+  ORG_ADMIN
+  OPERATIONS_OFFICER
+  FINANCIAL_OFFICER
+  FIELD_AGENT
+  READ_ONLY
+}
+
+enum OrgDocumentType {
+  REGISTRATION_CERTIFICATE
+  PAN_CARD
+  GSTIN_CERTIFICATE
+  FSSAI_LICENSE
+  MANDI_LICENSE
+  POLLUTION_CLEARANCE
+  FOREST_RIGHTS_RECOGNITION
+  AUTHORIZATION_LETTER
+  STATUTORY_GOVT_ORDER
+}
+
+model EcosystemOrganisation {
+  id                         String                    @id // e.g. "ECO-ORG-TDCCOL"
+  code                       String                    @unique // e.g. "TDCCOL-OD"
+  legalName                  String
+  tradeName                  String
+  category                   EcosystemOrgCategory
+  registrationNumber         String?
+  panNumber                  String?
+  gstin                      String?
+  fssaiNumber                String?
+  verificationStatus         EcosystemVerificationStatus @default(PENDING_VERIFICATION)
+  verificationNotes          String?
+  verifiedBy                 String?
+  verifiedAt                 DateTime?
+  rejectionReason            String?
+  state                      String                    @default("Odisha")
+  districtsJson              String                    @default("[]")
+  blocksJson                 String                    @default("[]")
+  villageClustersJson        String                    @default("[]")
+  pincodesJson               String                    @default("[]")
+  primaryContactName         String
+  primaryContactEmail        String
+  primaryContactPhone        String
+  officeAddress              String
+  operationalCapacityNotes   String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  documents                  OrganisationDocument[]
+  members                    OrganisationMember[]
+  activityLogs               OrganisationActivityLog[]
+
+  @@index([category])
+  @@index([verificationStatus])
+  @@index([code])
+}
+
+model OrganisationDocument {
+  id                         String                    @id // e.g. "DOC-ECO-001"
+  organisationId             String
+  organisation               EcosystemOrganisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  documentType               OrgDocumentType
+  documentNumber             String
+  fileUrl                    String
+  uploadedBy                 String
+  uploadedAt                 DateTime                  @default(now())
+  verificationStatus         String                    @default("SUBMITTED") // SUBMITTED, VERIFIED, REJECTED
+  verifiedBy                 String?
+  verifiedAt                 DateTime?
+  verificationNotes          String?
+
+  @@index([organisationId])
+  @@index([documentType])
+}
+
+model OrganisationMember {
+  id                         String                    @id // e.g. "MEM-ECO-001"
+  organisationId             String
+  organisation               EcosystemOrganisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userId                     String?
+  fullName                   String
+  email                      String
+  phone                      String?
+  role                       OrgMemberRole             @default(OPERATIONS_OFFICER)
+  status                     String                    @default("ACTIVE") // ACTIVE, INVITED, DEACTIVATED
+  assignedBy                 String
+  assignedAt                 DateTime                  @default(now())
+
+  @@index([organisationId])
+  @@index([email])
+}
+
+model OrganisationActivityLog {
+  id                         String                    @id // e.g. "ACT-ECO-001"
+  organisationId             String
+  organisation               EcosystemOrganisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  action                     String
+  actor                      String
+  details                    String
+  timestamp                  DateTime                  @default(now())
+
+  @@index([organisationId])
+  @@index([timestamp])
+}
+
+

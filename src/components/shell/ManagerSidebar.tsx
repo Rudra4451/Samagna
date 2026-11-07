@@ -78,7 +78,7 @@ export const ManagerSidebar: React.FC<ManagerSidebarProps> = ({ role }) => {
   const isDesignActive = pathname === '/design';
 
   return (
-    <aside className="w-[240px] shrink-0 min-h-[calc(100vh-80px)] flex flex-col bg-sidebar-bg text-sidebar-ink select-none border-r border-sidebar-ink/15 shadow-none">
+    <aside className="w-full md:w-[240px] shrink-0 md:min-h-[calc(100vh-80px)] flex flex-col bg-sidebar-bg text-sidebar-ink select-none border-b md:border-b-0 md:border-r border-sidebar-ink/15 shadow-none">
       {/* Top of Sidebar: Samagna Logo */}
       <div className="p-4 border-b border-sidebar-ink/15">
         <Link href="/" className="block focus:outline-2 focus:outline-accent focus:outline-offset-0">

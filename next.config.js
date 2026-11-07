@@ -1,6 +1,55 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/marketplace',
+        destination: '/store',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/b2b',
+        destination: '/trade',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/b2c',
+        destination: '/store',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/rfq',
+        destination: '/trade',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/cart',
+        destination: '/store/cart',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/checkout',
+        destination: '/store/checkout',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/orders',
+        destination: '/store/orders',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/orders/:id',
+        destination: '/store/orders/:id',
+        permanent: true,
+      },
+      {
+        source: '/marketplace/:path*',
+        destination: '/store',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

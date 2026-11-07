@@ -12,6 +12,7 @@ const config: Config = {
         bg: {
           DEFAULT: 'var(--bg)',
           sunken: 'var(--bg-sunken)',
+          cream: 'var(--bg-cream)',
         },
         surface: 'var(--surface)',
         ink: {
@@ -35,12 +36,52 @@ const config: Config = {
           ink: 'var(--sidebar-ink)',
           rule: 'var(--sidebar-rule)',
         },
+        // --- Samagna Phase 1 Primary Palette ---
+        forest: {
+          DEFAULT: '#2D4F1E',
+          hover: '#25351F',
+          ink: '#FFFFFF',
+          deep: '#25351F',
+        },
+        cream: {
+          DEFAULT: '#F5E6CC',
+          sunken: '#E9DDC9',
+        },
+        terracotta: {
+          DEFAULT: '#E27D60',
+          hover: '#D66D50',
+          deep: '#B84E34',
+          tint: '#FCF1ED',
+        },
+        charcoal: {
+          DEFAULT: '#4A4A4A',
+          deep: '#1F1A14',
+          soft: '#544E45',
+        },
+        // --- Supporting Palette ---
+        sand: '#E9DDC9',
+        'warm-white': '#FFFAF2',
+        'soft-border': '#D7D2C8',
+        leaf: {
+          DEFAULT: '#2D4F1E',
+          hover: '#25351F',
+          tint: '#F4F8F0',
+          ink: '#2D4F1E',
+        },
+        paper: '#FFFFFF',
       },
       fontFamily: {
-        heading: ['var(--font-heading)', 'var(--font-sans)', 'sans-serif'],
-        body: ['var(--font-sans)', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Fraunces', 'Georgia', 'serif'],
+        display: ['var(--font-display)', 'Fraunces', 'serif'],
+        sans: ['var(--font-sans)', 'Manrope', 'sans-serif'],
+        heading: ['var(--font-heading)', 'var(--font-display)', 'serif'],
+        body: ['var(--font-sans)', 'Manrope', 'sans-serif'],
         odia: ['var(--font-odia)', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        mono: ['var(--font-mono)', 'IBM Plex Mono', 'monospace'],
+        fraunces: ['Fraunces', 'serif'],
+        manrope: ['Manrope', 'sans-serif'],
+        oswald: ['Oswald', 'var(--font-heading)', 'sans-serif'],
+        inter: ['Inter', 'var(--font-sans)', 'sans-serif'],
       },
       fontSize: {
         'scale-12': ['12px', { lineHeight: '1.45' }],
@@ -59,11 +100,14 @@ const config: Config = {
         sm: '2px',
         DEFAULT: '4px',
         md: '4px',
-        lg: '4px',
+        lg: '6px',
+        xl: '8px',
         full: '9999px',
       },
       boxShadow: {
         none: 'none',
+        subtle: '0 1px 3px 0 rgba(45, 79, 30, 0.05)',
+        card: '0 2px 6px -1px rgba(45, 79, 30, 0.06), 0 1px 4px -1px rgba(45, 79, 30, 0.04)',
         modal: '1px 1px 0px 0px var(--rule)',
       },
       width: {
