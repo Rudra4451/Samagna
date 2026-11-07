@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Samagna · Launch Film</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b1408;
+        --canopy: #12200d;
+        --canopy-light: #1c3514;
+        --forest: #2d4f1e;
+        --cream: #fffaf2;
+        --cream-muted: #e6dfd3;
+        --ochre: #d4a373;
+        --terracotta: #e27d60;
+        --sage: #c5d2bd;
+        --border: rgba(197, 210, 189, 0.2);
+        --font-serif: "Georgia", "Fraunces", serif;
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+        font-family: var(--font-sans);
+        color: var(--cream);
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Audio Elements */
+      audio {
+        display: none;
+      }
+
+      /* Scene Wrappers */
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Scene 1: Canopy & Headline */
+      #scene-1 {
+        background-color: var(--ground);
+      }
+      .bg-hero {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.38;
+        filter: brightness(0.65) contrast(1.15);
+      }
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, transparent 30%, rgba(11, 20, 8, 0.95) 100%);
+      }
+      .hero-content {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        max-width: 1400px;
+        padding: 0 40px;
+      }
+      .badge-odia {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 24px;
+        background: rgba(45, 79, 30, 0.55);
+        border: 1px solid rgba(212, 163, 115, 0.4);
+        border-radius: 9999px;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ochre);
+        letter-spacing: 0.05em;
+        margin-bottom: 28px;
+        backdrop-filter: blur(8px);
+      }
+      .hero-title {
+        font-family: var(--font-serif);
+        font-size: 86px;
+        line-height: 1.08;
+        font-weight: 700;
+        color: var(--cream);
+        letter-spacing: -0.02em;
+        margin-bottom: 24px;
+        text-shadow: 0 4px 24px rgba(0,0,0,0.7);
+      }
+      .hero-sub {
+        font-size: 28px;
+        color: var(--sage);
+        max-width: 900px;
+        margin: 0 auto;
+        line-height: 1.45;
+        font-weight: 400;
+      }
+
+      /* Scene 2: Stat Cards */
+      #scene-2 {
+        background: radial-gradient(ellipse at 50% 30%, #152710 0%, #0b1408 75%);
+      }
+      .section-label {
+        font-size: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--ochre);
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .section-headline {
+        font-family: var(--font-serif);
+        font-size: 56px;
+        font-weight: 700;
+        color: var(--cream);
+        margin-bottom: 60px;
+        text-align: center;
+      }
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 460px);
+        gap: 36px;
+        max-width: 1480px;
+      }
+      .stat-card {
+        background: rgba(18, 32, 13, 0.85);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 44px 36px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        backdrop-filter: blur(12px);
+      }
+      .stat-value {
+        font-family: var(--font-serif);
+        font-size: 58px;
+        font-weight: 700;
+        color: var(--ochre);
+        line-height: 1.1;
+      }
+      .stat-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--cream);
+      }
+      .stat-desc {
+        font-size: 17px;
+        color: var(--sage);
+        line-height: 1.5;
+      }
+
+      /* Scene 3: Produce Catalogue */
+      #scene-3 {
+        background: radial-gradient(ellipse at 50% 40%, #1a2f14 0%, #0b1408 80%);
+      }
+      .produce-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 440px);
+        gap: 40px;
+      }
+      .produce-card {
+        background: #111d0e;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+        display: flex;
+        flex-direction: column;
+      }
+      .produce-img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+      }
+      .produce-body {
+        padding: 28px 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .produce-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .produce-name {
+        font-family: var(--font-serif);
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--cream);
+      }
+      .produce-code {
+        font-size: 13px;
+        font-family: monospace;
+        color: var(--ochre);
+        background: rgba(212, 163, 115, 0.15);
+        padding: 4px 10px;
+        border-radius: 6px;
+      }
+      .produce-meta {
+        font-size: 15px;
+        color: var(--sage);
+        line-height: 1.4;
+      }
+      .produce-price {
+        margin-top: 8px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(197, 210, 189, 0.15);
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .price-label {
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--sage);
+        letter-spacing: 0.05em;
+      }
+      .price-val {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--ochre);
+      }
+
+      /* Scene 4: Traceability */
+      #scene-4 {
+        background: #091106;
+      }
+      .trace-box {
+        width: 1360px;
+        background: rgba(18, 32, 13, 0.95);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 56px 64px;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+      }
+      .trace-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .trace-id {
+        font-family: monospace;
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--ochre);
+        letter-spacing: 0.04em;
+      }
+      .trace-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(45, 79, 30, 0.6);
+        border: 1px solid #4a8035;
+        padding: 8px 18px;
+        border-radius: 9999px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #8ed66f;
+      }
+      .steps-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        position: relative;
+      }
+      .step-item {
+        background: rgba(11, 20, 8, 0.8);
+        border: 1px solid rgba(197, 210, 189, 0.15);
+        border-radius: 14px;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .step-num {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ochre);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .step-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--cream);
+      }
+      .step-sub {
+        font-size: 14px;
+        color: var(--sage);
+        line-height: 1.4;
+      }
+
+      /* Scene 5: Outro */
+      #scene-5 {
+        background: radial-gradient(circle at center, #193113 0%, #080f05 80%);
+        text-align: center;
+      }
+      .outro-crest {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 24px;
+        filter: drop-shadow(0 0 24px rgba(212, 163, 115, 0.45));
+      }
+      .outro-title {
+        font-family: var(--font-serif);
+        font-size: 92px;
+        font-weight: 700;
+        color: var(--cream);
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+      }
+      .outro-tag {
+        font-size: 28px;
+        color: var(--ochre);
+        margin-bottom: 40px;
+        font-weight: 500;
+      }
+      .outro-pill {
+        display: inline-block;
+        padding: 16px 42px;
+        background: var(--forest);
+        border: 1px solid rgba(212, 163, 115, 0.5);
+        border-radius: 9999px;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--cream);
+        letter-spacing: 0.02em;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      }
+      .trust-row {
+        margin-top: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 48px;
+        font-size: 18px;
+        color: var(--sage);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Audio Elements -->
+      <audio id="bg-music" data-start="0" data-duration="20" data-track-index="10" data-volume="0.32" src="assets/music/music.mp3"></audio>
+      <audio id="sfx-reveal" data-start="0.1" data-duration="0.12" data-track-index="11" data-volume="0.6" src="assets/sfx/impactSoft_medium_000.ogg"></audio>
+      <audio id="sfx-card1" data-start="4.1" data-duration="0.10" data-track-index="12" data-volume="0.5" src="assets/sfx/click_001.ogg"></audio>
+      <audio id="sfx-card2" data-start="8.1" data-duration="0.05" data-track-index="13" data-volume="0.5" src="assets/sfx/select_008.ogg"></audio>
+      <audio id="sfx-outro" data-start="16.5" data-duration="0.12" data-track-index="14" data-volume="0.7" src="assets/sfx/impactSoft_medium_000.ogg"></audio>
+
+      <!-- SCENE 1: Canopy & Headline (0.0s - 4.0s) -->
+      <section id="scene-1" class="scene clip" data-start="0" data-duration="4" data-track-index="0">
+        <img class="bg-hero" src="assets/images/hero-sal-canopy.jpg" alt="" />
+        <div class="vignette"></div>
+        <div class="hero-content">
+          <div class="badge-odia">
+            <span>ସମଗ୍ନ · SAMAGNA</span>
+            <span>•</span>
+            <span>TDCCOL / LABHA</span>
+          </div>
+          <h1 class="hero-title">From the forest to the marketplace.</h1>
+          <p class="hero-sub">Minor forest produce custody tracking, 100% statutory MSP payouts, and B2B trade for Mayurbhanj, Odisha.</p>
+        </div>
+      </section>
+
+      <!-- SCENE 2: The Invariant (4.0s - 8.0s) -->
+      <section id="scene-2" class="scene clip" data-start="4" data-duration="4" data-track-index="1">
+        <div class="section-label">Statutory Guarantee</div>
+        <h2 class="section-headline">Fairness Encoded Into Law</h2>
+        <div class="cards-grid">
+          <div class="stat-card" id="card-1">
+            <div class="stat-value">100% MSP</div>
+            <div class="stat-title">Direct Benefit Transfer</div>
+            <div class="stat-desc">Guaranteed minimum support price settled directly into gatherer bank accounts without delays.</div>
+          </div>
+          <div class="stat-card" id="card-2">
+            <div class="stat-value">0% Deductions</div>
+            <div class="stat-title">Zero Shrinkage Penalty</div>
+            <div class="stat-desc">Natural moisture loss is absorbed as state buffer cost — never subtracted from tribal gatherer pay.</div>
+          </div>
+          <div class="stat-card" id="card-3">
+            <div class="stat-value">140,000+</div>
+            <div class="stat-title">Tribal Gatherers</div>
+            <div class="stat-desc">Empowering primary collectors across Similipal Biosphere Reserve and Mayurbhanj forest blocks.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 3: Botanical Produce (8.0s - 12.5s) -->
+      <section id="scene-3" class="scene clip" data-start="8" data-duration="4.5" data-track-index="2">
+        <div class="section-label">Botanical Produce Ledger</div>
+        <h2 class="section-headline">17 Forest Species · Full Provenance</h2>
+        <div class="produce-grid">
+          <div class="produce-card" id="prod-1">
+            <img class="produce-img" src="assets/images/wild-honey.jpg" alt="Wild Honey" />
+            <div class="produce-body">
+              <div class="produce-header">
+                <span class="produce-name">Wild Forest Honey</span>
+                <span class="produce-code">APIS-DOR-01</span>
+              </div>
+              <p class="produce-meta">Pure wild multifloral honey hand-gathered by tribal collectors.</p>
+              <div class="produce-price">
+                <span class="price-label">Statutory MSP</span>
+                <span class="price-val">₹320 / kg</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="produce-card" id="prod-2">
+            <img class="produce-img" src="assets/images/mahua.jpg" alt="Mahua Flower" />
+            <div class="produce-body">
+              <div class="produce-header">
+                <span class="produce-name">Mahua Flower</span>
+                <span class="produce-code">MADH-IND-01</span>
+              </div>
+              <p class="produce-meta">Sun-dried high-fructose food-grade Madhuca longifolia blossoms.</p>
+              <div class="produce-price">
+                <span class="price-label">Statutory MSP</span>
+                <span class="price-val">₹40 / kg</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="produce-card" id="prod-3">
+            <img class="produce-img" src="assets/images/sal-seeds.jpg" alt="Sal Tree Seeds" />
+            <div class="produce-body">
+              <div class="produce-header">
+                <span class="produce-name">Sal Tree Seeds</span>
+                <span class="produce-code">SHOR-ROB-01</span>
+              </div>
+              <p class="produce-meta">Shorea robusta kernel crop for commercial specialty butter.</p>
+              <div class="produce-price">
+                <span class="price-label">Statutory MSP</span>
+                <span class="price-val">₹28 / kg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 4: Traceability & Custody (12.5s - 16.5s) -->
+      <section id="scene-4" class="scene clip" data-start="12.5" data-duration="4" data-track-index="3">
+        <div class="section-label">End-to-End Traceability</div>
+        <div class="trace-box">
+          <div class="trace-top">
+            <div>
+              <div style="font-size: 15px; color: var(--sage); text-transform: uppercase; margin-bottom: 6px;">Active Certified Lot</div>
+              <div class="trace-id">LOT # BS-402 · SIMILIPAL BIOSPHERE</div>
+            </div>
+            <div class="trace-badge">
+              <span>●</span>
+              <span>GRADE A LAB CERTIFIED</span>
+            </div>
+          </div>
+          <div class="steps-row">
+            <div class="step-item" id="step-1">
+              <span class="step-num">Step 01</span>
+              <span class="step-title">Village Pickup</span>
+              <span class="step-sub">Karanjia VPC · Sunita Soren · Digital tare scale verified</span>
+            </div>
+            <div class="step-item" id="step-2">
+              <span class="step-num">Step 02</span>
+              <span class="step-title">Central Depôt</span>
+              <span class="step-sub">Baripada Central · Reweighed & moisture loss triaged</span>
+            </div>
+            <div class="step-item" id="step-3">
+              <span class="step-num">Step 03</span>
+              <span class="step-title">Processing</span>
+              <span class="step-sub">Koraput Facility · Deseeded, dried & graded</span>
+            </div>
+            <div class="step-item" id="step-4">
+              <span class="step-num">Step 04</span>
+              <span class="step-title">B2B Trade</span>
+              <span class="step-sub">Enterprise Buyer · Statutory royalty settled</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 5: Outro & Call to Action (16.5s - 20.0s) -->
+      <section id="scene-5" class="scene clip" data-start="16.5" data-duration="3.5" data-track-index="4">
+        <img class="outro-crest" src="assets/images/icon.svg" alt="Samagna" />
+        <h1 class="outro-title">Samagna · ସମଗ୍ନ</h1>
+        <p class="outro-tag">Empowering Indigenous Livelihoods Through Fair Trade</p>
+        <div class="outro-pill">samagna.vercel.app</div>
+        <div class="trust-row">
+          <span>TDCCOL Odisha</span>
+          <span>•</span>
+          <span>LABHA Scheme</span>
+          <span>•</span>
+          <span>Mayurbhanj District</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- GSAP Animation Timelines -->
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // SCENE 1 (0s -> 4.0s)
+      tl.fromTo(".bg-hero", { scale: 1.08 }, { scale: 1.0, duration: 4.0, ease: "none" }, 0);
+      tl.fromTo(".badge-odia", { y: 25, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 0.2);
+      tl.fromTo(".hero-title", { y: 35, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out" }, 0.4);
+      tl.fromTo(".hero-sub", { y: 25, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 0.7);
+
+      // SCENE 2 (4.0s -> 8.0s)
+      tl.fromTo("#scene-2 .section-label, #scene-2 .section-headline", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.1, ease: "power3.out" }, 4.05);
+      tl.fromTo(".stat-card", { y: 40, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.8, stagger: 0.15, ease: "back.out(1.4)" }, 4.3);
+
+      // SCENE 3 (8.0s -> 12.5s)
+      tl.fromTo("#scene-3 .section-label, #scene-3 .section-headline", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.1, ease: "power3.out" }, 8.05);
+      tl.fromTo(".produce-card", { y: 45, opacity: 0, scale: 0.95 }, { y: 0, opacity: 1, scale: 1, duration: 0.8, stagger: 0.15, ease: "power3.out" }, 8.3);
+
+      // SCENE 4 (12.5s -> 16.5s)
+      tl.fromTo("#scene-4 .section-label", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 12.55);
+      tl.fromTo(".trace-box", { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: "power3.out" }, 12.7);
+      tl.fromTo(".step-item", { y: 25, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: "power2.out" }, 13.0);
+
+      // SCENE 5 (16.5s -> 20.0s)
+      tl.fromTo(".outro-crest", { scale: 0.5, opacity: 0, rotation: -15 }, { scale: 1, opacity: 1, rotation: 0, duration: 0.8, ease: "back.out(1.7)" }, 16.6);
+      tl.fromTo(".outro-title", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 16.8);
+      tl.fromTo(".outro-tag", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 17.0);
+      tl.fromTo(".outro-pill", { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.5)" }, 17.3);
+      tl.fromTo(".trust-row", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 17.6);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -39,6 +39,10 @@ vercel-env.txt
 # Vercel
 .vercel/
 
+# Hyperframes & Brag
+.hyperframes/
+**/composition/.hyperframes/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,0 +1,6 @@
+From the Similipal canopy to global enterprise: Samagna (ସମଗ୍ନ) brings 100% statutory MSP payouts and cryptographic batch provenance to tribal forest produce in Odisha.
+
+Try the live platform: https://samagna.vercel.app/
+GitHub: https://github.com/Rudra4451/Samagna
+
+#BuildInPublic #Nextjs #Web3 #FairTrade #TribalEmpowerment #Odisha #AgriTech #OpenSource
