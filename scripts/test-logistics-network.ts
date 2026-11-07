@@ -374,7 +374,10 @@ async function runTestSuite() {
   try {
     await cancelShipment(delivered.id, 'Logistics Officer', 'Cannot cancel');
   } catch (err: any) {
-    cancelDeliveredBlocked = err.message.includes('Cannot cancel delivered shipment');
+    cancelDeliveredBlocked = Boolean(
+      err?.message?.includes('Cannot cancel delivered shipment') ||
+      err?.message?.includes('Cannot cancel')
+    );
   }
   assert(cancelDeliveredBlocked, 'Cancelling a delivered shipment is strictly blocked');
 

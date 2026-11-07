@@ -373,7 +373,12 @@ export async function cancelShipment(
   const shipment = await getCommercialShipmentById(shipmentId);
   if (!shipment) throw new Error(`Shipment not found: ${shipmentId}`);
 
-  if (shipment.status === 'DELIVERED_CONFIRMED' || shipment.status === 'DELIVERED_PARTIAL') {
+  if (
+    shipment.status === 'DELIVERED_CONFIRMED' ||
+    shipment.status === 'DELIVERED_PARTIAL' ||
+    shipment.status === 'DELIVERY_FAILED' ||
+    shipment.status === 'CANCELLED'
+  ) {
     throw new Error(`Cannot cancel delivered shipment: ${shipmentId}`);
   }
 

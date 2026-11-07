@@ -229,7 +229,7 @@ export default function StoreCartPage() {
         )}
 
         {/* Mobile Sticky Checkout Bar (Rule 5 & Phase 4 Standard) */}
-        {!loading && items.length > 0 && (
+        {items.length > 0 && (
           <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-3 shadow-lg flex items-center justify-between">
             <div>
               <div className="text-[11px] font-mono text-stone-500 uppercase">Total Payable</div>
