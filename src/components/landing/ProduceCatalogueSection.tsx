@@ -140,7 +140,11 @@ export const ProduceCatalogueSection: React.FC = () => {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 no-scrollbar">
+        <div
+          role="tablist"
+          aria-label="Filter botanicals by category"
+          className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 no-scrollbar"
+        >
           {[
             { id: 'all', label: 'All Botanicals (17)' },
             { id: 'oilseed', label: 'Oilseeds & Kernels' },
@@ -150,6 +154,8 @@ export const ProduceCatalogueSection: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeCategory === tab.id}
               type="button"
               onClick={() => setActiveCategory(tab.id as CategoryFilter)}
               className={`touch-target px-4 py-2 rounded-[6px] text-xs font-sans font-medium transition-all whitespace-nowrap border ${

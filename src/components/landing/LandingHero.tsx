@@ -198,12 +198,12 @@ export const LandingHero: React.FC = () => {
           ref={statsRef}
           className="mt-14 sm:mt-20 w-full max-w-5xl rounded-[12px] border border-white/15 bg-white/5 backdrop-blur-md p-6 sm:p-8 shadow-card"
         >
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {STATS.map((stat, idx) => (
               <div
                 key={stat.label}
                 className={`flex flex-col items-center text-center ${
-                  idx > 0 ? 'pt-4 sm:pt-0 sm:pl-6' : ''
+                  idx > 0 ? 'lg:border-l lg:border-white/10 lg:pl-6' : ''
                 }`}
               >
                 <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-warm-white">
@@ -214,10 +214,10 @@ export const LandingHero: React.FC = () => {
                 <div className="mt-2 text-xs font-sans font-semibold text-terracotta tracking-wide">
                   {stat.label}
                 </div>
-                <div className="font-odia text-[11px] text-cream/70 mt-0.5" lang="or">
+                <div className="font-odia text-xs text-cream/70 mt-0.5" lang="or">
                   {stat.labelOdia}
                 </div>
-                <p className="mt-1 text-[11px] sm:text-xs text-cream/70 leading-relaxed font-sans max-w-[180px]">
+                <p className="mt-1 text-xs text-cream/70 leading-relaxed font-sans max-w-[200px]">
                   {stat.description}
                 </p>
               </div>

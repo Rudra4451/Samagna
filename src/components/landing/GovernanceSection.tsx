@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, CheckCircle2, Scale, Lock, FileCheck2, ArrowRight } from 'lucide-react';

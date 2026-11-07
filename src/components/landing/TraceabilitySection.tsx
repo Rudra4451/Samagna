@@ -58,11 +58,15 @@ export const TraceabilitySection: React.FC = () => {
 
           {/* Interactive Batch Lookup Input */}
           <form onSubmit={handleVerifySubmit} className="mt-8 max-w-lg mx-auto">
+            <label htmlFor="batch-code-lookup" className="sr-only">
+              Enter Batch Code to inspect custody dossier
+            </label>
             <div className="flex items-center rounded-[8px] border border-soft-border bg-white shadow-card p-1.5 focus-within:border-forest transition-colors">
               <div className="pl-3 pr-2 text-ink-muted">
                 <Search size={18} />
               </div>
               <input
+                id="batch-code-lookup"
                 type="text"
                 value={batchInput}
                 onChange={(e) => {

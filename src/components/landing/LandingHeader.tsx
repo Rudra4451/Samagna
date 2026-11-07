@@ -42,15 +42,44 @@ export const LandingHeader: React.FC = () => {
       const originalStyle = window.getComputedStyle(document.body).overflow;
       document.body.style.overflow = 'hidden';
 
+      // Auto-focus first focusable element inside drawer
+      const timer = setTimeout(() => {
+        if (mobileMenuRef.current) {
+          const firstFocusable = mobileMenuRef.current.querySelector<HTMLElement>(
+            'a[href], button:not([disabled])'
+          );
+          firstFocusable?.focus();
+        }
+      }, 50);
+
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           setIsMobileMenuOpen(false);
           menuButtonRef.current?.focus();
+          return;
+        }
+
+        if (e.key === 'Tab' && mobileMenuRef.current) {
+          const focusable = mobileMenuRef.current.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length === 0) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
         }
       };
       window.addEventListener('keydown', handleKeyDown);
 
       return () => {
+        clearTimeout(timer);
         document.body.style.overflow = originalStyle;
         window.removeEventListener('keydown', handleKeyDown);
       };

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Scale, QrCode, Warehouse, ShoppingCart, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { ForestHarvestIllustration } from '@/components/illustrations/ForestHarvestIllustration';

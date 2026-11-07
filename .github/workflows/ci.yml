@@ -2,7 +2,7 @@ name: Samagna Continuous Integration
 
 on:
   push:
-    branches: [ master, main, feat/* ]
+    branches: [ master, main, 'feat/**', 'feat/*' ]
   pull_request:
     branches: [ master, main ]
 
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   audit-and-test:
-    name: Run Samagna Audit & Verification Suites
+    name: Run Samagna Audit, E2E & Verification Suites
     runs-on: ubuntu-latest
     env:
       AUTH_SECRET: 'samagna-ci-testing-auth-secret-key-minimum-32-chars'
@@ -36,8 +36,14 @@ jobs:
       - name: Run ESLint verification
         run: npm run lint
 
-      - name: Run Comprehensive Verification Test Suites (All 24 Suites)
+      - name: Run Comprehensive Verification Test Suites (All 40 Suites)
         run: npm run test:all
 
       - name: Run Production Bundle Build Verification
         run: npm run build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Responsive & Navigation E2E
+        run: npm run test:e2e
