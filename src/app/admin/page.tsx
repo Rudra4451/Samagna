@@ -37,8 +37,9 @@ import { BusinessRevenueOverview } from '@/components/admin/BusinessRevenueOverv
 import { GovernmentRoyaltySection } from '@/components/admin/GovernmentRoyaltySection';
 import { MarketplaceCommissionSection } from '@/components/admin/MarketplaceCommissionSection';
 import { InstitutionalAdminView } from '@/components/institutional/InstitutionalAdminView';
+import AssistantAuditSection from '@/components/admin/AssistantAuditSection';
 
-type AdminTab = 'rates' | 'users' | 'institutional' | 'business' | 'royalty' | 'commissions' | 'conflicts' | 'audit' | 'exports' | 'health';
+type AdminTab = 'rates' | 'users' | 'institutional' | 'business' | 'royalty' | 'commissions' | 'assistant' | 'conflicts' | 'audit' | 'exports' | 'health';
 
 interface AdminUser {
   id: string;
@@ -539,6 +540,19 @@ export default function AdminConsolePage() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('assistant')}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+              activeTab === 'assistant'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            <span>Maitriyam Audit History</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('conflicts')}
             className={`px-3.5 py-2 text-[13px] font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'conflicts'
@@ -753,6 +767,11 @@ export default function AdminConsolePage() {
         {/* TAB: MARKETPLACE COMMISSIONS */}
         {activeTab === 'commissions' && (
           <MarketplaceCommissionSection />
+        )}
+
+        {/* TAB: MAITRIYAM ASSISTANT AUDIT */}
+        {activeTab === 'assistant' && (
+          <AssistantAuditSection />
         )}
 
         {/* TAB 3: CONFLICTS */}

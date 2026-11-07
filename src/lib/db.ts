@@ -121,7 +121,7 @@ export class BanaSetuDatabase extends Dexie {
   inventorySales!: Table<InventorySaleRecord, string>;
   maitriyamKb!: Table<{ id: string; intent: string; locale: string; entryJson: string; version: string; updatedAt: string }, string>;
   maitriyamMeta!: Table<{ key: string; value: string; updatedAt: string }, string>;
-  maitriyamOutbox!: Table<{ id: string; userId: string; role: string; surface: string; question: string; locale: string; idempotencyKey: string; state: 'QUEUED' | 'REPLAYED'; createdAt: string }, string>;
+  maitriyamOutbox!: Table<{ id: string; userId: string; role: string; surface: string; question: string; locale: string; idempotencyKey: string; state: 'QUEUED' | 'REPLAYED'; createdAt: string; responseAnswer?: string; replayedAt?: string }, string>;
 
   constructor() {
     super('BanaSetuLedgerDB');
