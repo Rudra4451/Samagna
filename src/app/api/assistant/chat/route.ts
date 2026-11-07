@@ -35,14 +35,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2. Authentication & Session Scoping
+  // 2. Authentication & Session Scoping (with graceful guest fallback)
   const session = await getSession(req);
-  if (!session) {
-    return NextResponse.json(
-      { error: 'UNAUTHORIZED', message: 'Session authentication required.' },
-      { status: 401 }
-    );
-  }
+  const effectiveRole = session?.role || 'PUBLIC';
+  const effectiveUserId = session?.userId || req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'public-guest';
 
   // 3. Idempotency Key validation
   const idempotencyKey = req.headers.get('idempotency-key') || req.headers.get('Idempotency-Key');
@@ -54,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Rate Limiting (per user/session)
-  const rate = checkRateLimit(session.userId, 'maitriyam-chat', { windowMs: 60_000, maxRequests: 30 });
+  const rate = checkRateLimit(effectiveUserId, 'maitriyam-chat', { windowMs: 60_000, maxRequests: 30 });
   if (!rate.allowed) {
     return NextResponse.json(
       { error: 'TOO_MANY_REQUESTS', message: 'Assistant rate limit reached. Please wait before retrying.' },
@@ -98,7 +94,7 @@ export async function POST(req: NextRequest) {
         citations: ['Maitriyam Safety Policy Sec 15'],
         toolCalls: [],
         degraded: false,
-        conversationId: conversationId || `conv-${session.userId}-${Date.now()}`,
+        conversationId: conversationId || `conv-${effectiveUserId}-${Date.now()}`,
       });
     }
   }
@@ -113,7 +109,7 @@ export async function POST(req: NextRequest) {
   const match = matchKnowledgeBase(
     maskedQuery,
     STATIC_FAQS,
-    session.role,
+    effectiveRole,
     surface,
     locale
   );
@@ -158,8 +154,8 @@ export async function POST(req: NextRequest) {
     const code = codeMatch[0];
     const toolRes = await toolGetRequestStatus({
       pickupRequestId: code,
-      actorUserId: session.userId,
-      actorRole: session.role,
+      actorUserId: effectiveUserId,
+      actorRole: effectiveRole,
     });
     toolCalls.push({ tool: 'getRequestStatus', input: { code } });
     citations.push(toolRes.sourceRef);
@@ -204,6 +200,25 @@ export async function POST(req: NextRequest) {
         variant: 'info',
       },
       link: { href: '/collector', label: 'Open Rates Schedule →' },
+    });
+  } else if (isRateQuery) {
+    // General rate card inquiry ("What are today rates?", "rates today", "ଦର କେତେ?")
+    citations.push('/rates');
+    answer = locale === 'or'
+      ? 'ସମଗ୍ନ ପୋର୍ଟାଲରେ ୧୭ ଟି ବନଜାତ ଦ୍ରବ୍ୟ ପାଇଁ ସରକାରୀ ସହାୟକ ମୂଲ୍ୟ ଉପଲବ୍ଧ: ଶୁଖିଲା ମହୁଲ ଫୁଲ ₹୪୨/କିଗ୍ରା, ଶାଳ ମଞ୍ଜି ₹୨୪/କିଗ୍ରା, ଜଙ୍ଗଲୀ ମହୁ ₹୨୫୦/କିଗ୍ରା ଏବଂ ଚାରୋଳି ₹୧୨୦/କିଗ୍ରା।'
+      : 'Approved procurement benchmark rates for primary MFP: Dried Mahua Flowers ₹42/kg, Sal Tree Seeds ₹24/kg, Wild Forest Honey ₹250/kg, and Chironji ₹120/kg. Tribal collectors receive 100% of these rates with 0% platform deductions.';
+    cards.push({
+      type: 'rate',
+      title: 'Current Procurement Benchmark Schedule',
+      subtitle: 'TDCCOL & LABHA Minimum Support Price Baseline',
+      items: [
+        { label: 'Mahua Flowers', value: '₹42 / kg', highlight: true },
+        { label: 'Sal Tree Seeds', value: '₹24 / kg', highlight: true },
+        { label: 'Wild Forest Honey', value: '₹250 / kg', highlight: true },
+        { label: 'Chironji', value: '₹120 / kg', highlight: true },
+      ],
+      badge: { label: 'MSP Schedule 2024-25', variant: 'info' },
+      link: { href: '/collector', label: 'Open Full 17 MFP Catalogue →' },
     });
   } else if (isQualityQuery && matchedProduct) {
     // Slot C: Quality and moisture check
@@ -286,6 +301,6 @@ export async function POST(req: NextRequest) {
     cards,
     degraded: false,
     indexVersion: '1.0',
-    conversationId: conversationId || `conv-${session.userId}-${Date.now()}`,
+    conversationId: conversationId || `conv-${effectiveUserId}-${Date.now()}`,
   });
 }

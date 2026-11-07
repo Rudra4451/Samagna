@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const isEnabled = process.env.MAITRIYAM_ENABLED !== 'false';
-  const isVoiceEnabled = process.env.MAITRIYAM_VOICE_ENABLED === 'true';
+  const isVoiceEnabled = process.env.MAITRIYAM_VOICE_ENABLED !== 'false';
 
   return NextResponse.json({
     enabled: isEnabled,

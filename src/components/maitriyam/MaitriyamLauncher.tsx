@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   MessageSquare,
@@ -10,16 +10,18 @@ import {
   ShieldCheck,
   RotateCcw,
   Volume2,
+  VolumeX,
   ChevronRight,
-  ExternalLink,
   WifiOff,
   Languages,
   Mic,
   MicOff,
   Copy,
   Check,
+  Radio,
+  Sparkles,
 } from 'lucide-react';
-import { speakAloud } from '@/lib/speech';
+import { speakAloud, stopSpeech } from '@/lib/speech';
 import { matchKnowledgeBase } from '@/lib/assistant/matcher';
 import { getKnowledgeBase, getLocalSyncDiagnostics } from '@/lib/assistant/knowledgeStorage';
 
@@ -52,13 +54,17 @@ export default function MaitriyamLauncher() {
   const [isSending, setIsSending] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [diagnostics, setDiagnostics] = useState<any>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const handleSendRef = useRef<((questionText?: string, fromVoice?: boolean) => Promise<void>) | null>(null);
 
   // Hidden on /login and /design routes
   const isHidden = pathname?.startsWith('/login') || pathname?.startsWith('/design');
@@ -82,10 +88,12 @@ export default function MaitriyamLauncher() {
     }
   }, []);
 
-  // Escape key closes modal
+  // Escape key closes modal & stops speech
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
+        stopSpeech();
+        setIsAssistantSpeaking(false);
         setIsOpen(false);
       }
     };
@@ -93,7 +101,7 @@ export default function MaitriyamLauncher() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Load configuration and suggestions
+  // Load configuration and diagnostics
   useEffect(() => {
     async function init() {
       if (typeof window !== 'undefined') {
@@ -166,8 +174,8 @@ export default function MaitriyamLauncher() {
     } else {
       setSuggestedQuestions(
         locale === 'or'
-          ? ['ସମଗ୍ନ କ\'ଣ?', 'ଏହା ସରକାରୀ ଆପ୍ କି?', 'କ୍ୟୁଆର (QR) କୋଡ୍ କିପରି ଯାଞ୍ଚ ହୁଏ?', 'ଲାଭ (LABHA) ଯୋଜନା କ\'ଣ?']
-          : ['What is Samagna?', 'Is Samagna a government app?', 'How does QR verification work?', 'What is the LABHA scheme?']
+          ? ['ସମଗ୍ନ କ\'ଣ?', 'ଆଜିର ମହୁଆ ଦର କେତେ?', 'କ୍ୟୁଆର (QR) କୋଡ୍ କିପରି ଯାଞ୍ଚ ହୁଏ?', 'ଲାଭ (LABHA) ଯୋଜନା କ\'ଣ?']
+          : ['What is Samagna?', 'What are today rates?', 'How does QR verification work?', 'What is the LABHA scheme?']
       );
     }
   }, [pathname, locale, surface]);
@@ -176,11 +184,10 @@ export default function MaitriyamLauncher() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isListening]);
 
-  if (isHidden || !enabled) return null;
-
-  const toggleVoiceInput = () => {
+  // Voice recognition start/stop handler
+  const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
     const SpeechRec =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -189,37 +196,49 @@ export default function MaitriyamLauncher() {
       alert(
         locale === 'or'
           ? 'ଆପଣଙ୍କ ବ୍ରାଉଜରରେ ଭଏସ୍ ଇନପୁଟ୍ ଉପଲବ୍ଧ ନାହିଁ।'
-          : 'Voice speech recognition is not supported in this browser.'
+          : 'Voice speech recognition is not supported in this browser. Please type your query.'
       );
       return;
     }
 
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
+    // Stop existing speech synthesis if speaking
+    stopSpeech();
+    setIsAssistantSpeaking(false);
 
     try {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+
       const recognition = new SpeechRec();
       recognitionRef.current = recognition;
       recognition.lang = locale === 'or' ? 'or-IN' : 'en-IN';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
+        setVoiceTranscript('');
       };
 
       recognition.onresult = (e: any) => {
-        const transcript = e.results?.[0]?.[0]?.transcript;
-        if (transcript) {
-          setInput(transcript);
+        const transcript = Array.from(e.results)
+          .map((result: any) => result[0].transcript)
+          .join('');
+        setVoiceTranscript(transcript);
+        setInput(transcript);
+
+        // If speech recognition detected final result
+        if (e.results[0] && e.results[0].isFinal) {
+          setIsListening(false);
+          if (transcript.trim()) {
+            handleSendRef.current?.(transcript.trim(), true);
+          }
         }
-        setIsListening(false);
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (e: any) => {
+        console.warn('Voice recognition notice:', e.error);
         setIsListening(false);
       };
 
@@ -228,9 +247,30 @@ export default function MaitriyamLauncher() {
       };
 
       recognition.start();
-    } catch {
+    } catch (err) {
+      console.warn('Speech recognition init error:', err);
       setIsListening(false);
     }
+  }, [locale]);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  }, []);
+
+  const toggleVoice = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const handleStopSpeaking = () => {
+    stopSpeech();
+    setIsAssistantSpeaking(false);
   };
 
   const copyMessageText = (id: string, text: string) => {
@@ -242,18 +282,21 @@ export default function MaitriyamLauncher() {
   };
 
   const resetChat = () => {
+    stopSpeech();
+    setIsAssistantSpeaking(false);
     setMessages([]);
     setInput('');
   };
 
-  const handleSend = async (questionText?: string) => {
+  const handleSend = async (questionText?: string, fromVoice: boolean = false) => {
     const textToSend = questionText || input.trim();
     if (!textToSend || isSending) return;
 
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      stopListening();
     }
+    stopSpeech();
+    setIsAssistantSpeaking(false);
 
     const userMsg: Message = {
       id: `msg-${Date.now()}`,
@@ -264,39 +307,59 @@ export default function MaitriyamLauncher() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setVoiceTranscript('');
     setIsSending(true);
 
-    // If offline or fast local path:
+    const shouldAutoSpeak = fromVoice || voiceMode;
+
+    // Fast local path if navigator is offline:
     if (isOffline) {
       const kb = await getKnowledgeBase(locale);
       const matched = matchKnowledgeBase(textToSend, kb, surface.toUpperCase(), surface, locale);
 
       setTimeout(() => {
+        const answerText = matched.entry
+          ? matched.entry.answer
+          : locale === 'or'
+          ? 'ଅଫଲାଇନ୍ ମୋଡ୍ ରେ ଏହି ପ୍ରଶ୍ନର ଉତ୍ତର ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ଆପଣଙ୍କ ରସିଦ ଦେଖନ୍ତୁ ବା ନେଟୱର୍କ ଆସିବା ପରେ ପଚାରନ୍ତୁ।'
+          : 'I do not have an offline answer for this query. Please consult your latest receipt or ask when online.';
+
         const assistantMsg: Message = {
           id: `asst-${Date.now()}`,
           sender: 'assistant',
-          text: matched.entry
-            ? matched.entry.answer
-            : locale === 'or'
-            ? 'ଅଫଲାଇନ୍ ମୋଡ୍ ରେ ଏହି ପ୍ରଶ୍ନର ଉତ୍ତର ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ଆପଣଙ୍କ ରସିଦ ଦେଖନ୍ତୁ ବା ନେଟୱର୍କ ଆସିବା ପରେ ପଚାରନ୍ତୁ।'
-            : 'I do not have an offline answer for this query. Please consult your latest receipt or ask when online.',
+          text: answerText,
           citations: matched.entry ? [matched.entry.sourceRef] : ['/about'],
           offline: true,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         setIsSending(false);
+
+        if (shouldAutoSpeak) {
+          speakAloud(
+            answerText,
+            locale === 'or' ? 'or-IN' : 'en-IN',
+            () => setIsAssistantSpeaking(true),
+            () => setIsAssistantSpeaking(false)
+          );
+        }
       }, 150);
       return;
     }
 
-    // Online request with AbortController 3s timeout
+    // Online request with AbortController 4s timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    // Primary endpoint selection:
+    // If surface is public, store, or trade, prefer public endpoint
+    const primaryEndpoint =
+      surface === 'public' || surface === 'store' || surface === 'trade'
+        ? '/api/public/assistant/chat'
+        : '/api/assistant/chat';
 
     try {
-      const endpoint = surface === 'public' ? '/api/public/assistant/chat' : '/api/assistant/chat';
-      const res = await fetch(endpoint, {
+      let res = await fetch(primaryEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -309,6 +372,22 @@ export default function MaitriyamLauncher() {
         }),
         signal: controller.signal,
       });
+
+      // Seamless fallback: if authenticated endpoint rejected with 401, retry via public endpoint
+      if (!res.ok && res.status === 401 && primaryEndpoint !== '/api/public/assistant/chat') {
+        res = await fetch('/api/public/assistant/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': `idem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          },
+          body: JSON.stringify({
+            message: textToSend,
+            locale,
+            surface,
+          }),
+        });
+      }
 
       clearTimeout(timeoutId);
 
@@ -324,47 +403,93 @@ export default function MaitriyamLauncher() {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages((prev) => [...prev, asstMsg]);
+
+        // Auto-speak response in Voice Mode
+        if (shouldAutoSpeak && data.answer) {
+          speakAloud(
+            data.answer,
+            locale === 'or' ? 'or-IN' : 'en-IN',
+            () => setIsAssistantSpeaking(true),
+            () => setIsAssistantSpeaking(false)
+          );
+        }
       } else {
         throw new Error('Server returned non-200');
       }
     } catch {
-      // Degrade to local offline matcher
+      // Degrade gracefully to local offline matcher
       const kb = await getKnowledgeBase(locale);
       const matched = matchKnowledgeBase(textToSend, kb, surface.toUpperCase(), surface, locale);
+      const fallbackText = matched.entry
+        ? matched.entry.answer
+        : locale === 'or'
+        ? 'ମୈତ୍ରିୟମ୍ ସହାୟକ ଅଫଲାଇନ୍ ମୋଡ୍ ରେ ଚାଲୁଅଛି। ସରକାରୀ ଦର ତାଲିକା ପାଇଁ ଆପଣଙ୍କ ଡ୍ୟାସବୋର୍ଡ ଦେଖନ୍ତୁ।'
+        : 'Maitriyam is temporarily running in offline mode. Please check the /about page or consult your local field supervisor.';
+
       const fallbackMsg: Message = {
         id: `asst-${Date.now()}`,
         sender: 'assistant',
-        text: matched.entry
-          ? matched.entry.answer
-          : 'Maitriyam is temporarily running in offline mode. Please check the /about page or consult your local field supervisor.',
+        text: fallbackText,
         citations: matched.entry ? [matched.entry.sourceRef] : ['/about'],
         offline: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, fallbackMsg]);
+
+      if (shouldAutoSpeak) {
+        speakAloud(
+          fallbackText,
+          locale === 'or' ? 'or-IN' : 'en-IN',
+          () => setIsAssistantSpeaking(true),
+          () => setIsAssistantSpeaking(false)
+        );
+      }
     } finally {
       setIsSending(false);
     }
   };
+  handleSendRef.current = handleSend;
+
+  if (isHidden || !enabled) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 print:hidden font-sans">
-      {/* Floating Launcher Button */}
+      {/* Floating Launcher Button with Quick-Mic Voice Option */}
       {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="h-12 px-4 rounded-full bg-forest text-white shadow-lg hover:bg-forest-hover transition-all flex items-center gap-2 focus:outline-2 focus:outline-accent active:scale-95 group"
-          aria-label="Open Maitriyam Guidance Assistant"
-        >
-          <MessageSquare size={18} className="group-hover:scale-110 transition-transform" />
-          <span className="text-xs font-mono font-bold tracking-wide">
-            {locale === 'or' ? 'ମୈତ୍ରିୟମ୍' : 'Maitriyam'}
-          </span>
-          {isOffline && (
-            <span className="w-2 h-2 rounded-full bg-warning animate-pulse" title="Running in offline mode" />
+        <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-forest p-1">
+          {/* Quick Voice Launch Button */}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(true);
+                setVoiceMode(true);
+                setTimeout(() => startListening(), 250);
+              }}
+              className="h-10 w-10 rounded-full bg-terracotta hover:bg-terracotta/90 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+              title={locale === 'or' ? 'ଭଏସ୍ ସହାୟକ ଆରମ୍ଭ କରନ୍ତୁ' : 'Start Voice Assistant'}
+              aria-label="Start Voice Assistant"
+            >
+              <Mic size={18} />
+            </button>
           )}
-        </button>
+
+          {/* Text/Chat Modal Open Button */}
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="h-10 px-3.5 rounded-full text-white hover:bg-forest-hover transition-all flex items-center gap-2 focus:outline-2 focus:outline-accent active:scale-95 group"
+            aria-label="Open Maitriyam Guidance Assistant"
+          >
+            <MessageSquare size={17} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-mono font-bold tracking-wide">
+              {locale === 'or' ? 'ମୈତ୍ରିୟମ୍' : 'Maitriyam'}
+            </span>
+            {isOffline && (
+              <span className="w-2 h-2 rounded-full bg-warning animate-pulse" title="Running in offline mode" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Assistant Modal Window */}
@@ -372,19 +497,19 @@ export default function MaitriyamLauncher() {
         <div
           role="dialog"
           aria-label="Maitriyam In-App Assistant"
-          className="w-[92vw] sm:w-[390px] h-[540px] max-h-[85vh] bg-surface border border-rule rounded-[8px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          className="w-[92vw] sm:w-[410px] h-[560px] max-h-[88vh] bg-surface border border-rule rounded-[10px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
           <div className="px-4 py-2.5 bg-forest text-white flex items-center justify-between border-b border-forest-hover shrink-0">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={16} className="text-accent shrink-0" />
+              <ShieldCheck size={17} className="text-accent shrink-0" />
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs font-mono font-bold tracking-tight">
                     Maitriyam · ମୈତ୍ରିୟମ୍
                   </h3>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-white/15 text-white/90">
-                    v0.2
+                    Voice & Text v0.3
                   </span>
                 </div>
                 <span className="text-[10px] text-white/70 block leading-none mt-0.5">
@@ -394,6 +519,34 @@ export default function MaitriyamLauncher() {
             </div>
 
             <div className="flex items-center gap-1">
+              {/* Voice Mode Toggle Button */}
+              {voiceSupported && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !voiceMode;
+                    setVoiceMode(next);
+                    if (next) {
+                      startListening();
+                    } else {
+                      stopListening();
+                      stopSpeech();
+                      setIsAssistantSpeaking(false);
+                    }
+                  }}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all flex items-center gap-1 ${
+                    voiceMode
+                      ? 'bg-terracotta text-white shadow-xs'
+                      : 'bg-white/10 hover:bg-white/20 text-white/90'
+                  }`}
+                  title="Toggle Hands-Free Voice Mode"
+                  aria-label="Toggle Voice Mode"
+                >
+                  <Radio size={11} className={voiceMode ? 'animate-pulse' : ''} />
+                  <span>{voiceMode ? 'Voice ON' : 'Voice'}</span>
+                </button>
+              )}
+
               {/* Language Switcher */}
               <button
                 type="button"
@@ -421,7 +574,11 @@ export default function MaitriyamLauncher() {
               {/* Close Modal Button */}
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  stopSpeech();
+                  setIsAssistantSpeaking(false);
+                  setIsOpen(false);
+                }}
                 className="p-1 rounded hover:bg-white/15 transition-colors text-white"
                 aria-label="Close assistant"
               >
@@ -430,8 +587,64 @@ export default function MaitriyamLauncher() {
             </div>
           </div>
 
+          {/* Active Voice Assistant Banner (when speaking or listening) */}
+          {isAssistantSpeaking && (
+            <div className="px-3.5 py-1.5 bg-forest/10 border-b border-forest/20 text-forest text-[11px] flex items-center justify-between animate-in fade-in shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-0.5">
+                  <span className="w-1 h-3 bg-forest rounded-full animate-bounce" />
+                  <span className="w-1 h-4 bg-forest rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <span className="w-1 h-2 bg-forest rounded-full animate-bounce [animation-delay:0.3s]" />
+                </span>
+                <span className="font-semibold text-ink">
+                  {locale === 'or' ? 'ମୈତ୍ରିୟମ୍ ଉତ୍ତର ପଢୁଛନ୍ତି...' : 'Maitriyam is reading aloud...'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleStopSpeaking}
+                className="px-2 py-0.5 rounded bg-surface border border-rule hover:bg-bg text-[10px] font-semibold text-ink flex items-center gap-1"
+              >
+                <VolumeX size={11} />
+                <span>{locale === 'or' ? 'ବନ୍ଦ କରନ୍ତୁ' : 'Stop Audio'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Active Voice Listening Studio Bar */}
+          {isListening && (
+            <div className="px-3.5 py-2 bg-terracotta/10 border-b border-terracotta/30 text-terracotta text-xs flex items-center justify-between animate-in fade-in shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-terracotta opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-terracotta" />
+                </span>
+                <div>
+                  <div className="font-bold flex items-center gap-1.5">
+                    <Mic size={14} className="animate-bounce" />
+                    <span>
+                      {locale === 'or' ? 'ଶୁଣୁଛି... ଆପଣଙ୍କ ପ୍ରଶ୍ନ କୁହନ୍ତୁ' : 'Listening... Speak your question now'}
+                    </span>
+                  </div>
+                  {voiceTranscript && (
+                    <div className="text-[11px] text-ink italic mt-0.5 font-sans">
+                      &ldquo;{voiceTranscript}&rdquo;
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={stopListening}
+                className="px-2 py-0.5 rounded bg-terracotta text-white text-[10px] font-semibold hover:bg-terracotta/90 transition-colors"
+              >
+                {locale === 'or' ? 'ସମାପ୍ତ' : 'Done'}
+              </button>
+            </div>
+          )}
+
           {/* Odia Review Status Banner */}
-          {locale === 'or' && (
+          {locale === 'or' && !isListening && !isAssistantSpeaking && (
             <div className="bg-warning/10 border-b border-warning/30 px-3 py-1 flex items-center gap-1.5 text-[10px] text-warning font-medium shrink-0">
               <AlertCircle size={12} className="shrink-0" />
               <span>ଓଡ଼ିଆ ଅନୁବାଦ ମାନବୀୟ ଯାଞ୍ଚ ଅପେକ୍ଷାରେ ଅଛି (Pending Human Review).</span>
@@ -441,9 +654,9 @@ export default function MaitriyamLauncher() {
           {/* Conversation Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-bg">
             {messages.length === 0 && (
-              <div className="text-center py-4 px-2 space-y-3">
-                <div className="w-10 h-10 rounded-full bg-forest/10 text-forest mx-auto flex items-center justify-center">
-                  <MessageSquare size={20} />
+              <div className="text-center py-3 px-2 space-y-3">
+                <div className="w-11 h-11 rounded-full bg-forest/10 text-forest mx-auto flex items-center justify-center shadow-xs">
+                  <Sparkles size={22} className="text-forest" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-ink">
@@ -451,8 +664,8 @@ export default function MaitriyamLauncher() {
                   </h4>
                   <p className="text-[11px] text-ink-muted mt-1 leading-relaxed">
                     {locale === 'or'
-                      ? 'ଓଜନ, ଦର ସୂତ୍ର, QR ଯାଞ୍ଚ, B2B ହୋଲସେଲ ଏବଂ ଷ୍ଟୋର୍ କ୍ରୟ ବିଷୟରେ ପଚାରନ୍ତୁ।'
-                      : 'Ask about MSP rates, weighment, QR provenance, B2B wholesale, or store orders.'}
+                      ? '୧୭ ବନଜାତ ଦ୍ରବ୍ୟର ସରକାରୀ ଦର, ଓଜନ, QR ଯାଞ୍ଚ ଏବଂ B2B ହୋଲସେଲ ବିଷୟରେ ପଚାରନ୍ତୁ ବା ମାଇକ୍ ଦବାଇ କୁହନ୍ତୁ।'
+                      : 'Ask about MSP rates for all 17 MFP, certified weighment, QR provenance, or B2B wholesale. Speak aloud or type.'}
                   </p>
                 </div>
 
@@ -461,20 +674,20 @@ export default function MaitriyamLauncher() {
                   <button
                     type="button"
                     onClick={() => handleSend(locale === 'or' ? 'ଆଜିର ମହୁଆ ଦର କେତେ?' : 'What are today rates?')}
-                    className="p-2 rounded-[5px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group"
+                    className="p-2.5 rounded-[6px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group shadow-xs"
                   >
                     <span className="text-[11px] font-bold text-ink group-hover:text-forest block">
                       💰 {locale === 'or' ? 'ଦର ଓ MSP' : 'Rates & MSP'}
                     </span>
                     <span className="text-[10px] text-ink-muted block leading-tight">
-                      {locale === 'or' ? '୧୭ ବନଜାତ ଦ୍ରବ୍ୟର ସରକାରୀ ଦର' : 'Official rates for 17 MFP'}
+                      {locale === 'or' ? 'ମହୁଲ, ଶାଳ, ମହୁ ଓ ଚାରୋଳି ଦର' : 'Mahua, Sal, Honey & Chironji'}
                     </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleSend(locale === 'or' ? 'କ୍ୟୁଆର (QR) କୋଡ୍ କିପରି ଯାଞ୍ଚ ହୁଏ?' : 'How does QR verification work?')}
-                    className="p-2 rounded-[5px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group"
+                    className="p-2.5 rounded-[6px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group shadow-xs"
                   >
                     <span className="text-[11px] font-bold text-ink group-hover:text-forest block">
                       🔍 {locale === 'or' ? 'QR ଯାଞ୍ଚ' : 'Traceability QR'}
@@ -487,7 +700,7 @@ export default function MaitriyamLauncher() {
                   <button
                     type="button"
                     onClick={() => handleSend(locale === 'or' ? 'ହୋଲସେଲ ବା ବଲ୍କ କ୍ରୟ କିପରି ହୁଏ?' : 'How do B2B wholesale orders work?')}
-                    className="p-2 rounded-[5px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group"
+                    className="p-2.5 rounded-[6px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group shadow-xs"
                   >
                     <span className="text-[11px] font-bold text-ink group-hover:text-forest block">
                       📦 {locale === 'or' ? 'B2B ହୋଲସେଲ' : 'B2B Wholesale'}
@@ -500,7 +713,7 @@ export default function MaitriyamLauncher() {
                   <button
                     type="button"
                     onClick={() => handleSend(locale === 'or' ? 'ଲାଭ (LABHA) ଯୋଜନା କ\'ଣ?' : 'What is the LABHA scheme?')}
-                    className="p-2 rounded-[5px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group"
+                    className="p-2.5 rounded-[6px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group shadow-xs"
                   >
                     <span className="text-[11px] font-bold text-ink group-hover:text-forest block">
                       🏛️ {locale === 'or' ? 'ଲାଭ ଯୋଜନା' : 'LABHA Scheme'}
@@ -512,7 +725,7 @@ export default function MaitriyamLauncher() {
                 </div>
 
                 {/* Pilot Disclaimer Pill */}
-                <div className="p-2.5 rounded-[4px] bg-surface border border-rule text-[10px] text-ink-muted text-left space-y-1">
+                <div className="p-2.5 rounded-[5px] bg-surface border border-rule text-[10px] text-ink-muted text-left space-y-1">
                   <div className="font-bold text-ink flex items-center gap-1">
                     <AlertCircle size={12} className="text-accent" />
                     <span>Independent Pilot Notice</span>
@@ -530,13 +743,13 @@ export default function MaitriyamLauncher() {
                 className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
               >
                 <div
-                  className={`max-w-[88%] rounded-[6px] px-3 py-2 text-xs leading-relaxed ${
+                  className={`max-w-[88%] rounded-[6px] px-3.5 py-2.5 text-xs leading-relaxed ${
                     m.sender === 'user'
                       ? 'bg-forest text-white'
                       : 'bg-surface border border-rule text-ink shadow-sm'
                   }`}
                 >
-                  <p>{m.text}</p>
+                  <p className="whitespace-pre-wrap">{m.text}</p>
 
                   {/* Structured Assistant Cards */}
                   {m.cards && m.cards.length > 0 && (
@@ -544,7 +757,7 @@ export default function MaitriyamLauncher() {
                       {m.cards.map((c, cIdx) => (
                         <div
                           key={cIdx}
-                          className="p-2.5 rounded-[5px] bg-bg border border-rule space-y-2 text-ink shadow-xs"
+                          className="p-2.5 rounded-[6px] bg-bg border border-rule space-y-2 text-ink shadow-xs"
                         >
                           <div className="flex items-start justify-between gap-1.5">
                             <div>
@@ -571,7 +784,7 @@ export default function MaitriyamLauncher() {
                           </div>
 
                           {c.items && c.items.length > 0 && (
-                            <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-rule/60 text-[10px]">
+                            <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-rule/60 text-[10px]">
                               {c.items.map((it, itIdx) => (
                                 <div key={itIdx} className="space-y-0.5">
                                   <span className="text-ink-subtle block text-[9px] font-mono uppercase">{it.label}</span>
@@ -599,16 +812,27 @@ export default function MaitriyamLauncher() {
 
                   {/* Actions Bar for Assistant Answers */}
                   {m.sender === 'assistant' && (
-                    <div className="mt-2 pt-1.5 border-t border-rule/50 flex items-center justify-between gap-2 text-[10px] text-ink-muted">
+                    <div className="mt-2.5 pt-1.5 border-t border-rule/50 flex items-center justify-between gap-2 text-[10px] text-ink-muted">
                       <div className="flex items-center gap-2">
-                        {/* Audio Playback */}
+                        {/* Audio Playback Button */}
                         <button
                           type="button"
-                          onClick={() => speakAloud(m.text, locale === 'or' ? 'or-IN' : 'en-IN')}
+                          onClick={() => {
+                            if (isAssistantSpeaking) {
+                              handleStopSpeaking();
+                            } else {
+                              speakAloud(
+                                m.text,
+                                locale === 'or' ? 'or-IN' : 'en-IN',
+                                () => setIsAssistantSpeaking(true),
+                                () => setIsAssistantSpeaking(false)
+                              );
+                            }
+                          }}
                           className="hover:text-accent flex items-center gap-1 transition-colors"
                           title="Listen to this answer"
                         >
-                          <Volume2 size={12} />
+                          <Volume2 size={12} className={isAssistantSpeaking ? 'text-forest animate-pulse' : ''} />
                           <span>{locale === 'or' ? 'ଶୁଣନ୍ତୁ' : 'Listen'}</span>
                         </button>
 
@@ -644,7 +868,7 @@ export default function MaitriyamLauncher() {
 
                   {/* Citation Pills */}
                   {m.citations && m.citations.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {m.citations.map((cite, idx) => (
                         <span
                           key={idx}
@@ -671,7 +895,7 @@ export default function MaitriyamLauncher() {
           </div>
 
           {/* Contextual Suggestions Bar */}
-          {suggestedQuestions.length > 0 && (
+          {suggestedQuestions.length > 0 && !isListening && (
             <div className="p-2 border-t border-rule bg-surface/90 flex items-center gap-1.5 overflow-x-auto text-[11px] shrink-0">
               <span className="text-[10px] font-mono text-ink-subtle uppercase shrink-0">Tap:</span>
               {suggestedQuestions.map((q, idx) => (
@@ -687,32 +911,13 @@ export default function MaitriyamLauncher() {
             </div>
           )}
 
-          {/* Active Voice Listening Banner */}
-          {isListening && (
-            <div className="px-3 py-1.5 bg-terracotta/10 border-t border-terracotta/30 text-terracotta text-[11px] flex items-center justify-between animate-pulse shrink-0">
-              <div className="flex items-center gap-1.5 font-medium">
-                <Mic size={14} className="animate-bounce" />
-                <span>
-                  {locale === 'or' ? 'ଶୁଣୁଛି... ଆପଣଙ୍କ ପ୍ରଶ୍ନ କୁହନ୍ତୁ' : 'Listening... Speak your question now'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={toggleVoiceInput}
-                className="text-[10px] underline font-semibold"
-              >
-                {locale === 'or' ? 'ବନ୍ଦ କରନ୍ତୁ' : 'Stop'}
-              </button>
-            </div>
-          )}
-
           {/* Input Area */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSend();
             }}
-            className="p-2 bg-surface border-t border-rule flex items-center gap-1.5 shrink-0"
+            className="p-2.5 bg-surface border-t border-rule flex items-center gap-2 shrink-0"
           >
             <label htmlFor="maitriyam-chat-input" className="sr-only">
               {locale === 'or' ? 'ପ୍ରଶ୍ନ ଲେଖନ୍ତୁ' : 'Ask a question'}
@@ -724,7 +929,7 @@ export default function MaitriyamLauncher() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={
                 isListening
-                  ? locale === 'or' ? 'ଶୁଣୁଛି...' : 'Listening...'
+                  ? locale === 'or' ? 'ଶୁଣୁଛି...' : 'Listening to your voice...'
                   : locale === 'or' ? 'ପ୍ରଶ୍ନ ଲେଖନ୍ତୁ ବା ମାଇକ୍ ଦବାନ୍ତୁ...' : 'Ask a question or tap mic...'
               }
               className="flex-1 px-3 py-1.5 rounded-[4px] border border-rule bg-bg text-xs text-ink focus:outline-2 focus:outline-accent"
@@ -732,26 +937,26 @@ export default function MaitriyamLauncher() {
             />
 
             {/* Voice Microphone Input Button */}
-            <button
-              type="button"
-              onClick={toggleVoiceInput}
-              disabled={!voiceSupported || isSending}
-              aria-label={isListening ? 'Stop listening' : 'Start voice speech input'}
-              title={
-                !voiceSupported
-                  ? 'Voice speech recognition not supported in browser'
-                  : isListening
-                  ? 'Stop recording'
-                  : 'Speak question aloud'
-              }
-              className={`h-8 w-8 rounded-[4px] flex items-center justify-center transition-all shrink-0 ${
-                isListening
-                  ? 'bg-terracotta text-white animate-pulse shadow-md ring-2 ring-terracotta/40'
-                  : 'border border-rule hover:border-forest/60 bg-bg text-ink-muted hover:text-forest'
-              }`}
-            >
-              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
-            </button>
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={toggleVoice}
+                disabled={isSending}
+                aria-label={isListening ? 'Stop listening' : 'Start voice speech input'}
+                title={
+                  isListening
+                    ? 'Stop listening'
+                    : 'Speak question aloud (Auto-submits)'
+                }
+                className={`h-8 w-8 rounded-[4px] flex items-center justify-center transition-all shrink-0 ${
+                  isListening
+                    ? 'bg-terracotta text-white animate-pulse shadow-md ring-2 ring-terracotta/40'
+                    : 'border border-rule hover:border-forest/60 bg-bg text-ink-muted hover:text-forest'
+                }`}
+              >
+                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
+            )}
 
             {/* Send Button */}
             <button
