@@ -1,89 +1,135 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+Oriya:wght@400;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   /* ========================================================
-     SAMAGNA PREMIUM DESIGN SYSTEM TOKENS (PHASE 1 PALETTE)
+     SAMAGNA PREMIUM DESIGN SYSTEM TOKENS
      ======================================================== */
   
-  /* Primary Foundation Palette */
-  --color-forest: #2D4F1E;        /* Forest Green: Primary brand, major CTAs, navigation */
-  --color-deep-forest: #25351F;   /* Deep Forest: Heavy dark sections, sidebar background */
-  --color-cream: #F5E6CC;         /* Warm Cream: Main editorial background, parchment sections */
-  --color-terracotta: #E27D60;    /* Terracotta: Warm natural accents, badges, highlights */
-  --color-terracotta-deep: #B84E34; /* Deep Terracotta: High-contrast text on cream/white (>4.5:1) */
-  --color-charcoal: #4A4A4A;      /* Charcoal: Secondary text, dark accents */
-  --color-charcoal-deep: #1F1A14; /* Deep Charcoal: Primary body text (>12:1 on cream & white) */
-  
-  /* Supporting Palette */
-  --color-warm-white: #FFFAF2;    /* Warm White: Clean organic canvas */
-  --color-sand: #E9DDC9;          /* Muted Sand: Subdued secondary surface, table zebra, input bg */
-  --color-soft-border: #D7D2C8;   /* Soft Border: Hairline dividers, tactile cards */
+  /* Foundation Canopy Tokens (Hero & Deep Dark Sections) */
+  --canopy-deepest: #0D170A;
+  --canopy-deep: #152410;
+  --canopy-light: #203A15;
+  --forest-primary: #2D4F1E;
+  --forest-hover: #203A15;
+  --forest-surface: #25351F;
 
-  /* Semantic Design Tokens (Phase 1 Specification) */
-  --color-primary: #2D4F1E;
-  --color-primary-hover: #25351F;
+  /* Foundation Light Tokens (Parchment & Canvas) */
+  --canvas-warm: #FFFAF2;
+  --parchment: #F5E6CC;
+  --sand-sunken: #E9DDC9;
+  --border-soft: #D7D2C8;
+  --border-subtle: #E6E1D8;
+
+  /* Accent Palette (Terracotta Earth) */
+  --terracotta-primary: #E27D60;
+  --terracotta-hover: #D66D50;
+  --terracotta-deep: #B84E34;     /* Guaranteed >4.5:1 WCAG AA contrast on white/parchment */
+  --terracotta-tint: #FCF1ED;
+
+  /* Typography Ink Hierarchy */
+  --ink-primary: #1F1A14;          /* >14:1 contrast on white, >11:1 on parchment */
+  --ink-muted: #4A4A4A;            /* >6.2:1 contrast on white */
+  --ink-subtle: #6B655B;           /* >4.5:1 contrast on white (WCAG AA compliant) */
+  --ink-inverse: #FFFAF2;          /* Clean cream text on dark canopy */
+  --ink-inverse-muted: #D7D2C8;
+
+  /* Backward Compatibility Aliases */
+  --color-forest: var(--forest-primary);
+  --color-deep-forest: var(--canopy-deep);
+  --color-cream: var(--parchment);
+  --color-terracotta: var(--terracotta-primary);
+  --color-terracotta-deep: var(--terracotta-deep);
+  --color-charcoal: var(--ink-muted);
+  --color-charcoal-deep: var(--ink-primary);
+  --color-warm-white: var(--canvas-warm);
+  --color-sand: var(--sand-sunken);
+  --color-soft-border: var(--border-soft);
+
+  --color-primary: var(--forest-primary);
+  --color-primary-hover: var(--forest-hover);
   --color-primary-foreground: #FFFFFF;
-  --color-background: #FFFAF2;
+  --color-background: var(--canvas-warm);
   --color-surface: #FFFFFF;
-  --color-surface-muted: #E9DDC9;
-  --color-text: #1F1A14;
-  --color-text-muted: #4A4A4A;
-  --color-border: #D7D2C8;
-  --color-accent: #E27D60;
+  --color-surface-muted: var(--sand-sunken);
+  --color-text: var(--ink-primary);
+  --color-text-muted: var(--ink-muted);
+  --color-border: var(--border-soft);
+  --color-accent: var(--terracotta-primary);
   --color-accent-foreground: #FFFFFF;
-  --color-success: #2E5C2D;
-  --color-warning: #854C0E;
-  --color-danger: #8E2F26;
-  --color-info: #234252;
-  --color-focus: #E27D60;
+  --color-focus: var(--terracotta-primary);
 
-  /* Aliased System Tokens for Backwards Compatibility */
-  --bg: #FFFAF2;
-  --bg-cream: #F5E6CC;
-  --bg-sunken: #E9DDC9;
+  --bg: var(--canvas-warm);
+  --bg-cream: var(--parchment);
+  --bg-sunken: var(--sand-sunken);
   --surface: #FFFFFF;
-  --ink: #1F1A14;
-  --ink-muted: #4A4A4A;
-  --ink-subtle: #6B655B;
-  --rule: #D7D2C8;
+  --ink: var(--ink-primary);
+  --ink-muted: var(--ink-muted);
+  --ink-subtle: var(--ink-subtle);
+  --rule: var(--border-soft);
 
-  /* Primary Brand Action Tokens */
-  --forest: #2D4F1E;
-  --forest-hover: #25351F;
+  --forest: var(--forest-primary);
+  --forest-hover: var(--forest-hover);
   --forest-ink: #FFFFFF;
 
-  --leaf: #2D4F1E;
-  --leaf-hover: #25351F;
+  --leaf: var(--forest-primary);
+  --leaf-hover: var(--forest-hover);
   --leaf-tint: #F4F8F0;
-  --leaf-ink: #2D4F1E;
+  --leaf-ink: var(--forest-primary);
 
-  --accent: #2D4F1E;
-  --accent-hover: #25351F;
+  --accent: var(--forest-primary);
+  --accent-hover: var(--forest-hover);
   --accent-tint: #F4F8F0;
   --accent-ink: #FFFFFF;
 
-  /* Semantic Status Tokens */
+  /* Statutory Status Tokens */
+  --status-success: #2E5C2D;
+  --status-success-bg: #EDF5EC;
+  --status-warning: #854C0E;
+  --status-warning-bg: #FEF9C3;
+  --status-danger: #8E2F26;
+  --status-danger-bg: #FEE2E2;
+  --status-info: #234252;
+  --status-info-bg: #E0F2FE;
+
   --success: #2E5C2D;
   --warning: #854C0E;
   --danger: #8E2F26;
   --info: #234252;
 
   /* Sidebar Tokens */
-  --sidebar-bg: #25351F;
-  --sidebar-ink: #F5E6CC;
+  --sidebar-bg: var(--forest-surface);
+  --sidebar-ink: var(--parchment);
   --sidebar-rule: rgba(245, 230, 204, 0.16);
 
-  /* Typography Stacks (Phase 2 Specification) */
-  --font-serif: 'Fraunces', Georgia, serif;
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Fraunces', 'Manrope', Georgia, serif;
-  --font-odia: 'Noto Sans Odia', 'Noto Sans Oriya', 'Kalinga', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Radii Scale */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-pill: 9999px;
+
+  /* Elevation & Shadows (Organic Forest Tints) */
+  --shadow-2xs: 0 1px 2px 0 rgba(21, 36, 16, 0.04);
+  --shadow-xs: 0 1px 3px 0 rgba(21, 36, 16, 0.06), 0 1px 2px -1px rgba(21, 36, 16, 0.04);
+  --shadow-card: 0 2px 6px -1px rgba(21, 36, 16, 0.08), 0 1px 4px -1px rgba(21, 36, 16, 0.04);
+  --shadow-elevated: 0 8px 24px -4px rgba(21, 36, 16, 0.12), 0 4px 8px -2px rgba(21, 36, 16, 0.06);
+  --shadow-modal: 0 20px 48px -12px rgba(13, 23, 10, 0.35);
+
+  /* Z-Index Layer Hierarchy */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 40;
+  --z-drawer-backdrop: 50;
+  --z-drawer: 60;
+  --z-modal-backdrop: 70;
+  --z-assistant: 75;
+  --z-modal: 80;
+  --z-toast: 90;
+  --z-tooltip: 100;
 }
 
 /* Global resets for ledger aesthetic */
@@ -134,6 +180,56 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   line-height: 1.25;
   color: var(--ink);
   letter-spacing: -0.015em;
+}
+
+/* Sticky header anchor offset */
+.scroll-mt-header {
+  scroll-margin-top: 5rem;
+}
+@media (min-width: 640px) {
+  .scroll-mt-header {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/* Accessible minimum touch target (44x44px) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Fluid typography clamp utility classes */
+.type-display-hero {
+  font-size: clamp(2.125rem, 1.45rem + 3.1vw, 4.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.type-h1 {
+  font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.type-h2 {
+  font-size: clamp(1.35rem, 1.15rem + 1.1vw, 2.0rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.type-h3 {
+  font-size: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
+  line-height: 1.35;
+}
+.type-body-lead {
+  font-size: clamp(1.0rem, 0.95rem + 0.3vw, 1.1875rem);
+  line-height: 1.6;
+}
+.type-body {
+  font-size: clamp(0.875rem, 0.85rem + 0.15vw, 1.0rem);
+  line-height: 1.6;
+}
+.type-label {
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
 }
 
 /* Focus styles: Terracotta ring 2px, 2px offset, never suppressed */

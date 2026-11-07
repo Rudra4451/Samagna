@@ -1,7 +1,27 @@
 import type { Metadata } from 'next';
+import { Fraunces, Manrope, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { BanaSetuProvider } from '../context/BanaSetuContext';
 import MaitriyamLauncher from '@/components/maitriyam/MaitriyamLauncher';
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +67,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="bg-bg text-ink antialiased">
-      <body className="min-h-screen bg-bg text-ink font-sans selection:bg-cream selection:text-forest">
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${manrope.variable} ${ibmPlexMono.variable} bg-bg text-ink antialiased selection:bg-cream selection:text-forest`}
+    >
+      <body className="min-h-dvh bg-bg text-ink font-sans selection:bg-cream selection:text-forest">
         <BanaSetuProvider>
           {children}
           <MaitriyamLauncher />
