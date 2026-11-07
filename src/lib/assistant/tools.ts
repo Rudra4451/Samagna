@@ -16,10 +16,16 @@ export const GetRateCardSchema = z.object({
 });
 
 export async function toolGetRateCard(input: z.infer<typeof GetRateCardSchema>): Promise<ToolResult> {
-  const norm = input.produceCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const product = ODISHA_MFP_CATALOGUE.find(
-    (p) => p.slug.toLowerCase().includes(norm) || p.nameEnglish.toLowerCase().includes(norm)
-  ) || ODISHA_MFP_CATALOGUE[0];
+  const raw = input.produceCode.toLowerCase().trim();
+  const clean = raw.replace(/[^a-z0-9]/g, '');
+  const product =
+    ODISHA_MFP_CATALOGUE.find(
+      (p) =>
+        p.slug === raw ||
+        p.slug.replace(/[^a-z0-9]/g, '') === clean ||
+        p.slug.includes(raw) ||
+        p.nameEnglish.toLowerCase().includes(raw)
+    ) || ODISHA_MFP_CATALOGUE[0];
 
   return {
     data: {

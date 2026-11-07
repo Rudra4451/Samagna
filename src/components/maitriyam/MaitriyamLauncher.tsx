@@ -103,34 +103,39 @@ export default function MaitriyamLauncher() {
 
   // Load configuration and diagnostics
   useEffect(() => {
-    async function init() {
-      if (typeof window !== 'undefined') {
-        setIsOffline(!navigator.onLine);
-        const handleOnline = () => setIsOffline(false);
-        const handleOffline = () => setIsOffline(true);
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        return () => {
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-        };
-      }
+    if (typeof window === 'undefined') return;
 
+    setIsOffline(!navigator.onLine);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    async function init() {
       try {
         const res = await fetch('/api/assistant/config');
         if (res.ok) {
           const cfg = await res.json();
-          setEnabled(cfg.enabled);
+          setEnabled(cfg.enabled !== false);
         }
       } catch {
         // Fallback to local offline mode
       }
 
-      const diag = await getLocalSyncDiagnostics();
-      setDiagnostics(diag);
+      try {
+        const diag = await getLocalSyncDiagnostics();
+        setDiagnostics(diag);
+      } catch {
+        // Standby
+      }
     }
 
     init();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   // Update contextual suggestions when route or language changes
@@ -347,9 +352,9 @@ export default function MaitriyamLauncher() {
       return;
     }
 
-    // Online request with AbortController 4s timeout
+    // Online request with AbortController 15s timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     // Primary endpoint selection:
     // If surface is public, store, or trade, prefer public endpoint
@@ -469,7 +474,13 @@ export default function MaitriyamLauncher() {
 
       {/* Floating Launcher Button (visible when modal is closed) */}
       {!isOpen && (
-        <div id="maitriyam-launcher" data-maitriyam-root className="fixed bottom-4 right-4 z-[9999] print:hidden no-print font-sans">
+        <div
+          id="maitriyam-launcher"
+          data-maitriyam-root
+          className={`fixed ${
+            surface === 'collector' ? 'bottom-20 sm:bottom-5' : 'bottom-4 sm:bottom-5'
+          } right-3 sm:right-5 z-[9999] print:hidden no-print font-sans`}
+        >
           <div className="flex items-center gap-1.5 shadow-xl rounded-full bg-[#25351F] border border-[#2D4F1E]/50 p-1.5 backdrop-blur-sm">
             {/* Quick Voice Launch Button */}
             {voiceSupported && (
@@ -518,7 +529,7 @@ export default function MaitriyamLauncher() {
           role="dialog"
           aria-label="Maitriyam In-App Assistant"
           data-maitriyam-modal
-          className="fixed inset-x-3 bottom-3 top-16 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans print:hidden no-print"
+          className="fixed inset-x-2 bottom-2 top-14 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[580px] sm:max-h-[85vh] z-[9999] bg-surface border border-rule rounded-[12px] shadow-2xl flex flex-col overflow-hidden font-sans print:hidden no-print"
         >
           {/* Header */}
           <div className="px-4 py-3 bg-[#25351F] text-white flex items-center justify-between border-b border-[#2D4F1E] shrink-0">
@@ -696,14 +707,27 @@ export default function MaitriyamLauncher() {
                 <div className="grid grid-cols-2 gap-2 text-left pt-1">
                   <button
                     type="button"
-                    onClick={() => handleSend(locale === 'or' ? 'ଆଜିର ମହୁଆ ଦର କେତେ?' : 'What are today rates?')}
+                    onClick={() => handleSend(locale === 'or' ? 'ଡେମୋ ଲଗଇନ୍ ଆକାଉଣ୍ଟ କେଉଁଗୁଡ଼ିକ?' : 'How do I login with demo accounts?')}
+                    className="p-2.5 rounded-[6px] border border-forest/30 bg-[#25351F]/5 hover:bg-[#25351F]/10 transition-colors space-y-0.5 text-left group shadow-xs col-span-2"
+                  >
+                    <span className="text-[11px] font-bold text-forest block">
+                      🔑 {locale === 'or' ? '୧-କ୍ଲିକ୍ ଡେମୋ ଲଗଇନ୍' : '1-Click Demo Login Personas'}
+                    </span>
+                    <span className="text-[10px] text-ink-muted block leading-tight">
+                      {locale === 'or' ? 'ପାସୱାର୍ଡ Test@Pass123 ସହ ସମସ୍ତ ଭୂମିକା ଟେଷ୍ଟ କରନ୍ତୁ' : 'Collector, Depot Manager, Admin & B2B (Test@Pass123)'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSend(locale === 'or' ? 'ଆଜିର ମହୁଆ ଓ ତେନ୍ତୁଳି ଦର କେତେ?' : 'What are today rates?')}
                     className="p-2.5 rounded-[6px] border border-rule hover:border-forest/60 bg-surface hover:bg-bg transition-colors space-y-0.5 text-left group shadow-xs"
                   >
                     <span className="text-[11px] font-bold text-ink group-hover:text-forest block">
                       💰 {locale === 'or' ? 'ଦର ଓ MSP' : 'Rates & MSP'}
                     </span>
                     <span className="text-[10px] text-ink-muted block leading-tight">
-                      {locale === 'or' ? 'ମହୁଲ, ଶାଳ, ମହୁ ଓ ଚାରୋଳି ଦର' : 'Mahua, Sal, Honey & Chironji'}
+                      {locale === 'or' ? '୧୭ ବନଜାତ ଦ୍ରବ୍ୟର ସରକାରୀ ଦର' : 'Mahua, Tamarind, Sal & Honey'}
                     </span>
                   </button>
 
