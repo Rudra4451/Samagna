@@ -1,6 +1,7 @@
 {
-  "name": "bana-setu",
+  "name": "samagna",
   "version": "0.1.0",
+  "description": "Samagna · ସମଗ୍ନ — Minor forest produce procurement, custody tracking and B2B trade for TDCCOL/LABHA, Mayurbhanj, Odisha.",
   "private": true,
   "scripts": {
     "dev": "next dev",
