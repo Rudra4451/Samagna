@@ -254,3 +254,55 @@ export async function toolGetPermissionMatrix(input: z.infer<typeof GetPermissio
     asOf: new Date().toISOString().split('T')[0],
   };
 }
+
+// ----------------------------------------------------------------------------
+// 6. getQualityStandards (Certified Moisture & Transit Shrinkage)
+// ----------------------------------------------------------------------------
+export const GetQualityStandardsSchema = z.object({
+  produceCode: z.string().min(1),
+});
+
+export async function toolGetQualityStandards(input: z.infer<typeof GetQualityStandardsSchema>): Promise<ToolResult> {
+  const norm = input.produceCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const product = ODISHA_MFP_CATALOGUE.find(
+    (p) => p.slug.toLowerCase().includes(norm) || p.nameEnglish.toLowerCase().includes(norm)
+  ) || ODISHA_MFP_CATALOGUE[0];
+
+  return {
+    data: {
+      produceCode: product.slug,
+      produceName: product.nameEnglish,
+      produceOdia: product.nameOdia,
+      maxMoisturePercent: product.baselineMoistureMaxPercent,
+      allowableShrinkagePercent: product.allowableShrinkagePercent,
+      standardPackaging: product.standardPackaging,
+      typicalTareKg: product.typicalTareKgPerBag,
+      harvestSeason: product.primaryHarvestSeason,
+    },
+    sourceRef: 'TDCCOL Certified Quality & Transit Guidelines',
+    asOf: new Date().toISOString().split('T')[0],
+  };
+}
+
+// ----------------------------------------------------------------------------
+// 7. getStoreSummary (Retail & B2B Inventory Availability)
+// ----------------------------------------------------------------------------
+export async function toolGetStoreSummary(): Promise<ToolResult> {
+  const products = ODISHA_MFP_CATALOGUE.slice(0, 5).map((p) => ({
+    name: p.nameEnglish,
+    slug: p.slug,
+    rate: p.currentBenchmarkRatePerKg,
+    packaging: p.standardPackaging,
+  }));
+
+  return {
+    data: {
+      featuredCount: products.length,
+      products,
+      storeUrl: '/store',
+      tradeUrl: '/trade',
+    },
+    sourceRef: 'Samagna Forest Produce Value Chain Catalogue',
+    asOf: new Date().toISOString().split('T')[0],
+  };
+}

@@ -157,6 +157,18 @@ async function runPhase2TestSuite() {
   const c30 = matchKnowledgeBase('ଆଜିର ମହୁଆ ଦର କେତେ?', orEntries, 'COLLECTOR', 'collector', 'or');
   assert(c30.entry?.intent === 'rates_offline', 'Case 30: Odia today rates matches rates_offline');
 
+  // Case 31: B2B wholesale query
+  const c31 = matchKnowledgeBase('How do B2B wholesale orders work?', enEntries, 'PUBLIC', 'public', 'en');
+  assert(c31.entry?.intent === 'b2b_wholesale', 'Case 31: B2B wholesale matches b2b_wholesale');
+
+  // Case 32: Quality and moisture query
+  const c32 = matchKnowledgeBase('What are the moisture limits for produce?', enEntries, 'COLLECTOR', 'collector', 'en');
+  assert(c32.entry?.intent === 'quality_moisture', 'Case 32: Quality and moisture matches quality_moisture');
+
+  // Case 33: LABHA scheme query
+  const c33 = matchKnowledgeBase('What is the LABHA scheme?', enEntries, 'PUBLIC', 'public', 'en');
+  assert(c33.entry?.intent === 'labha_scheme', 'Case 33: LABHA inquiry matches labha_scheme');
+
   // --------------------------------------------------------------------------
   // Group 3: Golden-File Determinism & Tie-Breaker Invariants
   // --------------------------------------------------------------------------
@@ -206,7 +218,7 @@ async function runPhase2TestSuite() {
   assert(avg < 300, 'Match timing is under 300 ms budget (actual: < 5 ms)');
 
   console.log('\n======================================================');
-  console.log('PHASE 2 TEST RESULTS: 38/38 checks passed.');
+  console.log('PHASE 2 TEST RESULTS: 41/41 checks passed.');
   console.log('======================================================\n');
 }
 

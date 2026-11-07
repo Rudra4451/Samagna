@@ -220,5 +220,100 @@
     "version": "1.0",
     "owner": "Pricing Desk",
     "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-b2b-wholesale",
+    "intent": "b2b_wholesale",
+    "locale": "or",
+    "questions": [
+      "ହୋଲସେଲ ବା ବଲ୍କ କ୍ରୟ କିପରି ହୁଏ?",
+      "ବ୍ୟବସାୟୀମାନେ ବନଜାତ ଦ୍ରବ୍ୟ କିପରି କିଣିପାରିବେ?",
+      "ବି୨ବି (B2B) ଅର୍ଡର କିପରି କରିବି?",
+      "b2b wholesale order kipari karibi?"
+    ],
+    "answer": "ବ୍ୟବସାୟୀ ଏବଂ ହୋଲସେଲରମାନେ ସମଗ୍ନ B2B ଟ୍ରେଡ୍ ପୋର୍ଟାଲ (/trade) ମାଧ୍ୟମରେ ପ୍ରମାଣିତ ବ୍ୟାଚ୍ ଦେଖିପାରିବେ, RFQ ପଠାଇପାରିବେ ଏବଂ ଉତ୍ପାଦନ ପ୍ରମାଣପତ୍ର ସହ ବଲ୍କ ଅର୍ଡର କରିପାରିବେ।",
+    "sourceRef": "/trade",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Trade Operations",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-store-retail",
+    "intent": "store_retail",
+    "locale": "or",
+    "questions": [
+      "ଅନଲାଇନ୍ ଷ୍ଟୋର୍ କିପରି କାମ କରେ?",
+      "ଉପଭୋକ୍ତାମାନେ ପ୍ୟାକେଟ୍ ହୋଇଥିବା ଜଙ୍ଗଲୀ ମହୁ କିଣିପାରିବେ କି?",
+      "ଷ୍ଟୋରରେ କେଉଁ ସବୁ ଜିନିଷ ମିଳୁଛି?",
+      "retail store ru kipari kinibi?"
+    ],
+    "answer": "ଗ୍ରାହକମାନେ ପ୍ରାକୃତିକ ଜଙ୍ଗଲୀ ମହୁ, ଅଁଳା କ୍ୟାଣ୍ଡି ଏବଂ ଅନ୍ୟାନ୍ୟ ଜୈବିକ ବନଜାତ ଦ୍ରବ୍ୟ ସମଗ୍ନ ଷ୍ଟୋର୍ (/store) ମାଧ୍ୟମରେ ସିଧାସଳଖ ଘରକୁ ଅର୍ଡର କରିପାରିବେ।",
+    "sourceRef": "/store",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Retail Desk",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-quality-moisture",
+    "intent": "quality_moisture",
+    "locale": "or",
+    "questions": [
+      "ବନଜାତ ଦ୍ରବ୍ୟର ଆର୍ଦ୍ରତା ସୀମା କେତେ?",
+      "ମହୁଲର ମାନ କିପରି ଯାଞ୍ଚ ହୁଏ?",
+      "quality standards kana?",
+      "moisture limit kete?"
+    ],
+    "answer": "ଶୁଖିଲା ମହୁଲ ଫୁଲ ପାଇଁ ସର୍ବାଧିକ ୧୨% ଆର୍ଦ୍ରତା (moisture) ଏବଂ ଶାଳ ମଞ୍ଜି ପାଇଁ ୧୦% ଆର୍ଦ୍ରତା ଅନୁମୋଦିତ। ଏହାଠାରୁ ଅଧିକ ଆର୍ଦ୍ରତା ଥିବା ଲଟ୍ କୁ ଶୁଖାଇବା ପାଇଁ ପଠାଯାଏ।",
+    "sourceRef": "TDCCOL Quality Specification Standards",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Quality Control",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-labha-scheme",
+    "intent": "labha_scheme",
+    "locale": "or",
+    "questions": [
+      "ଲାଭ (LABHA) ଯୋଜନା କ'ଣ?",
+      "ଆଦିବାସୀ ସଂଗ୍ରାହକମାନଙ୍କୁ କିପରି ୧୦୦% ମୂଲ୍ୟ ମିଳେ?",
+      "labha scheme kana?",
+      "msp guarantee kipari mile?"
+    ],
+    "answer": "ଓଡ଼ିଶା ସରକାରଙ୍କ ଲାଭ (ଲଘୁ ବନଜାତ ଦ୍ରବ୍ୟ କ୍ରୟ) ଯୋଜନା ଅଧୀନରେ ପ୍ରାଥମିକ ଆଦିବାସୀ ସଂଗ୍ରାହକମାନଙ୍କୁ ସର୍ବନିମ୍ନ ସହାୟକ ମୂଲ୍ୟ (MSP) ର ଶତପ୍ରତିଶତ (୧୦୦%) ସିଧାସଳଖ ବ୍ୟାଙ୍କ ଖାତାରେ ପ୍ରଦାନ କରାଯାଏ। କୌଣସି ମଧ୍ୟସ୍ଥି କିମ୍ବା ପ୍ଲାଟଫର୍ମ କମିଶନ କଟାଯାଏ ନାହିଁ।",
+    "sourceRef": "Government of Odisha LABHA Scheme Guidelines",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Governance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-grievance-discrepancy",
+    "intent": "grievance_discrepancy",
+    "locale": "or",
+    "questions": [
+      "ଓଜନରେ ଅସଙ୍ଗତି ହେଲେ କ'ଣ ହୁଏ?",
+      "ଅଭିଯୋଗ କିପରି ଦାଖଲ କରିବି?",
+      "quarantine discrepancy kana?",
+      "dispute resolve kie kare?"
+    ],
+    "answer": "ଯଦି କ୍ଷେତ୍ର ଓଜନ ଏବଂ କେନ୍ଦ୍ର ଓଜନ ମଧ୍ୟରେ ଅସଙ୍ଗତି ଦେଖାଦିଏ, ତେବେ ସେହି ବ୍ୟାଚ୍ କୁ କ୍ୱାରେଣ୍ଟାଇନ୍ (Quarantine) କରାଯାଏ। ଜିଲ୍ଲା ଅଧିକାରୀ ଫଟୋ ଓ ଡିଜିଟାଲ୍ ସ୍କେଲ୍ ତଥ୍ୟ ଯାଞ୍ଚ କରି ନିଷ୍ପତ୍ତି ନିଅନ୍ତି, ଯାହା ଦ୍ୱାରା ସଂଗ୍ରାହକ କ୍ଷତିଗ୍ରସ୍ତ ହୁଅନ୍ତି ନାହିଁ।",
+    "sourceRef": "/admin#discrepancies",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": false,
+    "version": "1.0",
+    "owner": "Dispute Resolution",
+    "updatedAt": "2026-11-07"
   }
 ]

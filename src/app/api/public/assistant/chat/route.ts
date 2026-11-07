@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
   let answer = '';
   const citations: string[] = [];
   const toolCalls: any[] = [];
+  const cards: any[] = [];
 
   // Public slot extraction: Verify Code
   const codeMatch = message.match(/(?:#|BS-)(\d{3,4})/i) || message.match(/BS-[A-Z0-9-]+/i);
@@ -63,6 +64,18 @@ export async function POST(req: NextRequest) {
 
     if (verifyRes.data.found) {
       answer = `Verified batch ${code} contains ${verifyRes.data.produceName} collected in ${verifyRes.data.district} District (${verifyRes.data.centerName}). Status: ${verifyRes.data.status}. Primary gatherer personal data is protected under statutory privacy guidelines.`;
+      cards.push({
+        type: 'batch',
+        title: `Verified Batch #${verifyRes.data.code}`,
+        subtitle: `${verifyRes.data.produceName} ${verifyRes.data.produceOdia ? `(${verifyRes.data.produceOdia})` : ''}`,
+        items: [
+          { label: 'Status', value: verifyRes.data.status, highlight: true },
+          { label: 'Provenance', value: `${verifyRes.data.district} (${verifyRes.data.block})` },
+          { label: 'Centre', value: verifyRes.data.centerName },
+        ],
+        badge: { label: verifyRes.data.status, variant: 'success' },
+        link: { href: `/verify/${verifyRes.data.code}`, label: 'Open Provenance Certificate →' },
+      });
     } else {
       answer = `Batch ${code} was not found in the verified public registry. Check the code printed on the physical sack tag.`;
     }
@@ -72,6 +85,44 @@ export async function POST(req: NextRequest) {
     if (match.entry) {
       answer = match.entry.answer;
       citations.push(match.entry.sourceRef);
+
+      if (match.entry.intent === 'b2b_wholesale') {
+        cards.push({
+          type: 'action',
+          title: 'Samagna B2B Trade Portal',
+          subtitle: 'Institutional wholesale procurement & RFQ',
+          items: [
+            { label: 'Catalog', value: 'Live Certified Lots' },
+            { label: 'Orders', value: 'Bulk Contract / RFQ' },
+          ],
+          badge: { label: 'B2B Wholesale', variant: 'info' },
+          link: { href: '/trade', label: 'Browse Wholesale Lots →' },
+        });
+      } else if (match.entry.intent === 'store_retail') {
+        cards.push({
+          type: 'action',
+          title: 'Samagna Retail Store',
+          subtitle: 'Packaged organic forest products',
+          items: [
+            { label: 'Produce', value: 'Wild Honey & Organic MFP' },
+            { label: 'Dispatch', value: 'Direct Consumer Delivery' },
+          ],
+          badge: { label: 'Retail Store', variant: 'success' },
+          link: { href: '/store', label: 'Shop Forest Produce →' },
+        });
+      } else if (match.entry.intent === 'qr_verification') {
+        cards.push({
+          type: 'action',
+          title: 'Public Batch Verification',
+          subtitle: 'Scan QR code or enter lot identifier',
+          items: [
+            { label: 'Provenance', value: 'Certified Tribal Gathering' },
+            { label: 'Data Policy', value: 'Statutory PII Masking' },
+          ],
+          badge: { label: 'Verification', variant: 'neutral' },
+          link: { href: '/verify', label: 'Verify Batch Code →' },
+        });
+      }
     } else {
       answer = "I am an automated guidance assistant for Samagna. I can explain batch QR verification, system mission, and non-affiliation status. For other inquiries, please refer to our /about page.";
       citations.push('/about');
@@ -83,6 +134,7 @@ export async function POST(req: NextRequest) {
     answer: maskAllPii(answer),
     citations,
     toolCalls,
+    cards,
     degraded: false,
     pilotNotice: 'Samagna is an independent demonstration platform; all payments and royalty metrics are simulated.',
     indexVersion: '1.0',

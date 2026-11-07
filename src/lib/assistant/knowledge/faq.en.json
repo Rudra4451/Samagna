@@ -238,5 +238,102 @@
     "version": "1.0",
     "owner": "Pricing Desk",
     "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-b2b-wholesale",
+    "intent": "b2b_wholesale",
+    "locale": "en",
+    "questions": [
+      "How do B2B wholesale orders work?",
+      "How can businesses buy forest produce in bulk?",
+      "What is the wholesale procurement process?",
+      "How do I submit an RFQ?",
+      "Can manufacturers purchase Mahua or Sal Seeds?"
+    ],
+    "answer": "Institutional buyers, manufacturers, and wholesalers can browse certified forest produce lots on the B2B Trade portal (/trade), request bulk quotations (RFQ), and access verified origin certificates with lab test reports.",
+    "sourceRef": "/trade",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Trade Operations",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-store-retail",
+    "intent": "store_retail",
+    "locale": "en",
+    "questions": [
+      "How does the retail store work?",
+      "Can consumers buy packaged forest honey?",
+      "What products are available in the store?",
+      "Where can I buy retail forest products?"
+    ],
+    "answer": "Consumers can purchase sustainably harvested, laboratory-tested forest produce including wild forest honey, organic amla candy, and herbal powders directly through the Samagna Store (/store) with doorstep delivery.",
+    "sourceRef": "/store",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Retail Desk",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-quality-moisture",
+    "intent": "quality_moisture",
+    "locale": "en",
+    "questions": [
+      "What are the moisture limits for produce?",
+      "What is certified quality for Mahua?",
+      "Why is produce checked for moisture?",
+      "What are standard shrinkage allowances?",
+      "What is Fair Average Quality FAQ?"
+    ],
+    "answer": "Each produce has strict quality standards: Dried Mahua Flowers allow a maximum 12% moisture and 1.5% transit shrinkage; Sal Tree Seeds allow 10% moisture and 1.2% shrinkage; Chironji allows 8% moisture. Batches exceeding limits are dried before final bagging.",
+    "sourceRef": "TDCCOL Quality Specification Standards",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Quality Control",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-labha-scheme",
+    "intent": "labha_scheme",
+    "locale": "en",
+    "questions": [
+      "What is the LABHA scheme?",
+      "How does LABHA protect tribal gatherers?",
+      "What is 100 percent MSP guarantee?",
+      "Does Samagna enforce LABHA rules?"
+    ],
+    "answer": "Under the Government of Odisha LABHA (Laghu Bana Jatiya Dradya Kraya) scheme, 100% of the Minimum Support Price (MSP) is disbursed directly to tribal gatherers with 0% platform commission or intermediary deduction. Samagna provides digital traceability to uphold this statutory mandate.",
+    "sourceRef": "Government of Odisha LABHA Scheme Guidelines",
+    "roles": ["PUBLIC", "COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Governance",
+    "updatedAt": "2026-11-07"
+  },
+  {
+    "id": "faq-grievance-discrepancy",
+    "intent": "grievance_discrepancy",
+    "locale": "en",
+    "questions": [
+      "What happens if there is a weight discrepancy?",
+      "How do I file a grievance?",
+      "What is lot quarantine?",
+      "Who resolves weight disputes?"
+    ],
+    "answer": "If aggregation centre weight diverges beyond allowable tolerance from initial field weighment, the lot is placed in Quarantine Discrepancy status. The District DPO/Supervisor Admin reviews scale calibration and evidence photos before resolution, ensuring primary collectors are protected from arbitrary deductions.",
+    "sourceRef": "/admin#discrepancies",
+    "roles": ["COLLECTOR", "SHG_FACILITATOR", "COLLECTION_MANAGER", "WAREHOUSE_MANAGER", "SUPERVISOR_ADMIN"],
+    "surfaces": ["all"],
+    "reviewed": true,
+    "version": "1.0",
+    "owner": "Dispute Resolution",
+    "updatedAt": "2026-11-07"
   }
 ]
